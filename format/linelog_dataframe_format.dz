@@ -1,0 +1,36 @@
+00	Line_Label			s
+01	Ion					s
+02	lambda_theo			.3f
+03	Wave_Peak			.3f
+04	Flux_Int			e
+05	Flux_Gauss			e
+06	Eqw					f
+07	Error_FluxI			e      
+08	Error_FluxG			e
+09	Error_Eqw			f
+10	A					e
+11	mu					f       
+12	sigma				f
+13	h3_skewness			f
+14	h4_kurtosis			f
+15	A_err				e
+16	mu_err				f
+17	sigma_err			f
+18	h3_skewness_err		f	
+19	h4_kurtosis_err		f
+20	Continuum_Median	e
+21	Continuum_m			e
+22	Continuum_n			e        
+23	Continuum_Width		f
+24	Continuum_sigma		e
+25	Blended_Set			s
+26	Wide_component		s
+26	Wave1				f
+27	Wave2				f
+28	Wave3				f
+29	Wave4				f
+30	Wave5				f
+31	Wave6				f       
+32	Comments			s
+ 
+  

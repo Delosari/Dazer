@@ -1,0 +1,83 @@
+objcode; 		Object Code; 									None
+obscode;		Code for the observation night;					None
+obsfolder;		Folder where the observations come from;		None
+calibration; 	Object Calibration to favor;					None
+calibration_star; Telluric star employed in the calibration; 	None
+telluric_star;	Telluric star favoured in the calibration;		None
+Standard_stars;	Standard stars available in the night;			None
+Blue_file; 		Blue arm reduced spectrum; 						None
+Red_file; 		Red arm reduced spectrum; 						None
+tellRed_file;	Red arm file corrected from telluric emission;	None
+tell_correction;Type of telluric correction to apply;			None
+zBlue_file;		Redshifted blue arm spectrum; 					None
+zRed_file; 		Redshifted red arm spectrum; 					None
+reduc_tag;		Reduction tag on the files;						None
+reduction_fits; Combined fits file redshift corrected;			None	
+nebular_fits; 	Combined fits file without nebular emission;	None
+stellar_fits;	Combined fits file without stellar emission; 	None
+aperture;		Number of apertures in fits file;				None
+Blue_Grating; 	Blue arm gratting; 								None
+Red_Grating; 	Red arm gratting; 								None
+Blue_CENWAVE; 	Blue arm central wavelength; 					None
+Red_CENWAVE; 	Red arm central wavelength; 					None
+Dichroic; 		Dichroic arm used; 								None
+RA; 			Right ascension coordinates; 					None
+DEC; 			Declination coordinates; 						None
+EQUINOX; 		Equinox coordinates; 							None
+UT_OBS; 		Observation time; 								None
+Wmin_Blue; 		Blue arm low limit wavelength; 					None
+Wmax_Blue; 		Blue arm high limit wavelength; 				None
+Wmin_Red; 		Red arm low limit wavelength; 					None
+Wmax_Red; 		Red arm high limit wavelength; 					None
+h_gamma_valid; 	lines at the spectrum edge can be considered;	None
+join_wavelength; Matching wavelength between arms; 				None
+z_Blue; 		Redshift measured from blue spectrum; 			None
+z_Red; 			Redshift measured from red spectrum; 			None
+z_obj; 			Redshift from SDSS; 							None
+EBV_galactic; 	E(B-V) from dust; 								None
+cHbeta_reduc; 	Reddening coefficient from reduced spectrum; 	None
+R_SII;			Ratio [SII] lines; 								None
+R_SII_prime;	Ratio [SII] 4000 lines; 						None
+R_SIII;			Ratio [SIII] lines; 							None
+R_NII;			Ratio [NII] lines; 								None
+R_OII;			Ratio [OII] lines; 								None
+R_OII_prime;	Ratio [OII] 7000 lines;	 						None
+R_OIII;			Ratio [OIII] lines; 							None
+neSII; 			SII electron density; 							$n_e([SII])$
+neOII; 			OII electron density; 							$n_e([OII])$
+TeOII; 			OII electron temperature; 						$T_e([OII])$
+TeSII; 			SII electron temperature; 						$T_e([SII])$
+TeNII; 			NII electron temperature; 						$T_e([NII])$
+TeOIII; 		TOIII electron temperature; 					$T_e([OIII])$
+TeSIII; 		TSIII electron temperature; 					$T_e([SIII])$
+TeOII_from_TeOIII;	TeOII empirical approximation from TeOIII;	$T_e([OII])_{(Te[OIII])}$
+TeNII_from_TeOIII;	NTeNII empirical approximation from TeOIII;	$T_e([NII])_{(Te[OIII])}$
+TeSIII_from_TeOIII;	TeSIII empirical approximation from TeOIII;	$T_e([SIII])_{(Te[OIII])}$
+TeOIII_from_TeSIII;	TeOIII empirical approximation from TeSIII;	$T_e([SIII])_{(Te[OIII])}$
+SII_HII; 		SII_HII ionic abundance; 						None
+SIII_HII; 		SIII_HII ionic abundance; 						None
+SIV_HII; 		SIV_HII ionic abundance; 						None
+OII_HII; 		OII_HII ionic abundance; 						None
+OII_HII_3279A; 	OII_HII ionic abundance from 3000 A line; 		None
+OII_HII_7319A; 	OII_HII ionic abundance from 7000 A line; 		None
+OIII_HII;		OIII_HII ionic abundance;						None
+NII_HII; 		NII_HII ionic abundance; 						None
+ArIII_HII;  	ArIII_HII ionic abundance; 						None
+ArIV_HII;  		ArIV_HII ionic abundance; 						None
+HeII_HII_from_O;	HeII_HII ionic abundance from Oxygen data; 	None
+HeIII_HII_from_O;  	HeIII_HII ionic abundance from Oxygen data; None
+HeII_HII_from_S;  	HeII_HII ionic abundance from Sulfur data; 	None
+HeIII_HII_from_S;  	HeIII_HII ionic abundance from Sulfur data; None
+SI_HI;  		SI_HI abundance; 								None
+OI_HI;  		OI_HI abundance; 								None
+NI_OI;  		NI_OI abundance; 								None
+NI_HI;  		NI_HI abundance; 								None
+HeI_HI_from_O;  HeI_HI abundance from Oxygen data; 				None
+HeI_HI_from_S;  HeI_HI abundance from Sulfur data; 				None
+Ymass_O;  Helium mass fraction from Oxygen data; 				None
+Ymass_S;  Helium mass fraction from Sulfur data; 				None
+
+
+
+
+
