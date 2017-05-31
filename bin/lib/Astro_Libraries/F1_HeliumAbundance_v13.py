@@ -4,7 +4,6 @@ import pymc
 from CodeTools.PlottingManager                              import myPickle
 from Astro_Libraries.Abundances_InferenceModel_Helium_v13   import HeAbundance_InferenceStructure
 
-
 #Default address to store the data
 Config              = '1000_100_NebularContinuum'
 Databases_Folder    = '/home/vital/Desktop/db_Testing/'

@@ -38,7 +38,13 @@ class Dazer(Plot_Conf, File_Manager, Fitter, ImportConfiguration, LineMesurer, L
         #Extra functions
         vitools.__init__(self)
         Error_manager.__init__(self)
-             
+    
+    def load_reduction_tools(self):
+        
+        spectra_reduction.__init__(self) #WARNING: I need a new place to put this
+        
+        return
+        
     def import_catalogue(self):
         
         Catalogue = DataToTreat()

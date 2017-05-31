@@ -2209,14 +2209,7 @@ class spectra_reduction(fits_plots, pyraf_task_configuration):
         pyraf_task_configuration.__init__(self)
 
         #Declare the catalogue (This should be done from a graphical intervace)
-        #self.Catalogue_folder                 = '/home/vital/Astrodata/WHT_2011_11/Night1_Elena/' #Te has quedado en el flat global y hacer las raras [71] [3] combinadas
-        self.Catalogue_folder                   = '/home/vital/Astrodata/WHT_2016_04/Night1/'
-#         self.Catalogue_folder                 = '/home/vital/Astrodata/WHT_2008_01/Night2/'
-        #self.Catalogue_folder                 = '/home/vital/Astrodata/WHT_2009_07/Night1/'
-        #self.Catalogue_folder                 = '/home/vital/Astrodata/WHT_2011_01/Night2/'
-        #self.Catalogue_folder                  = '/home/vital/Astrodata/WHT_2011_09/Night1/'
-        #self.Catalogue_folder                 = '/home/vital/Astrodata/WHT_2011_11/Night1/'
-        #self.Catalogue_folder                 = '/home/vital/Astrodata/WHT_2016_10/'
+        self.get_observation_folder()
 
         self.observation_properties_file_name   = 'observation_properties.txt'
         
@@ -2253,7 +2246,20 @@ class spectra_reduction(fits_plots, pyraf_task_configuration):
         self.default_Folders_dict['raw data']   = 'raw_fits'
         self.default_Folders_dict['telescope']  = 'conf_frames'
         self.default_Folders_dict['reduc_data'] = 'reduc_data'
-                
+    
+    def get_observation_folder(self):
+        
+        self.Catalogue_folder   ='/home/vital/Astrodata/WHT_2011_11_er_propagation/Night1/'
+        self.Catalogue_folder   = '/home/vital/Astrodata/WHT_2016_04/Night1/'
+        #self.Catalogue_folder  = '/home/vital/Astrodata/WHT_2008_01/Night2/'
+        #self.Catalogue_folder  = '/home/vital/Astrodata/WHT_2009_07/Night1/'
+        #self.Catalogue_folder                 = '/home/vital/Astrodata/WHT_2011_01/Night2/'
+        #self.Catalogue_folder                  = '/home/vital/Astrodata/WHT_2011_09/Night1/'
+        #self.Catalogue_folder                 = '/home/vital/Astrodata/WHT_2011_11/Night1/'
+        #self.Catalogue_folder                 = '/home/vital/Astrodata/WHT_2016_10/'
+      
+        return 
+             
     def target_validity_check(self):
 
         #Check if the targets are valid and they belong to the objects we want to treat

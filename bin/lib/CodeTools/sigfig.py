@@ -2,7 +2,6 @@
 figures.'''
 import types, re, string
 
-
 epat = re.compile(r'^([^e]+)e(.+)$')
 
 def round_sig(x, n, scien_notation = False):

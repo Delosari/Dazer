@@ -1,13 +1,13 @@
 import pickle
 import corner
-from uncertainties                      import UFloat
-from numpy                              import array, arange, zeros, log10, ndarray, percentile, median, string_, where, argsort, sort, unique, max, sum as np_sum
-from collections                        import OrderedDict, Sequence
-from matplotlib                         import image, colors, cm, rcParams, pyplot as plt
-from matplotlib._png                    import read_png
-from matplotlib.offsetbox               import OffsetImage, AnnotationBbox
-from matplotlib import gridspec
-from lib.Math_Libraries.sigfig    import round_sig
+from uncertainties          import UFloat
+from numpy                  import array, arange, zeros, log10, ndarray, percentile, median, string_, where, argsort, sort, unique, max, sum as np_sum
+from collections            import OrderedDict, Sequence
+from matplotlib             import image, colors, cm, rcParams, pyplot as plt
+from matplotlib._png        import read_png
+from matplotlib.offsetbox   import OffsetImage, AnnotationBbox
+from matplotlib             import gridspec
+from sigfig                 import round_sig
 
 class Fig_Conf():
     
@@ -373,7 +373,7 @@ class Plot_Conf(Fig_Conf):
         
         Fig_Conf.__init__(self)
         
-    def data_plot(self, x, y, label = '', color = None, linestyle = None, markerstyle = None, linewidth = None, markersize = None, x_error=None, y_error=None, cmap=None, graph_axis = None):
+    def data_plot(self, x, y, label = '', color = None, linestyle = None, markerstyle = None, linewidth = None, markersize = None, x_error=None, y_error=None, cmap=None, e_style = None, graph_axis = None):
         
         if graph_axis == None:
             Axis = self.Axis
@@ -394,7 +394,7 @@ class Plot_Conf(Fig_Conf):
                 Axis.plot(x, y, label=label, color=color, linestyle=linestyle, marker=markerstyle, linewidth = linewidth)
 #                 print line[-1].get_color()
             else:
-                Axis.errorbar(x, y, label=label, xerr = x_error, yerr = y_error, elinewidth = 1, fmt=markerstyle, ms=markersize, c=color)
+                Axis.errorbar(x, y, label=label, xerr = x_error, yerr = y_error, elinewidth = 1,fmt=markerstyle, ms=markersize, c=color)
         
         elif markerstyle != None:
             if (x_error is None) and (y_error is None): 
@@ -404,8 +404,11 @@ class Plot_Conf(Fig_Conf):
                 else:
                     scatter_data = self.Axis.scatter(x, y, label=label, c=color, marker=markerstyle, s=markersize, cmap=cmap)
             else:
-                Axis.errorbar(x, y, label=label, xerr = x_error, yerr = y_error, elinewidth = 2, fmt=markerstyle, ms=10, c=color)
+                err_plot = Axis.errorbar(x, y, label=label, xerr = x_error, yerr = y_error, elinewidth = 2, fmt=markerstyle, ms=10, c=color)
 
+                if e_style != None:
+                    err_plot[-1][0].set_linestyle(e_style) #eb1[-1][0] is the LineCollection objects of the errorbar lines
+                    err_plot[-1][1].set_linestyle(e_style) #eb1[-1][0] is the LineCollection objects of the errorbar lines
         if cmap != None:
             
             self.cb = plt.colorbar(scatter_data, cmap=cmap)

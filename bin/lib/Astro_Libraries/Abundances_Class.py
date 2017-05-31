@@ -71,6 +71,12 @@ class Chemical_Analysis_pyneb():
         #self.m_SIV_correction   = random.normal(1.109,  0.01, size = self.MC_array_len)
         #self.n_SIV_correction   = random.normal(0.135,  0.0173, size = self.MC_array_len)
  
+        #CHAOS relation TNII-TSIII
+        #T[SIII]  = 1.312(+-0.075)T[NII]-0.313(+-0.058)
+                #TNII     = (0.762+-0.044)*TSIII  + 0.239+-0.046
+        self.m_TNII_correction   = random.normal(0.762,  0.044, size = self.MC_array_len)
+        self.n_TNII_correction   = random.normal(0.239,  0.046, size = self.MC_array_len)       
+        
         
         #Truncated gaussian for the density
         lower_trunc, upper_trunc = (1.0 - 50.0) / 25.0, (100 - 50) / 25.0
@@ -438,12 +444,15 @@ class Chemical_Analysis_pyneb():
               
         return
  
-    def nitrogen_abundance_scheme(self, Thigh, ne):
- 
+    def nitrogen_abundance_scheme(self, Tlow, ne):
+        
+        #Calculate TNII temperature from the CHAOS relation
+        T_NII = Tlow #self.m_TNII_correction * Tlow + self.n_TNII_correction
+        
         #Calculate the N+1 abundance
         N2_lines = ['N2_6548A', 'N2_6584A']
         diagnos_eval, diagnos_mag = self.check_obsLines(N2_lines)
-        self.determine_ionic_abundance('NII_HII', self.N2_atom, diagnos_eval, diagnos_mag, Thigh, ne)
+        self.determine_ionic_abundance('NII_HII', self.N2_atom, diagnos_eval, diagnos_mag, T_NII, ne)
         
         #Calculate NI_HI using the OI_HI
         if set(self.abunData.index) >= {'NII_HII', 'OI_HI'}:
@@ -451,9 +460,7 @@ class Chemical_Analysis_pyneb():
             #Compute  NI_OI 
             self.abunData['NI_OI']  = self.abunData['NII_HII'] / self.abunData['OII_HII']
             self.abunData['NI_HI']  = self.abunData['NI_OI'] * self.abunData['OI_HI']
-            
-            
-            
+                       
 #             #Repeat calculation if 5755 line was observed to include the recombination contribution
 #             if self.lines_dict.viewkeys() >= {'N2_5755A'}:         
 #                  

@@ -1,5 +1,0 @@
-indexR Col1  Col2  Col3 Col4
-1     4    10   100  AAA
-1     5    20    50  BBB
-2     6    30   -30  AAA
-3     7    40   -50  CCC

@@ -16,12 +16,12 @@ from scipy.interpolate              import interp1d
 from uncertainties                  import UFloat, ufloat
 from uncertainties.umath            import log10 as umath_log10, pow as unumath_pow
 from uncertainties.unumpy           import uarray, nominal_values, std_devs, log10 as unum_log10, pow as unnumpy_pow
-from lib.Math_Libraries.sigfig      import round_sig
 from pymc                           import database, MCMC
 from astropy.io                     import fits
 from string                         import ascii_uppercase
 from pandas                         import notnull
 from functools                      import partial
+from sigfig                         import round_sig
 
 class Images_Fits():
     
@@ -749,7 +749,7 @@ class Pdf_printer():
         if last_row:
             self.table.add_hline()
                     
-    def format_for_table(self, entry, rounddig = 4, rounddig_er=None, scientific_notation = False, nan_format = '-'):
+    def format_for_table(self, entry, rounddig = 4, rounddig_er=2, scientific_notation = False, nan_format = '-'):
                 
         if rounddig_er == None:
             rounddig_er = rounddig
@@ -1741,7 +1741,7 @@ class pd_Tools():
                 if notnull(df.loc[obj,'Favoured_ref']):
                     df.loc[obj,'quick_index'] = df.loc[obj,'Favoured_ref']
                 else:
-                    df.loc[obj,'quick_index'] = str(counter)
+                    df.loc[obj,'quick_index'] = "FTDTR-" + str(counter)
                     counter += 1
                     
         self.idx_include = notnull(df['quick_index'])

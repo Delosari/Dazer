@@ -3,17 +3,14 @@ Created on Jul 23, 2015
 
 @author: vital
 '''
-from time import time
-from collections                    import OrderedDict
-from numpy                          import loadtxt, where, array, ndarray, ones, argmax, concatenate, power as np_power, in1d, dot, arange, zeros, empty, isnan, nan
-from pyneb                          import RecAtom, atomicData
+from sys                            import exit
+from pyneb                          import RecAtom
 from scipy.interpolate              import interp1d
 from uncertainties                  import ufloat, UFloat
-from uncertainties.umath            import pow as umath_pow, log10 as umath_log10, exp as umath_exp, isnan as un_isnan
 from uncertainties.unumpy           import uarray, exp as unum_exp, log10 as unum_log10, pow as unum_pow
-from sys                            import exit
-from pyneb                          import RedCorr
+from uncertainties.umath            import pow as umath_pow, log10 as umath_log10, exp as umath_exp, isnan as un_isnan
 from pandas                         import read_csv
+from numpy                          import loadtxt, where, array, ndarray, ones, concatenate, power as np_power, dot, arange, empty, isnan
 
 class ReddeningLaws():
 
@@ -21,7 +18,6 @@ class ReddeningLaws():
                         
         self.SpectraEdges_Limit = 200 
         self.Hbeta_wavelength   = 4861.3316598713955
-        self.Reddening_Force    = None
 
         #List of hydrogen recombination lines in our EmissionLines coordinates log. WARNING: We have removed the very blended ones
         self.RecombRatios_Ions =  array(['HBal_20_2', 'HBal_19_2','HBal_18_2', 'HBal_17_2', 'HBal_16_2','HBal_15_2','HBal_12_2','HBal_11_2',
@@ -29,9 +25,9 @@ class ReddeningLaws():
                              'HPas13_3','HPas12_3','HPas_11_3','HPas_10_3','HPas_9_3','HPas_8_3','HPas_7_3'])
         
         #Dictionary with the reddening curves
-        self.reddening_curves_calc = {'MM72':self.f_Miller_Mathews1972,
-                                      'CCM89':self.X_x_Cardelli1989,
-                                      'G03':self.X_x_Gordon2003}
+        self.reddening_curves_calc = {'MM72'    :self.f_Miller_Mathews1972,
+                                      'CCM89'   :self.X_x_Cardelli1989,
+                                      'G03'     :self.X_x_Gordon2003}
     
     def checking_for_ufloat(self, x):
                 
@@ -48,7 +44,7 @@ class ReddeningLaws():
         #Create hidrogen atom object 
         self.H1_atom = RecAtom('H', 1)
 
-        linformat_df = read_csv('/home/vital/git/Dazer/Dazer/dazer/bin/emlines_pyneb_optical_infrared.dz', index_col=0, names=['ion', 'lambda_theo', 'latex_format'], delim_whitespace=True)
+        linformat_df = read_csv('/home/vital/workspace/dazer/format/emlines_pyneb_optical_infrared.dz', index_col=0, names=['ion', 'lambda_theo', 'latex_format'], delim_whitespace=True)
         lineslog_frame['latex_format'] = 'none'
         for line in lineslog_frame.index:
             lineslog_frame.loc[line,'latex_format'] = r'${}$'.format(linformat_df.loc[line, 'latex_format'])
@@ -164,6 +160,7 @@ class ReddeningLaws():
         #We recalculate the equivalent width using the intensity of the lines (instead of the flux)
         continua_flux               = uarray(lines_frame.zerolev_mean.values, lines_frame.zerolev_std.values)
         continua_int                = continua_flux * unum_pow(10,  0.4 * lines_Xx * E_BV)
+        lines_frame['con_dered']    = continua_int
         lines_frame['Eqw_dered']    = lines_int / continua_int
         
         #For extra testing we add integrated and gaussian values derredden
@@ -171,16 +168,7 @@ class ReddeningLaws():
         lines_gauss_flux                    = uarray(lines_frame['flux_gauss'].values, lines_frame['flux_gauss_er'].values)
         lines_frame['line_IntBrute_dered']  = lines_brut_flux * unum_pow(10, 0.4 * lines_Xx * E_BV)
         lines_frame['line_IntGauss_dered']  = lines_gauss_flux * unum_pow(10, 0.4 * lines_Xx * E_BV)
-        
-#         print 'A ver estos flujos'
-#         print 'flux_intg',              lines_frame.loc['O2_3726A', 'flux_intg'],                           lines_frame.loc['O2_3726A', 'flux_intg_er']
-#         print 'flux_gauss',             lines_frame.loc['O2_3726A', 'flux_gauss'],                          lines_frame.loc['O2_3726A', 'flux_gauss_er']
-#         print 'line_Flux',              lines_frame.loc['O2_3726A', 'line_Flux'].nominal_value,             lines_frame.loc['O2_3726A', 'line_Flux'].std_dev
-#         print 'line_Int',               lines_frame.loc['O2_3726A', 'line_Int'].nominal_value,              lines_frame.loc['O2_3726A', 'line_Int'].std_dev 
-#         print 'line_IntBrute_dered',    lines_frame.loc['O2_3726A', 'line_IntBrute_dered'].nominal_value,   lines_frame.loc['O2_3726A', 'line_IntBrute_dered'].std_dev 
-#         print 'line_IntGauss_dered',    lines_frame.loc['O2_3726A', 'line_IntGauss_dered'].nominal_value,   lines_frame.loc['O2_3726A', 'line_IntGauss_dered'].std_dev         
-#         print
-        
+                
         return
     
     def derreddening_spectrum(self, wave, flux, reddening_curve, cHbeta = None, E_BV = None, R_v = None):
@@ -257,7 +245,7 @@ class ReddeningLaws():
         
         return f_lines
  
-    def reddening_Xx(self, waves, curve_methodology, R_v, cHbeta = None, E_BV = None):
+    def reddening_Xx(self, waves, curve_methodology, R_v):
         
         self.R_v = R_v
         self.wavelength_rc = waves
@@ -319,7 +307,7 @@ class ReddeningLaws():
         x = 1.0 / (self.wavelength_rc / 10000.0)
         
         #This file format has 1/um in column 0 and A_x/A_V in column 1
-        file_data = loadtxt('/home/vital/git/Dazer/Dazer/dazer/lib/Astro_Libraries/gordon_2003_rC.txt')
+        file_data = loadtxt('/home/vital/workspace/dazer/bin/lib/Astro_Libraries/gordon_2003_rC.txt')
         
         #This file has column        
         Xx_interpolator = interp1d(file_data[:, 0], file_data[:, 1])
@@ -327,15 +315,15 @@ class ReddeningLaws():
             
         return X_x
 
-#     def Epm_ReddeningPoints(self):
-#         
-#         x_true           = arange(1.0, 2.8, 0.1) #in microns -1
-#         X_Angs      = 1 / x_true * 1e4
-#         
-#         Xx          = array([1.36, 1.44, 1.84, 2.04, 2.24, 2.44, 2.66, 2.88, 3.14, 3.36, 3.56, 3.77, 3.96, 4.15, 4.26, 4.40, 4.52, 4.64])
-#         f_lambda    = array([-0.63,-0.61,-0.5, -0.45, -0.39, -0.34, -0.28, -0.22, -0.15, -0.09, -0.03, 0.02, 0.08, 0.13, 0.16, 0.20, 0.23, 0.26])
-#         
-#         return x_true, X_Angs, Xx, f_lambda
+    def Epm_ReddeningPoints(self):
+         
+        x_true           = arange(1.0, 2.8, 0.1) #in microns -1
+        X_Angs      = 1 / x_true * 1e4
+         
+        Xx          = array([1.36, 1.44, 1.84, 2.04, 2.24, 2.44, 2.66, 2.88, 3.14, 3.36, 3.56, 3.77, 3.96, 4.15, 4.26, 4.40, 4.52, 4.64])
+        f_lambda    = array([-0.63,-0.61,-0.5, -0.45, -0.39, -0.34, -0.28, -0.22, -0.15, -0.09, -0.03, 0.02, 0.08, 0.13, 0.16, 0.20, 0.23, 0.26])
+         
+        return x_true, X_Angs, Xx, f_lambda
         
         
         
