@@ -1,19 +1,21 @@
-import pymc
-import pyneb                        as pn
 from collections                    import OrderedDict
+
 from numpy                          import array, arange, loadtxt, genfromtxt, sum, exp, power, zeros, ones, dot, isnan, square, concatenate, where
 from numpy.random                   import normal
+import pymc
 from uncertainties                  import ufloat
-from bin.lib.CodeTools.File_Managing_Tools import Txt_Files_Manager
+
+from CodeTools.File_Managing_Tools  import Txt_Files_Manager
+import pyneb                        as pn
 
 
 class HeAbundance_InferenceMethods(Txt_Files_Manager):
     
     def __init__(self):
 
-        self.Hydrogen_CollCoeff_TableAddress    = '/home/vital/workspace/dazer/bin/lib/Astro_Libraries/Neutral_Hydrogen_Collisional_Correction_coef.txt'
-        self.Helium_CollCoeff_TableAddress      = '/home/vital/workspace/dazer/bin/lib/Astro_Libraries/Neutral_Helium_Collisional_Correction_coef.txt'
-        self.Helium_OpticalDepth_TableAddress   = '/home/vital/workspace/dazer/bin/lib/Astro_Libraries/Helium_OpticalDepthFunction_Coefficients.txt'
+        self.Hydrogen_CollCoeff_TableAddress    = '/home/vital/git/Dazer/Dazer/dazer/lib/Astro_Libraries/Neutral_Hydrogen_Collisional_Correction_coef.txt'
+        self.Helium_CollCoeff_TableAddress      = '/home/vital/git/Dazer/Dazer/dazer/lib/Astro_Libraries/Neutral_Helium_Collisional_Correction_coef.txt'
+        self.Helium_OpticalDepth_TableAddress   = '/home/vital/git/Dazer/Dazer/dazer/lib/Astro_Libraries/Helium_OpticalDepthFunction_Coefficients.txt'
         
         #Import Dazer_Files Class to import data from lines_logs
         Txt_Files_Manager.__init__(self)

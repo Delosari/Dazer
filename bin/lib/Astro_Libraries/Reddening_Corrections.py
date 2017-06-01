@@ -303,7 +303,7 @@ class ReddeningLaws():
     def X_x_Gordon2003(self):
         
         #Default R_V is 3.4
-        R_v = self.R_v if self.R_v != None else 3.4       
+        R_v = self.R_v if self.R_v != None else 3.4 #This is not very nice   
         x = 1.0 / (self.wavelength_rc / 10000.0)
         
         #This file format has 1/um in column 0 and A_x/A_V in column 1
@@ -312,7 +312,6 @@ class ReddeningLaws():
         #This file has column        
         Xx_interpolator = interp1d(file_data[:, 0], file_data[:, 1])
         X_x = R_v * Xx_interpolator(x)
-            
         return X_x
 
     def Epm_ReddeningPoints(self):

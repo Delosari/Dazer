@@ -1,8 +1,11 @@
 #!/usr/bin/python
 
 import pymc
-# from Abundances_InferenceModel_Helium_v12 import HeAbundance_InferenceStructure
-from bin.lib.Astro_Libraries.Abundances_InferenceModel_Helium_v12 import HeAbundance_InferenceStructure
+
+from Astro_Libraries.Abundances_InferenceModel_Helium_v12   import HeAbundance_InferenceStructure
+from CodeTools.PlottingManager                              import myPickle
+
+
 #Default address to store the data
 Config              = '_10000_1500_2_NoAbs_Model3_MAP2MCMC_Checkingv12'
 Databases_Folder    = '/home/vital/Astrodata/Inferece_output/'
@@ -11,9 +14,12 @@ Db_global_file_name = 'he_Abundance_Global_' + Config
 testing_model       = 'Model3'
 
 #Generate dazer object
+pv = myPickle()
 bm = HeAbundance_InferenceStructure()
 
 #Define plot frame and colors
+pv.FigFormat_One(ColorConf = 'Night1')
+
 
 # bm.Calculate_Synthetic_Fluxes(testing_model)
  
@@ -37,9 +43,10 @@ MAP_Model               = pymc.MAP(MCMC_dict)
 MAP_Model.fit(method    = 'fmin_powell') 
 # MAP_Model.revert_to_max()
  
-M = pymc.MCMC(MAP_Model.variables, db = 'pickle', dbname =  Databases_Folder + Db_name)
+M                       = pymc.MCMC(MAP_Model.variables, db = 'pickle', dbname =  Databases_Folder + Db_name)
 # M.use_step_method(pymc.AdaptiveMetropolis, [M.y_plus, M.ne, M.Te, M.tau, M.cHbeta, M.xi])
 M.sample(iter=10000, burn=1500, thin=2) #Optimun test
+# M.sample(iter=30000, burn=5000, thin=10) #Optimun test
 M.write_csv(Databases_Folder + Db_global_file_name, variables=['ChiSq', 'He_abud', 'T_e', 'n_e', 'Tau', 'c_Hbeta', 'Xi'])
 # M.write_csv(Databases_Folder + Db_global_file_name, variables=['ChiSq', 'He_abud', 'T_e', 'n_e', 'Tau', 'c_Hbeta', 'Xi', 'abs_H', 'abs_He', 'Eqw_hbeta'])
 M.db.close() 
