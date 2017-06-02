@@ -1,12 +1,13 @@
 import pickle
 import corner
 from uncertainties          import UFloat
-from numpy                  import array, arange, zeros, log10, ndarray, percentile, median, string_, where, argsort, sort, unique, max, sum as np_sum
+from numpy                  import array, arange, log10, ndarray, percentile, median, string_, where, argsort, sort, unique, sum as np_sum,reshape    
 from collections            import OrderedDict, Sequence
 from matplotlib             import image, colors, cm, rcParams, pyplot as plt
 from matplotlib._png        import read_png
 from matplotlib.offsetbox   import OffsetImage, AnnotationBbox
 from matplotlib             import gridspec
+from matplotlib.mlab        import detrend_mean
 from sigfig                 import round_sig
 
 class Fig_Conf():
@@ -166,16 +167,16 @@ class Fig_Conf():
         if Figtype == 'Single':
             
             if AxisFormat == 111:
-                self.Fig                = plt.figure()  
-                self.Axis               = self.Fig.add_subplot(AxisFormat)
+                self.Fig = plt.figure()  
+                self.Axis = self.Fig.add_subplot(AxisFormat)
             else:
-                self.Fig, self.Axis    = plt.subplots(n_rows, n_columns)  
-                self.Axis              = self.Axis.ravel()
+                self.Fig, self.Axis = plt.subplots(n_rows, n_columns)  
+                self.Axis = self.Axis.ravel()
         
         elif Figtype == 'Posteriors':
-            self.Fig                = plt.figure()
-            AxisFormat              = int(str(n_colors)  + '11')
-            self.Axis              = self.Fig.add_subplot(AxisFormat)
+            self.Fig = plt.figure()
+            AxisFormat = int(str(n_columns)  + '11')
+            self.Axis = self.Fig.add_subplot(AxisFormat)
         
         elif Figtype == 'grid':
             self.Fig, self.Axis = plt.subplots(n_rows, n_columns) 
@@ -200,9 +201,7 @@ class Fig_Conf():
 
         if axis_not == 'sci': 
             plt.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
-    
-        #self.define_ColorVector(PlotStyle, n_colors, color_map)
-   
+       
         return
    
     def FigWording(self, xlabel, ylabel, title, loc = 'best', Expand = False,  XLabelPad = 0.0, YLabelPad = 0.0, Y_TitlePad = 1.02, cb_title = None, sort_legend = False, ncols_leg = 1, graph_axis = None):
@@ -373,6 +372,15 @@ class Plot_Conf(Fig_Conf):
         
         Fig_Conf.__init__(self)
         
+        self.labels_latex_dic = {'y_plus':r'$y^{+}$',
+                            'Te':r'$T_{e}$',
+                            'ne':r'$n_{e}$',
+                            'cHbeta':r'$c(H\beta)$',
+                            'tau':r'$\tau$',
+                            'xi':r'$\xi$',
+                            'ChiSq':r'$\chi^{2}$',
+                            }
+                
     def data_plot(self, x, y, label = '', color = None, linestyle = None, markerstyle = None, linewidth = None, markersize = None, x_error=None, y_error=None, cmap=None, e_style = None, graph_axis = None):
         
         if graph_axis == None:
@@ -529,133 +537,8 @@ class Plot_Conf(Fig_Conf):
                 #Plot age bin total
                 param_total = sum(param_array) 
                 self.Axis.bar(log_t, param_total, label='Age bin total',  width=ageBins_HW, fill = False, edgecolor='black', linestyle= '--', log = True)
-                
-                
-                
-#         #Generate metallicity matrix
-#         z_AgeBins_Matrix = zeros((len(zValues), len(ageBins))) 
-#         print z_AgeBins_Matrix.shape
-#         for i in range(len(zValues)):
-#             
-#             #Get all populations matching current metallicity 
-#             idcs_Z      = (Z_j == zValues[i])
-#             
-#             #For z_i get time bin idcs
-#             age_array = log10(age_j[idcs_Z])
-#             idcs_hist = digitize(age_array, ageBins)
-#             print idcs_hist.shape
-#             
-#             #Get parameter for given metallicty
-#             param_array = fraction_param[idcs_Z]
-#             
-#             #Organize paramb by increasing age bin
-#             print 'este', param_array[idcs_hist]
-#             z_AgeBins_Matrix[:,i] = param_array[idcs_hist]
-#             
-#         #Loop throught the matrix columns to plot lower values in front
-#         for i_t in range(len(ageBins_HW)):
-#             age_column  = z_AgeBins_Matrix[:,i_t]
-#             idx_size    = age_column.argsort()[::-1]
-#             for idx in idx_size:
-#                 x, y = ageBins_HW[i_t]
-#                 label = age_column[idx], 'z = {}'.format()
-#                 self.Axis.bar(x, y, label=label, color=self.get_color(idx), width=ageBins_HW/2, fill = True, edgecolor=self.get_color(idx), log = True)
-                
-            
+                            
         return
-
-    def CumulativeHistogram_One(self, Folder, File, PlotType, Color_Vector):
-    
-        #Vector where we save the histograms data
-        OutPutData = []
-        
-        #Extract the data from the starlight ouuput
-        index, x_j, Mini_j, Mcor_j, age_j, Z_j, LbyM, Mstars    = self.SlOutput_2_StarData(Folder, File)
-        
-        #Case light fraction plot
-        if PlotType == 'Light_fraction':    
-            ParameterVector = x_j
-        
-        #Case mass fraction plot    
-        if PlotType == 'Mass_fraction':
-            ParameterVector = Mcor_j
- 
-        #Extract metallicity values
-        zValues = self.FamilyOfItemsInArray(Z_j)   
-        
-        #Define age bins width
-#         AgeBins_HW = 0.20
-        AgeBins_HW = 0.10
-        AgeBins = arange(4.80, 10.60, AgeBins_HW)
-        
-        #Array to store intermediate data
-        DataVector = []
-                    
-        for i in range(len(zValues)):
-            z               = zValues[i]
-            MassSumVector   = zeros(len(AgeBins))
-            LightMassVector = zeros(len(AgeBins))
-            for j in range(len(Z_j)):
-                if Z_j[j] == z:
-                    for k in range(len(AgeBins)):
-                        Bin = AgeBins[k]
-                        if (Bin - AgeBins_HW/2) <= log10(age_j[j]) < (Bin + AgeBins_HW/2):
-                            MassSumVector[k] = MassSumVector[k] + ParameterVector[j]
-    
-            DataVector.append([z, Color_Vector[i], MassSumVector, LightMassVector])
-            
-        for i in range(len(AgeBins)):
-            Total = 0  
-            ListMasses = []
-            for j in range(len(zValues)):
-                ListMasses.append(DataVector[j][2][i])
-                Total = Total +DataVector[j][2][i] 
-                          
-            Indexes_Small2Big = [n[0] for n in sorted(enumerate(ListMasses), key=lambda x:x[1])]
-            Indexes_Small2Big.reverse()
-     
-            for Index in Indexes_Small2Big:
-                if DataVector[Index][2][i] > 0:
-#                         self.Histogram_One([AgeBins[i]- AgeBins_HW/4], [DataVector[Index][2][i]], str(DataVector[Index][0]), DataVector[Index][1], 1.0, Width = AgeBins_HW/2, Edgecolor = DataVector[Index][1], Linewidth = 1)
-
-                    X_Coord         = [AgeBins[i]- AgeBins_HW/4]
-                    Y_Coord         = [DataVector[Index][2][i]]
-                    Label           = str(DataVector[Index][0])
-                    Color           = DataVector[Index][1]
-                    Transparency    = 1.0
-                    Width           = AgeBins_HW/2,
-                    Fill            = True
-                    Edgecolor       = DataVector[Index][1]
-                    Linestyle       = 'solid'
-                    Linewidth       = 1
-                    Log             = False
-                    
-                    OutPutData.append([X_Coord, Y_Coord, Label, Color, Transparency, Width, Fill, Edgecolor, Linestyle, Linewidth, Log])
-                    
-#                         self.Histogram_One(OutPutData[-1][0], OutPutData[-1][1], OutPutData[-1][2], OutPutData[-1][3], OutPutData[-1][4], OutPutData[-1][5], OutPutData[-1][6], OutPutData[-1][7], OutPutData[-1][8], OutPutData[-1][9], OutPutData[-1][10])
-
-                    
-            if Total > 0:
-                self.Histogram_One([AgeBins[i]- AgeBins_HW/2], [Total], 'Bin total', self.ColorVector[0], Width = AgeBins_HW, Fill = False, Edgecolor = self.ColorVector[1], Linestyle='dotted')
-    
-                X_Coord         = [AgeBins[i]- AgeBins_HW/2]
-                Y_Coord         = [Total]
-                Label           =  'Bin total'
-                Color           = Color_Vector[0]
-                Transparency    = 1
-                Width           = AgeBins_HW
-                Fill            = False
-                Edgecolor       = Color_Vector[1]
-                Linestyle       = 'dotted'
-                Linewidth       = 1
-                Log             = False
-                
-                OutPutData.append([X_Coord, Y_Coord, Label, Color, Transparency, Width, Fill, Edgecolor, Linestyle, Linewidth, Log])
-
-#                     self.Histogram_One(OutPutData[-1][0], OutPutData[-1][1], OutPutData[-1][2], OutPutData[-1][3], OutPutData[-1][4], OutPutData[-1][5], OutPutData[-1][6], OutPutData[-1][7], OutPutData[-1][8], OutPutData[-1][9], OutPutData[-1][10])        
-#                     self.Histogram_One([AgeBins[i]- AgeBins_HW/2], [Total], 'Bin_total', self.Color_Vector[0], Width = AgeBins_HW, Fill = False, Edgecolor = self.Color_Vector[1], Linestyle='dotted')        
-        
-        return OutPutData
     
     def area_fill(self, Points_O, Points_F, DataLabel, color = None, alpha = 1, Fill_Style = None, BorderColor = None, graph_axis = None):
 
@@ -671,80 +554,136 @@ class Plot_Conf(Fig_Conf):
             Axis.axvspan(Points_O, Points_F, facecolor = color, alpha=alpha, label=DataLabel)
                 
         return
-    
-    def plot_Ownposteriors_histagram(self, Traces, labels, sigfig_n = 4, xlim = None, ylim = None):
+
+    def traces_plot(self, traces, database, stats_dic):
         
-        plt.rcParams['ytick.labelsize'] = 20
-        plt.rcParams['xtick.labelsize'] = 20
+        #Number of traces to plot
+        n_traces = len(traces)
 
-        n_traces = len(Traces)
-                
-        for i in range(len(Traces)):
-            Trace           = Traces[i]
-            Axis_Location   = int(str(n_traces) + '1' +  str(i + 1))
-            Axis            = plt.subplot(Axis_Location) 
-            HDP_coords      = [percentile(Trace, 16), percentile(Trace, 84)]
-            mean_value      = median(Trace)
+        #Declare figure format
+        size_dict = {'figure.figsize':(14,14), 'axes.labelsize':12, 'legend.fontsize':14}            
+        self.FigConf(plotSize = size_dict, Figtype = 'Grid', n_columns = 1, n_rows = n_traces)
+        
+        #Generate the color map
+        self.gen_colorList(0, n_traces)
+
+        #Plot individual traces
+        for i in range(n_traces):
             
-            for HDP in HDP_coords:
-                Axis.axvline(x = HDP, label = 'Percentiles: 16th-84th: ' + round_sig(HDP_coords[0], n=sigfig_n, scien_notation=False) + ' - ' + round_sig(HDP_coords[1], n=sigfig_n, scien_notation=False), color='grey', linestyle = 'dashed')
+            #Current trace
+            trace_code = traces[i]
             
- 
+            #Label for the plot
+            mean_value  = stats_dic[trace_code]['mean']
+            std_dev     = stats_dic[trace_code]['standard deviation']
+            label       = r'{} = ${}$ $\pm${}'.format(self.labels_latex_dic[trace_code], round_sig(mean_value, 3), round_sig(std_dev, 3))
+
+            #Plot the data
+            self.Axis[i].plot(database.trace(trace_code)[:], label=label, color = self.get_color(i))            
+            self.Axis[i].axhline(y = mean_value,  color=self.get_color(i), linestyle = '--' )
+            self.Axis[i].set_ylabel(self.labels_latex_dic[trace_code])
+
+            if i < n_traces - 1:
+                self.Axis[i].set_xticklabels([])
+           
+            #Add legend
+            self.legend_conf(self.Axis[i], loc=2)
                     
-            Median_text_legend = r'Median value: $' + round_sig(mean_value, n=sigfig_n, scien_notation=False) + '_{-' + round_sig(mean_value - HDP_coords[0], n=sigfig_n, scien_notation=False) + '}^{+' + round_sig(HDP_coords[1] - mean_value, n=sigfig_n, scien_notation=False) + '}$'                               
-            Axis.axvline(x = mean_value, label = Median_text_legend, color='grey', linestyle = 'solid')
-            Axis.hist(Trace, histtype='stepfilled', bins=35, alpha=.7, color=self.ColorVector[2][i], normed=False)
-            Axis.set_ylabel(labels[i], fontsize=20)
-                        
-            self.bayesian_legend_conf(Axis, loc='best', edgelabel=True)
-
-            
-            if xlim != None:
-                Axis.set_xlim(xlim[0], xlim[1])
-                
-            if ylim != None:
-                Axis.set_ylim(ylim[0], ylim[1])
         return
 
-    def plot_triangle_histContours(self, Traces, labels, pymc_database, true_values = None):
-        n_traces = len(Traces)
+    def posteriors_plot(self, traces, database, stats_dic):
         
-        #Make plots
-        List_Arrays = []
+        #Number of traces to plot
+        n_traces = len(traces)
+
+        #Declare figure format
+        size_dict = {'figure.figsize':(14,14), 'axes.labelsize':20, 'legend.fontsize':10}            
+        self.FigConf(plotSize = size_dict, Figtype = 'Grid', n_columns = 1, n_rows = n_traces)        
+
+        #Generate the color map
+        self.gen_colorList(0, n_traces)
+        
+        #Plot individual traces
+        for i in range(len(traces)):
+            
+            #Current trace
+            trace_code = traces[i]   
+            
+            #Plot HDP limits
+            HDP_coords = stats_dic[trace_code]['95% HPD interval']
+            for HDP in HDP_coords:
+                label = 'HPD interval: {} - {}'.format(round_sig(HDP_coords[0], 4), round_sig(HDP_coords[1], 4))
+                self.Axis[i].axvline(x = HDP, label = label, color='grey', linestyle = 'dashed')
+            
+            mean_value = stats_dic[trace_code]['mean']
+                                             
+            self.Axis[i].axvline(x = mean_value, label = 'Mean value: ' + round_sig(mean_value, 4), color='grey', linestyle = 'solid')
+            self.Axis[i].hist(database.trace(trace_code)[:], histtype='stepfilled', bins=35, alpha=.7, color=self.get_color(i), normed=False)
+            self.Axis[i].set_ylabel(self.labels_latex_dic[trace_code])
+
+            #Add legend
+            self.legend_conf(self.Axis[i], loc=2)
+
+    def acorr_plot(self, traces, database, stats_dic):
+                
+        #Number of traces to plot
+        n_traces = len(traces)        
+
+        #Declare figure format
+        size_dict = {'figure.figsize':(14,7), 'axes.titlesize':14, 'legend.fontsize':10}            
+        self.FigConf(plotSize = size_dict, Figtype = 'Grid', n_columns = 4, n_rows = 2)          
+
+        #Generate the color map
+        self.gen_colorList(0, n_traces)
+        
+        #Plot individual traces         
         for i in range(n_traces):
-            List_Arrays.append(pymc_database.trace(Traces[i])[:])
+
+            #Current trace
+            trace_code = traces[i]             
+            
+            label = self.labels_latex_dic[trace_code]
+            
+            if trace_code != 'ChiSq':
+                maxlags = min(len(database.trace(trace_code)[:]) - 1, 100)
+                self.Axis[i].acorr(x = database.trace(trace_code)[:], color=self.get_color(i), detrend= detrend_mean, maxlags=maxlags)
+                
+            else:
+                #Apano momentaneo
+                chisq_adapted   = reshape(database.trace(trace_code)[:], len(database.trace(trace_code)[:]))
+                maxlags         = min(len(chisq_adapted) - 1, 100)
+                self.Axis[i].acorr(x = chisq_adapted, color=self.get_color(i), detrend= detrend_mean, maxlags=maxlags)
+            
+            self.Axis[i].set_xlim(0, maxlags)
+            self.Axis[i].set_title(label)
+                
+        return
+
+    def corner_plot(self, traces, database, stats_dic, true_values = None):
         
-        Samples = array(List_Arrays).T
+        #Set figure conf
+        sizing_dict = {}
+        sizing_dict['figure.figsize']   = (14, 14)
+        sizing_dict['legend.fontsize']  = 30
+        sizing_dict['axes.labelsize']   = 20
+        sizing_dict['axes.titlesize']   = 12
+        sizing_dict['xtick.labelsize']  = 12
+        sizing_dict['ytick.labelsize']  = 12
+        
+        rcParams.update(sizing_dict)
+                
+        #Reshape plot data
+        list_arrays = []
+        labels_list = []
+        for trace_code in traces:
+            list_arrays.append(database.trace(trace_code)[:])
+            labels_list.append(self.labels_latex_dic[trace_code])
+        traces_array = array(list_arrays).T
                     
         #Make 
         if true_values != None:
-            self.figure = corner.corner(Samples[:,:], fontsize=30, labels=labels, quantiles=[0.16, 0.5, 0.84], show_titles=True, title_args={"fontsize": 200}, truths = true_values, title_fmt='0.3f')
+            self.Fig = corner.corner(traces_array[:,:], fontsize=30, labels=labels_list, quantiles=[0.16, 0.5, 0.84], show_titles=True, title_args={"fontsize": 200}, truths = true_values, title_fmt='0.3f')
         else:
-            self.figure = corner.corner(Samples[:,:],fontsize=30, labels=labels, quantiles=[0.16, 0.5, 0.84], show_titles=True, title_args={"fontsize": 200}, title_fmt='0.3f')
+            self.Fig = corner.corner(traces_array[:,:], fontsize=30, labels=labels_list, quantiles=[0.16, 0.5, 0.84], show_titles=True, title_args={"fontsize": 200}, title_fmt='0.3f')
         
-        self.Axis = self.figure.get_axes()
-        
-        for item in self.Axis:
-            item.title.set_fontsize(14)
-            
-        for item in  self.Axis:
-            item.yaxis.label.set_fontsize(20)
-
-        for item in  self.Axis:
-            item.xaxis.label.set_fontsize(20)
-
-           
-#         for item in  self.Axis:
-#             item.get_xticklabels(15)            
-# 
-#         for item in  self.Axis:
-#             item.get_yticklabels(15)     
-           
-#         for item in ([, self.Axis.xaxis.label, self.Axis.yaxis.label] + self.Axis.get_xticklabels() + self.Axis.get_yticklabels()):
-        
-    
-        rcParams.update({'font.size': 30})        
-
-
-
-
+        return

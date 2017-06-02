@@ -16,7 +16,6 @@ from scipy.interpolate              import interp1d
 from uncertainties                  import UFloat, ufloat
 from uncertainties.umath            import log10 as umath_log10, pow as unumath_pow
 from uncertainties.unumpy           import uarray, nominal_values, std_devs, log10 as unum_log10, pow as unnumpy_pow
-from pymc                           import database, MCMC
 from astropy.io                     import fits
 from string                         import ascii_uppercase
 from pandas                         import notnull
@@ -2275,8 +2274,6 @@ class File_Manager(Dazer_Files, pd_Tools):
         self.ScriptAddress              = None
         
         self.ErrorList                  = []
-        self.pymc_database              = None
-        self.pymc_stats_keys            = ['mean', '95% HPD interval', 'standard deviation',  'mc error', 'quantiles', 'n']
    
     def Arguments_Checker(self, LineaCommando):
         
@@ -2745,28 +2742,7 @@ class File_Manager(Dazer_Files, pd_Tools):
                 self.ListFiles = (FoldersList, ArchivesList)    
  
         return self.ListFiles
-    
-    def load_pymc_database(self, Database_address):
         
-        #In case the database is open from a previous use
-        if self.pymc_database != None:
-            self.pymc_database.close()
-        
-        #Load the pymc output textfile database
-        self.pymc_database  = database.pickle.load(Database_address)
-        
-        #Create a dictionary with the bases to 
-        self.Traces_dict = {}
-        self.traces_list = self.pymc_database.trace_names[0] #This variable contains all the traces from the MCMC (stochastic and deterministic)
-        
-        for trace in self.traces_list:
-            self.Traces_dict[trace] = self.pymc_database.trace(trace)
-    
-        #Generate a MCMC object to recover all the data from the run
-        self.dbMCMC      = MCMC(self.Traces_dict, self.pymc_database)
-        
-        return
-    
     def extract_traces_statistics(self, traces_list = None):
         
         self.statistics_dict = OrderedDict()

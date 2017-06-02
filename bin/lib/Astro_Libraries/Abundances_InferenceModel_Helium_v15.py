@@ -1,9 +1,10 @@
 from collections            import OrderedDict
 from pyneb                  import atomicData, RecAtom
 from uncertainties.unumpy   import nominal_values, std_devs
-from numpy                  import array, loadtxt, genfromtxt, isnan, arange, insert, concatenate, power, exp, zeros, square
 from Reddening_Corrections  import ReddeningLaws 
+from numpy                  import array, loadtxt, genfromtxt, isnan, arange, insert, concatenate, power, exp, zeros, square, empty, percentile
 import pymc as pymc2
+import pymc3
 
 class Import_model_data():
 
@@ -168,7 +169,8 @@ class Import_model_data():
         
         self.nHelium            = len(self.obj_data['He_labels'])
         self.nHelium_range      = arange(self.nHelium)
-        self.idx_meet           = self.nHydrogen + 1
+        
+        self.nTotal             = self.nHydrogen + self.nHelium
        
         #Load the reddening parameters
         H_xX        = self.reddening_Xx(self.obj_data['H_wave'], red_curve, Rv)
@@ -262,7 +264,6 @@ class Recombination_FluxCalculation(ReddeningLaws, Import_model_data):
         #Fluxes combined to speed the process
         self.H_He_Obs_Flux  = concatenate([self.obj_data['H_Flux'], self.obj_data['He_Flux']])                        
         self.H_He_Obs_Error = concatenate([self.obj_data['H_error'], self.obj_data['He_error']])  
-        self.H_He_Theo_Flux = zeros(self.nHydrogen_range + self.nHelium_range)
         
         return
   
@@ -369,8 +370,9 @@ class Inference_AbundanceModel(Recombination_FluxCalculation):
         
         @pymc2.deterministic #Combine theoretical fluxes into a single array
         def H_He_TheoFlux(HFlux_theo=det_HFlux_theo, HeFlux_theo=det_He_Flux_theo_nof):
-            self.H_He_Theo_Flux[:self.nHydrogen_range] = HFlux_theo[:]
-            self.H_He_Theo_Flux[self.nHydrogen_range:] = HeFlux_theo[:]
+            self.H_He_Theo_Flux = empty(self.nTotal)
+            self.H_He_Theo_Flux[:self.nHydrogen] = HFlux_theo[:]
+            self.H_He_Theo_Flux[self.nHydrogen:] = HeFlux_theo[:]
             return self.H_He_Theo_Flux
                     
         @pymc2.stochastic(observed=True) #Likelihood
@@ -437,7 +439,8 @@ class Run_MCMC(Inference_AbundanceModel):
         
         #Import parent classes
         Inference_AbundanceModel.__init__(self)
-            
+        self.pymc_stats_keys = ['mean','95% HPD interval','standard deviation','mc error','quantiles','n']
+  
     def select_inference_model(self, model_code):
         
         #Declare inference model
@@ -446,7 +449,7 @@ class Run_MCMC(Inference_AbundanceModel):
         else:
             self.inf_dict = self.helium_abundance_model_abs()
                     
-    def run_pymc2(self, iterations = 10000, burn_phase = 1500, thining=2, ext='', default_db_name = 'HeAbund_pymc2', default_db_folder = '/home/vital/Astrodata/Inferece_output/', variables_list = None):
+    def run_pymc2(self, iterations = 10000, burn_phase = 1500, thining=2, variables_list = None):
         
         #Ideal cond1: iter=30000, burn=5000, thin=10
         #Ideal cond2: iter=10000, burn=1500, thin=2
@@ -458,10 +461,7 @@ class Run_MCMC(Inference_AbundanceModel):
         
         #Print prefit data
         self.display_run_data(self.MAP_Model, variables_list)
-        
-        #Declare database name
-        self.db_address = '{}{}_it{}_burn{}_thin{}_{}'.format(default_db_folder, default_db_name, iterations, burn_phase, thining, ext)
-        
+                
         #Launch sample
         self.pymc2_M    = pymc2.MCMC(self.MAP_Model.variables, db = 'pickle', dbname =  self.db_address)
         self.pymc2_M.sample(iter=iterations, burn=burn_phase, thin=thining)
@@ -484,13 +484,33 @@ class Run_MCMC(Inference_AbundanceModel):
             param_entry = getattr(database, param, None)
             if param_entry is not None:
                 print '-{} {}'.format(param, param_entry.value)
-                
-#         #Display prefit results:
-#         if variables_list != None:
-#                         
-#             #Loop through the variales we want to display
-#             for param in variables_list:
-#                 print param, database.trace(param).stats()['mean']
 
+    def load_pymc_database(self, db_address):
+                
+        #Load the pymc output textfile database
+        pymc_database = pymc2.database.pickle.load(db_address)
         
-                                                                                                        
+        #Create a dictionaries with the traces and statistics
+        traces_dic = {}
+        stats_dic = OrderedDict()
+        
+        #This variable contains all the traces from the MCMC (stochastic and deterministic)
+        traces_list = pymc_database.trace_names[0] 
+    
+        #Get statistics from the run    
+        for trace in traces_list:
+            stats_dic[trace] = OrderedDict()
+            traces_dic[trace] = pymc_database.trace(trace)
+            
+            for stat in self.pymc_stats_keys: 
+                stats_dic[trace][stat] = pymc_database.trace(trace).stats()[stat] 
+    
+            trace_array = pymc_database.trace(trace)[:] 
+            stats_dic[trace]['16th_p'] = percentile(trace_array, 16)
+            stats_dic[trace]['84th_p'] = percentile(trace_array, 84)    
+    
+        #Generate a MCMC object to recover all the data from the run
+        dbMCMC = pymc2.MCMC(traces_dic, pymc_database)
+        
+        return dbMCMC, stats_dic                                                                                                  
+
