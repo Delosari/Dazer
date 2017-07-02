@@ -3,7 +3,7 @@ import pyneb                                        as pn
 from numpy                                          import array, arange, loadtxt, genfromtxt, sum, exp, power, zeros, ones, dot, isnan, square, concatenate, where
 from collections                                    import OrderedDict
 from CodeTools.File_Managing_Tools                  import Txt_Files_Manager
-from lib.Astro_Libraries.Nebular_Continuum    import Nebular_Bayesian
+from lib.Astro_Libraries.Nebular_Continuum          import Nebular_Bayesian
 
 class HeAbundance_InferenceMethods(Txt_Files_Manager, Nebular_Bayesian):
     

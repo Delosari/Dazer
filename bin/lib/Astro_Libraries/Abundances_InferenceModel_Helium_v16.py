@@ -1,5 +1,5 @@
 from collections            import OrderedDict
-from pyneb                  import atomicData, RecAtom
+from pyneb                  import atomicData, RecAtom, Atom
 from uncertainties.unumpy   import nominal_values, std_devs
 from Reddening_Corrections  import ReddeningLaws 
 from numpy                  import array, loadtxt, genfromtxt, isnan, arange, insert, concatenate, power, exp, zeros, square, empty, percentile
@@ -13,13 +13,19 @@ class Import_model_data():
         self.Hydrogen_CollCoeff_TableAddress    = '/home/vital/workspace/dazer/bin/lib/Astro_Libraries/Neutral_Hydrogen_Collisional_Correction_coef.txt'
         self.Helium_CollCoeff_TableAddress      = '/home/vital/workspace/dazer/bin/lib/Astro_Libraries/Neutral_Helium_Collisional_Correction_coef.txt'
         self.Helium_OpticalDepth_TableAddress   = '/home/vital/workspace/dazer/bin/lib/Astro_Libraries/Helium_OpticalDepthFunction_Coefficients.txt'
-                
+        
         #Declare Hydrogen and Helium lines for the analysis
         self.posHydrogen_Lines      = ['H1_4102A',      'H1_4340A', 'H1_6563A']
         self.Hydrogen_Wavelengths   = array([4101.742,  4340.471,   6562.819])
         
         self.posHelium_Lines        = ['He1_3889A',  'He1_4026A',    'He1_4387A',    'He1_4471A',    'He1_4686A',    'He1_4714A',    'He1_4922A',   'He1_5876A',    'He1_6678A',   'He1_7065A',    'He1_7281A',    'He1_10830A']
         self.Helium_Wavelengths     = array([3889.0,  4026.0,         4387.0,         4471.0,         4686.0,         4714.0,         4922.0,         5876.0,         6678.0,       7065.0,         7281.0,        10830.0])
+
+        self.posSII_Lines           = ['S2_6716A', 'S2_6731A'] 
+        self.SII_Wavelenths         = array([6716.44, 6730.81])
+        
+        self.posSIII_Lines          = ['S3_6312A', 'S3_9069A', 'S3_9531A']
+        self.SIII_Wavelenths        = array([6312.06, 9068.6, 9531.1])      
 
     def import_table_data(self, Address, Columns):
         
@@ -94,7 +100,51 @@ class Import_model_data():
             self.obj_data['TOIII_error']    = self.obj_data['TOIII'] * 0.2
             self.obj_data['nSII']           = 500.0
             self.obj_data['nSII_error']     = 200.0        
-                                 
+
+        if model == 'Model3_sulfur':
+            
+            self.Hbeta_Eqw                  = 250.0
+            self.Hbeta_EqwErr               = 12.5
+            self.Hbeta_hlambda              = 1.0
+           
+            self.obj_data['H_labels']       = ['H1_4102A',          'H1_4340A',         'H1_6563A']
+            #self.obj_data['H_Flux']         = array([0.249665005739, 0.457121205187,    2.9720213093])
+            #self.obj_data['H_error']        = self.obj_data['H_Flux'] * 0.01
+            self.obj_data['H_wave']         = array([4101.742,    4340.471,       6562.819])
+            self.obj_data['H_Eqw']          = array([50.0,        50.0,           300.0])
+            self.obj_data['H_EqwErr']       = array([1.0,         1.0,            14])
+            self.obj_data['H_hlambda']      = array([1.0,         1.0,            1.0])
+            self.obj_data['H_pyneb_code']   = array(['6_2',       '5_2',          '3_2'])
+
+            self.obj_data['He_labels']      = ['He1_3889A',  'He1_4026A',   'He1_4471A',   'He1_5876A',  'He1_6678A',    'He1_7065A',    'He1_10830A']
+            #self.obj_data['He_Flux']        = array([0.102807348487,    0.0188761305051,     0.0411173796552,     0.128607653966,  0.0373393280888,    0.04339571902,      0.761144585562])
+            #self.obj_data['He_error']       = self.obj_data['He_Flux'] * 0.02
+            self.obj_data['He_wave']        = array([ 3889.0,       4026.0,         4471.0,         5876.0,      6678.0,        7065.0,         10830.0])
+            self.obj_data['He_Eqw']         = array([10.0,          10.0,           10.0,           10.0,        10.0,          10.0,           10.0])
+            self.obj_data['He_EqwErr']      = array([1.0,                 1.0,            1.0,            1.0,         1.0,           1.0,            1.0])
+            self.obj_data['He_hlambda']     = array([1.0,                 1.0,            1.0,            1.0,         1.0,           1.0,            1.0])
+            self.obj_data['He_pyneb_code']  = array(['3889.0',            '4026.0',       '4471.0',       '5876.0',    '6678.0',      '7065.0',       '10830.0'])
+
+            self.obj_data['S2_labels']     = ['S2_6716A', 'S2_6731A']
+            self.obj_data['S2_wave']       = array([6716.44, 6730.81])
+            self.obj_data['S2_pyneb_code'] = array([6716, 6730])
+            self.obj_data['S3_labels']     = ['S3_6312A', 'S3_9069A', 'S3_9531A']
+            self.obj_data['S3_wave']       = array([6312.06, 9068.6, 9531.1])
+            self.obj_data['S3_pyneb_code'] = array([6312, 9069, 9531])
+            self.obj_data['S2_abund']      = 0.000015
+            self.obj_data['S3_abund']      = 0.000055
+             
+            self.obj_data['y_plus']         = 0.085
+            self.obj_data['n_e']            = 500.0
+            self.obj_data['tau']            = 1.0
+            self.obj_data['Te_0']           = 16000.0
+            self.obj_data['cHbeta']         = 0.1
+            self.obj_data['xi']             = 1.0  
+            self.obj_data['TOIII']          = 17000.0
+            self.obj_data['TOIII_error']    = self.obj_data['TOIII'] * 0.2
+            self.obj_data['nSII']           = 500.0
+            self.obj_data['nSII_error']     = 200.0        
+                               
         return
 
     def load_obs_data(self, lines_df, obj_series, extension_treat = '', Deblend_Check = True):
@@ -164,26 +214,38 @@ class Import_model_data():
     def prepare_run_data(self, norm_by_Hbeta = False, deblend_Check = True, red_curve = 'G03', Rv = 3.4):
 
         #Variables to speed up the code
-        self.nHydrogen          = len(self.obj_data['H_labels'])
-        self.nHydrogen_range    = arange(self.nHydrogen)
+        self.nHydrogen              = len(self.obj_data['H_labels'])
+        self.nHydrogen_range        = arange(self.nHydrogen)
         
-        self.nHelium            = len(self.obj_data['He_labels'])
-        self.nHelium_range      = arange(self.nHelium)
-        
-        self.nTotal             = self.nHydrogen + self.nHelium
+        self.nHelium                = len(self.obj_data['He_labels'])
+        self.nHelium_range          = arange(self.nHelium)
+
+        self.obj_data['nS2']        = len(self.obj_data['S2_labels'])
+        self.obj_data['nS2_range']  = arange(self.obj_data['nS2'])
+
+        self.obj_data['nS3']        = len(self.obj_data['S3_labels'])
+        self.obj_data['nS3_range']  = arange(self.obj_data['nS3'])
+       
+        self.nTotal                 = self.nHydrogen + self.nHelium
        
         #Load the reddening parameters
         H_xX        = self.reddening_Xx(self.obj_data['H_wave'], red_curve, Rv)
         He_xX       = self.reddening_Xx(self.obj_data['He_wave'], red_curve, Rv)
         Hbeta_xX    = self.reddening_Xx(array([self.Hbeta_wave]), red_curve, Rv)[0]
+        S2_xX       = self.reddening_Xx(self.obj_data['S2_wave'], red_curve, Rv)
+        S3_xX       = self.reddening_Xx(self.obj_data['S3_wave'], red_curve, Rv)
         
         #Dictionary with the vectors
         self.data_dic = {'Emissivity_H_vector'  : zeros(self.nHydrogen),
                          'Emissivity_He_vector' : zeros(self.nHelium),
+                         'Emissivity_S2_vector' : zeros(self.obj_data['nS2']),
+                         'Emissivity_S3_vector' : zeros(self.obj_data['nS3']),
                          'Kalpha_vector'        : zeros(self.nHydrogen),
                          'ftau_He_vector'       : zeros(self.nHelium),
                          'flambda_H_vector'     : H_xX/Hbeta_xX - 1.0,
-                         'flambda_He_vector'    : He_xX/Hbeta_xX - 1.0}    
+                         'flambda_He_vector'    : He_xX/Hbeta_xX - 1.0,    
+                         'flambda_S2_vector'    : S2_xX/Hbeta_xX - 1.0,
+                         'flambda_S3_vector'    : S3_xX/Hbeta_xX - 1.0}    
                 
         #Normalize the fluxes by Hbeta if necessary
         if norm_by_Hbeta: 
@@ -191,7 +253,12 @@ class Import_model_data():
             self.obj_data['He_Flux']  = self.obj_data['He_Flux']    / self.Hbeta_Flux
             self.obj_data['H_error']  = self.obj_data['H_error']    / self.Hbeta_Flux
             self.obj_data['He_error'] = self.obj_data['He_error']   / self.Hbeta_Flux
-        
+
+            self.obj_data['S2_Flux']  = self.obj_data['S2_Flux']    / self.Hbeta_Flux
+            self.obj_data['S3_Flux']  = self.obj_data['S3_Flux']    / self.Hbeta_Flux
+            self.obj_data['S2_error'] = self.obj_data['S2_error']   / self.Hbeta_Flux
+            self.obj_data['S3_error'] = self.obj_data['S3_error']   / self.Hbeta_Flux
+       
         return
 
 class Recombination_FluxCalculation(ReddeningLaws, Import_model_data):
@@ -212,10 +279,14 @@ class Recombination_FluxCalculation(ReddeningLaws, Import_model_data):
         
         #Set up the right emissivities
         atomicData.setDataFile('he_i_rec_Pal12-Pal13.fits')
-                
+        atomicData.setDataFile('s_iii_coll_HRS12.dat')
+        
         #Declare pyneb Hydrogen and Helium atoms to calculate emissivities
         self.H1                     = RecAtom('H', 1)
         self.He1                    = RecAtom('He', 1) 
+        self.ionDict                = {}
+        self.ionDict['S2']          = Atom('S', 2)
+        self.ionDict['S3']          = Atom('S', 3) 
     
         #Make sure we are using the right helium emissivities
         print '--Helium emissivities: '
@@ -239,10 +310,14 @@ class Recombination_FluxCalculation(ReddeningLaws, Import_model_data):
             
             self.obj_data['H_Flux']     = self.hydrogen_theo_flux(self.obj_data['Te_0'], self.obj_data['n_e'], self.obj_data['xi'], self.obj_data['cHbeta'])
             self.obj_data['He_Flux']    = self.helium_theo_flux(self.obj_data['Te_0'], self.obj_data['n_e'], self.obj_data['tau'], self.obj_data['xi'], self.obj_data['cHbeta'], self.obj_data['y_plus'])
+            self.obj_data['S2_Flux']    = self.metal_theo_flux('S2', self.obj_data['Te_0'], self.obj_data['n_e'], self.obj_data['cHbeta'], self.obj_data['S2_abund'])
+            self.obj_data['S3_Flux']    = self.metal_theo_flux('S3', self.obj_data['Te_0'], self.obj_data['n_e'], self.obj_data['cHbeta'], self.obj_data['S3_abund'])
             
             self.obj_data['H_error']    = self.obj_data['H_Flux'] * 0.01
             self.obj_data['He_error']   = self.obj_data['He_Flux'] * 0.02
-    
+            self.obj_data['S2_error']   = self.obj_data['S2_Flux'] * 0.02
+            self.obj_data['S3_error']   = self.obj_data['S3_Flux'] * 0.02
+
             print '\nInput Parameters'
             print '-y_plus',   self.obj_data['y_plus']
             print '-n_e',      self.obj_data['n_e']
@@ -252,6 +327,8 @@ class Recombination_FluxCalculation(ReddeningLaws, Import_model_data):
             print '-xi',       self.obj_data['xi']
             print '-TOIII',    self.obj_data['TOIII'],'+/-',self.obj_data['TOIII_error']
             print '-nSII',     self.obj_data['nSII'],'+/-',self.obj_data['nSII']
+            print '-S2_abund', self.obj_data['S2_abund']
+            print '-S3_abund', self.obj_data['S3_abund']
             
         print '\nHydrogen emissivities'
         for i in self.nHydrogen_range:
@@ -260,11 +337,21 @@ class Recombination_FluxCalculation(ReddeningLaws, Import_model_data):
         print '\nHelium emissivities'
         for i in self.nHelium_range:
             print '-{} {}'.format(self.obj_data['He_labels'][i], self.obj_data['He_Flux'][i])
-        
+
+        print '\nS2 emissivities'
+        for i in self.obj_data['nS2_range']:
+            print '-{} {}'.format(self.obj_data['S2_labels'][i], self.obj_data['S2_Flux'][i])
+
+        print '\nS3 emissivities'
+        for i in self.obj_data['nS3_range']:
+            print '-{} {}'.format(self.obj_data['S3_labels'][i], self.obj_data['S3_Flux'][i])
+
         #Fluxes combined to speed the process
-        self.H_He_Obs_Flux  = concatenate([self.obj_data['H_Flux'], self.obj_data['He_Flux']])                        
-        self.H_He_Obs_Error = concatenate([self.obj_data['H_error'], self.obj_data['He_error']])  
-        
+        self.H_He_Obs_Flux      = concatenate([self.obj_data['H_Flux'], self.obj_data['He_Flux']])                        
+        self.H_He_Obs_Error     = concatenate([self.obj_data['H_error'], self.obj_data['He_error']])  
+        self.S2_S3_Obs_Flux     = concatenate([self.obj_data['S2_Flux'], self.obj_data['S3_Flux']])                        
+        self.S2_S3_Obs_Error    = concatenate([self.obj_data['S2_error'], self.obj_data['S3_error']]) 
+       
         return
   
     def calculate_H_params(self, Te, ne):    
@@ -326,13 +413,41 @@ class Recombination_FluxCalculation(ReddeningLaws, Import_model_data):
         CR_Module   = 1 / (1.0 + 0.0001* xi * self.Hbeta_Kalpha)
 
         #Calculate the reddening component
-        f_module    = power(10, self.data_dic['flambda_He_vector'] * cHbeta)
+        f_module    = power(10, -1 *  self.data_dic['flambda_He_vector'] * cHbeta)
              
-        #Calculate theoretical Hydrogen flux for each emission line
+        #Calculate theoretical helium flux for the line
         He_Flux     = y_plus * emis_module * self.data_dic['ftau_He_vector'] * CR_Module * f_module
 
         return He_Flux
-                          
+    
+    def metal_theo_flux(self, ion, Te, ne, cHbeta, ionic_abund):
+        
+        #Ions emissivities by Hbeta emissivity
+        emis_module = self.metal_emis(ion, Te, ne) / self.Hbeta_emis
+        
+        
+        
+        #Reddening factor
+        f_module    = power(10, -1 * self.data_dic['flambda_{}_vector'.format(ion)] * cHbeta)
+
+
+
+        #Metals flux
+        metal_flux  = ionic_abund * emis_module * f_module
+        
+        return metal_flux
+    
+    def metal_emis(self, ion, Te, ne):
+        
+        ion_emis    = self.ionDict[ion]
+        pyneb_code  = '{}_pyneb_code'.format(ion)
+        vector_emis =  self.data_dic['Emissivity_{}_vector'.format(ion)]
+        
+        for i in self.obj_data['n' + ion + '_range']:    
+            vector_emis[i] = ion_emis.getEmissivity(Te, ne, wave = self.obj_data[pyneb_code][i])
+            
+        return vector_emis
+                      
     def Kalpha_Ratio_H(self, T_4, H_label):
                       
         K_alpha_Ratio   = sum(self.Coef_Kalpha_dict[H_label][0] * exp(self.Coef_Kalpha_dict[H_label][1] / T_4) * power(T_4, self.Coef_Kalpha_dict[H_label][2]))
@@ -353,12 +468,14 @@ class Inference_AbundanceModel(Recombination_FluxCalculation):
 
     def helium_abundance_model(self):
         
-        y_plus      =   pymc2.Uniform(           'y_plus',  0.050,                       0.15)
-        ne          =   pymc2.TruncatedNormal(   'ne',      self.obj_data['nSII'],       self.obj_data['nSII_error']**-2,    a = 0.0 ,   b = 1000.0)
-        Te          =   pymc2.Normal(            'Te',      self.obj_data['TOIII'],      self.obj_data['TOIII_error']**-2)
-        tau         =   pymc2.TruncatedNormal(   'tau',      0.75,                        0.5**-2,    a = 0.0,    b = 7.0)
-        cHbeta      =   pymc2.TruncatedNormal(   'cHbeta',  0.15,                        0.05**-2,   a = 0.0,    b = 3.0)
-        xi          =   pymc2.TruncatedNormal(   'xi',       1,                           200**-2,    a = 0.0,    b = 1000.0)
+        y_plus      =   pymc2.Uniform(           'y_plus',    0.050,                       0.15)
+        S2_abund    =   pymc2.Uniform(           'S2_abund',  0.000001,                    0.15)
+        S3_abund    =   pymc2.Uniform(           'S3_abund',  0.000001,                    0.15)        
+        ne          =   pymc2.TruncatedNormal(   'ne',      self.obj_data['nSII'],         self.obj_data['nSII_error']**-2,    a = 0.0 ,   b = 1000.0)
+        Te          =   pymc2.Normal(            'Te',      self.obj_data['TOIII'],        self.obj_data['TOIII_error']**-2)
+        tau         =   pymc2.TruncatedNormal(   'tau',     0.75,                          0.5**-2,    a = 0.0,    b = 7.0)
+        cHbeta      =   pymc2.TruncatedNormal(   'cHbeta',  0.15,                          0.05**-2,   a = 0.0,    b = 3.0)
+        xi          =   pymc2.TruncatedNormal(   'xi',      1,                             200**-2,    a = 0.0,    b = 1000.0)
 
         @pymc2.deterministic #Calculate Hydrogen theoretical flux
         def det_HFlux_theo(Te=Te, ne=ne, xi=xi, cHbeta=cHbeta):
@@ -367,71 +484,51 @@ class Inference_AbundanceModel(Recombination_FluxCalculation):
         @pymc2.deterministic #Calculate Helium theoretical flux 
         def det_He_Flux_theo_nof(Te=Te, ne=ne, tau=tau, xi=xi, cHbeta=cHbeta, y_plus = y_plus):
             return self.helium_theo_flux(Te=Te, ne=ne,  tau=tau, xi=xi, cHbeta=cHbeta, y_plus = y_plus)
-        
+
+        @pymc2.deterministic #Calculate Helium theoretical flux 
+        def det_S2_Flux_theo_nof(ion='S2', Te=Te, ne=ne, tau=tau, xi=xi, cHbeta=cHbeta, abund = S2_abund):
+            return self.metal_theo_flux(ion=ion, Te=Te, ne=ne, cHbeta=cHbeta, ionic_abund=abund)       
+
+        @pymc2.deterministic #Calculate Helium theoretical flux 
+        def det_S3_Flux_theo_nof(ion='S3', Te=Te, ne=ne, tau=tau, xi=xi, cHbeta=cHbeta, abund = S3_abund):
+            return self.metal_theo_flux(ion=ion, Te=Te, ne=ne, cHbeta=cHbeta, ionic_abund=abund)   
+       
         @pymc2.deterministic #Combine theoretical fluxes into a single array
         def H_He_TheoFlux(HFlux_theo=det_HFlux_theo, HeFlux_theo=det_He_Flux_theo_nof):
             self.H_He_Theo_Flux = empty(self.nTotal)
             self.H_He_Theo_Flux[:self.nHydrogen] = HFlux_theo[:]
             self.H_He_Theo_Flux[self.nHydrogen:] = HeFlux_theo[:]
             return self.H_He_Theo_Flux
-                    
+
+        @pymc2.deterministic #Combine theoretical fluxes into a single array
+        def S2_S3_TheoFlux(S2Flux_theo=det_S2_Flux_theo_nof, S3Flux_theo=det_S3_Flux_theo_nof):
+            S2_S3_Theo_Flux = empty(5)
+            S2_S3_Theo_Flux[:2] = S2Flux_theo[:]
+            S2_S3_Theo_Flux[2:] = S3Flux_theo[:]
+            return S2_S3_Theo_Flux
+                   
         @pymc2.stochastic(observed=True) #Likelihood
-        def Likelihood_model(value = self.H_He_Obs_Flux, H_He_TheoFlux = H_He_TheoFlux, sigmaLines = self.H_He_Obs_Error):
-            chi_F           = sum(square(H_He_TheoFlux - value) / square(sigmaLines))
+        def Likelihood_model_Recomb(value = self.H_He_Obs_Flux, H_He_TheoFlux = H_He_TheoFlux, sigmaLines = self.H_He_Obs_Error):
+            chi_F = sum(square(H_He_TheoFlux - value) / square(sigmaLines))
+            return - chi_F / 2
+
+        @pymc2.stochastic(observed=True) #Likelihood
+        def Likelihood_model_metals(value = self.S2_S3_Obs_Flux, S2_S3_TheoFlux = S2_S3_TheoFlux, sigmaLines = self.S2_S3_Obs_Error):
+            chi_F = sum(square(S2_S3_TheoFlux - value) / square(sigmaLines))
+            return - chi_F / 2
+
+        @pymc2.deterministic() #Deterministic method to track the evolution of the chi:
+        def ChiSq_Recomb(H_He_ObsFlux = self.H_He_Obs_Flux, H_He_TheoFlux = H_He_TheoFlux, sigmaLines = self.H_He_Obs_Error):
+            chi_F           = sum(square(H_He_TheoFlux - H_He_ObsFlux) / square(sigmaLines))
+            return - chi_F / 2
+
+        @pymc2.deterministic() #Deterministic method to track the evolution of the chi:
+        def ChiSq_Metals(S2_S3_Obs_Flux = self.S2_S3_Obs_Flux, S2_S3_TheoFlux = S2_S3_TheoFlux, sigmaLines = self.S2_S3_Obs_Error):
+            chi_F = sum(square(S2_S3_TheoFlux - S2_S3_Obs_Flux) / square(sigmaLines))
             return - chi_F / 2
     
-        @pymc2.deterministic() #Deterministic method to track the evolution of the chi:
-        def ChiSq(H_He_ObsFlux = self.H_He_Obs_Flux, H_He_TheoFlux = H_He_TheoFlux, sigmaLines = self.H_He_Obs_Error):
-            chi_F           = sum(square(H_He_TheoFlux - H_He_ObsFlux) / square(sigmaLines))
-            return - chi_F / 2
-      
         return locals()
    
-    def helium_abundance_model_abs(self):
-
-        print 'Physical parameters:'
-        print self.obj_data['nSII'], self.obj_data['nSII_error']
-        print self.obj_data['TOIII'], self.obj_data['TOIII_error']
-        
-        y_plus      =   pymc2.Uniform(           'He_abud',      0.050,                              0.15)
-        ne          =   pymc2.TruncatedNormal(   'n_e',          self.obj_data['nSII'],             self.obj_data['nSII_error']**-2,    a = 0.0 ,   b = 1000.0)
-        Te          =   pymc2.Normal(            'T_e',          self.obj_data['TOIII'],            self.obj_data['TOIII_error']**-2)
-        tau         =   pymc2.TruncatedNormal(   'Tau',          0.75,                               0.5**-2,    a = 0.0,    b = 7.0)
-        cHbeta      =   pymc2.TruncatedNormal(   'c_Hbeta',      0.15,                               0.05**-2,   a = 0.0,    b = 3.0)
-        xi          =   pymc2.TruncatedNormal(   'Xi',           1,                                  200**-2,    a = 0.0,    b = 1000.0)
-        a_H         =   pymc2.TruncatedNormal(   'abs_H',        1.0,                                1**-2,      a = 0.0,    b = 14.0)
-        a_He        =   pymc2.TruncatedNormal(   'abs_He',       1.0,                                0.5**-2,    a = 0.0,    b = 5.0)
-        Eqw_hbeta   =   pymc2.Normal(            'Eqw_hbeta',    self.EqW_dict['H1_4861A'],          self.EqWerror_dict['H1_4861A']**-2)
-
-        #Calculate Hydrogen theoretical flux
-        @pymc2.deterministic
-        def det_HFlux_theo_abs(Te=Te, ne=ne, xi=xi, cHbeta=cHbeta, a_H=a_H, Eqw_hbeta=Eqw_hbeta):
-            return self.H_Flux_theo_abs(Te=Te, ne=ne, xi=xi, cHbeta=cHbeta, a_H=a_H, Eqw_hbeta=Eqw_hbeta)
-        
-        #Calculate Helium theoretical flux    
-        @pymc2.deterministic
-        def det_He_Flux_theo_abs(Te=Te, ne=ne, tau=tau, xi=xi, cHbeta=cHbeta, y_plus = y_plus, a_H=a_H, a_He=a_He, Eqw_hbeta=Eqw_hbeta):
-            return self.He_Flux_theo_abs(Te=Te, ne=ne,  tau=tau, xi=xi, cHbeta=cHbeta, y_plus = y_plus, a_H=a_H, a_He=a_He, Eqw_hbeta=Eqw_hbeta)
-        
-        #Combine theoretical fluxes into a single array
-        @pymc2.deterministic
-        def H_He_TheoFlux(HFlux_theo=det_HFlux_theo_abs, HeFlux_theo=det_He_Flux_theo_abs):
-            return concatenate([HFlux_theo, HeFlux_theo])
-                
-        #Likelihood
-        @pymc2.stochastic(observed=True)
-        def Likelihood_model(value = self.H_He_Obs_Flux, H_He_TheoFlux = H_He_TheoFlux, sigmaLines = self.H_He_Obs_Error):
-            chi_F           = sum(square(H_He_TheoFlux - value) / square(sigmaLines))
-            return - chi_F / 2
-        
-        #Deterministic method to track the evolution of the chi:
-        @pymc2.deterministic()
-        def ChiSq(H_He_ObsFlux = self.H_He_Obs_Flux, H_He_TheoFlux = H_He_TheoFlux, sigmaLines = self.H_He_Obs_Error):
-            chi_F           = sum(square(H_He_TheoFlux - H_He_ObsFlux) / square(sigmaLines))
-            return - chi_F / 2
-       
-        return locals()
-
 class Run_MCMC(Inference_AbundanceModel):
 
     def __init__(self):
@@ -448,7 +545,7 @@ class Run_MCMC(Inference_AbundanceModel):
         else:
             self.inf_dict = self.helium_abundance_model_abs()
                     
-    def run_pymc2(self, iterations = 10000, burn_phase = 1500, thining=2, variables_list = None):
+    def run_pymc2(self, db_address, iterations = 10000, burn_phase = 1500, thining=2, variables_list = None):
         
         #Ideal cond1: iter=30000, burn=5000, thin=10
         #Ideal cond2: iter=10000, burn=1500, thin=2
@@ -462,13 +559,13 @@ class Run_MCMC(Inference_AbundanceModel):
         self.display_run_data(self.MAP_Model, variables_list)
                 
         #Launch sample
-        self.pymc2_M    = pymc2.MCMC(self.MAP_Model.variables, db = 'pickle', dbname =  self.db_address)
+        self.pymc2_M    = pymc2.MCMC(self.MAP_Model.variables, db = 'pickle', dbname =  db_address)
         self.pymc2_M.sample(iter=iterations, burn=burn_phase, thin=thining)
         
         #Save the output csv mean data
         if variables_list != None:
             print '--Saving results in csv'
-            self.csv_address = self.db_address + '_Parameters'
+            self.csv_address = db_address + '_Parameters'
             self.pymc2_M.write_csv(self.csv_address, variables=variables_list)
             
         #Print again the             

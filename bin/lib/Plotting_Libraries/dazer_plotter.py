@@ -313,7 +313,7 @@ class Fig_Conf():
                                 
     def savefig(self, output_address, extension = '.png', reset_fig = True, pad_inches=0.2):
 
-        plt.savefig(output_address + extension, dpi=350.0, bbox_inches='tight', pad_inches=pad_inches)
+        plt.savefig(output_address + extension, dpi=500.0, bbox_inches='tight', pad_inches=pad_inches)
         
         if reset_fig:
             self.reset_fig()
@@ -374,11 +374,21 @@ class Plot_Conf(Fig_Conf):
         
         self.labels_latex_dic = {'y_plus':r'$y^{+}$',
                             'Te':r'$T_{e}$',
+                            'T_low':r'$T_{low}$',
+                            'T_high':r'$T_{high}$',
                             'ne':r'$n_{e}$',
                             'cHbeta':r'$c(H\beta)$',
                             'tau':r'$\tau$',
                             'xi':r'$\xi$',
                             'ChiSq':r'$\chi^{2}$',
+                            'ChiSq_Recomb':r'$\chi^{2}_{Recomb}$',
+                            'ChiSq_Metals':r'$\chi^{2}_{Metals}$',
+                            'ChiSq_O':r'$\chi^{2}_{O}$',
+                            'ChiSq_S':r'$\chi^{2}_{S}$',                            
+                            'S2_abund':r'$S^{+}$',
+                            'S3_abund':r'$S^{2+}$',
+                            'O2_abund':r'$O^{+}$',
+                            'O3_abund':r'$O^{2+}$'        
                             }
                 
     def data_plot(self, x, y, label = '', color = None, linestyle = None, markerstyle = None, linewidth = None, markersize = None, x_error=None, y_error=None, cmap=None, e_style = None, graph_axis = None):
@@ -624,14 +634,14 @@ class Plot_Conf(Fig_Conf):
             #Add legend
             self.legend_conf(self.Axis[i], loc=2)
 
-    def acorr_plot(self, traces, database, stats_dic):
+    def acorr_plot(self, traces, database, stats_dic, n_columns = 4, n_rows = 2):
                 
         #Number of traces to plot
         n_traces = len(traces)        
 
         #Declare figure format
         size_dict = {'figure.figsize':(14,7), 'axes.titlesize':14, 'legend.fontsize':10}            
-        self.FigConf(plotSize = size_dict, Figtype = 'Grid', n_columns = 4, n_rows = 2)          
+        self.FigConf(plotSize = size_dict, Figtype = 'Grid', n_columns = n_columns, n_rows = n_rows)          
 
         #Generate the color map
         self.gen_colorList(0, n_traces)
