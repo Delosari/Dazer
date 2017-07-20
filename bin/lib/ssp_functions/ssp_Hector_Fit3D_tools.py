@@ -366,8 +366,7 @@ def fit_ssp_lin_no_zero_mine(redshift,sigma,Av_NOW,crval,cdelt,crpix,nf,n_c,pdl_
     
     MOD = []
     if nf_new > 0 :
-        print 'EEEEEEEEEEEEEOOOOOOOOOOOOOOOOOOOOOOOOO'
-        print nf_neg
+
         #Repeating fit until no negative coefficients (a)
         while nf_neg > 0:
             
@@ -480,7 +479,7 @@ def fit_ssp_lin_no_zero_mine(redshift,sigma,Av_NOW,crval,cdelt,crpix,nf,n_c,pdl_
     pdl_res         = flux_unc-pdl_model_spec_min
     pdl_wave_unc    = wave_unc
     out_ps_now      = "junk"
-    title           ="X="+str(chi_sq)+" Av="+str(Av[0])+" z="+str(redshift)+" sigma="+str(sigma)
+    title           = "X="+str(chi_sq)+" Av="+str(Av[0])+" z="+str(redshift)+" sigma="+str(sigma)
 #     if plot > 0:
 #         plot_results(plot,pdl_wave_unc,[pdl_flux_masked,pdl_model_spec_min,pdl_res],out_ps_now,title)
     return [chi_sq,pdl_age_mod,pdl_met_mod,pdl_ml,pdl_Av,coeffs,coeffs_N,coeffs_NM,pdl_model_spec_min,pdl_res]
@@ -505,7 +504,7 @@ def fit_ssp_lin_no_zero(redshift,sigma,Av_NOW,crval,cdelt,crpix,nf,n_c,pdl_flux_
     for i in range(0, nf):
         if Av[i] < 0:
             Av[i]=0
-
+            
     wave_c=[]
     dpix_c_val=[]
     for j in range(0, n_c):
@@ -517,7 +516,12 @@ def fit_ssp_lin_no_zero(redshift,sigma,Av_NOW,crval,cdelt,crpix,nf,n_c,pdl_flux_
     dpix_c_val[0]=dpix_c_val[1]
     dpix_c=wave_c[1]-wave_c[0]
     rsigma=sigma/dpix_c
-
+    
+    print '-----n_unc', n_unc
+    print '-----masked', len(masked), np.array(masked)
+    print '-----wave_c', len(wave_c), np.array(wave_c)
+    print '-----rsigma', rsigma
+    
     name=[]
     age_mod=[]
     met_mod=[]
@@ -569,9 +573,13 @@ def fit_ssp_lin_no_zero(redshift,sigma,Av_NOW,crval,cdelt,crpix,nf,n_c,pdl_flux_
             kernel[0,j]=gaus
             norm=norm+gaus
         kernel=kernel/norm;
+        
         pdl_flux_c_conv = convolve2d(pdl_flux_c_ini,kernel,mode='same')
+        
+        
         pdl_flux_c = pdl_flux_c_conv[iii,:]
         out_spec_pdl = interp1d(wave_c, pdl_flux_c,bounds_error=False,fill_value=0.)(wave_unc)
+        
         n_c_out=out_spec_pdl.shape
         error=[]
         for i in range(0,n_unc):
@@ -584,11 +592,19 @@ def fit_ssp_lin_no_zero(redshift,sigma,Av_NOW,crval,cdelt,crpix,nf,n_c,pdl_flux_
                 error.extend([0.01*abs(e_flux_unc[i])])
             else:
                 error.extend([0])
+
+#         print 'Hector model', np.sum(np.array(model[:,iii]))
+#         print 'Hector model_no_mask', np.sum(np.array(model_no_mask[:,iii]))
+#         print 'Hector error', np.sum(np.array(error))
+    
+    print '-----model', model.shape, np.sum(model)
+                
     pdl_model=np.zeros([n_unc,nf])
     pdl_model_no_mask=np.zeros([n_unc,nf])
     pdl_error=np.zeros(n_unc)
     pdl_masked=masked
     pdl_dust_spec=np.zeros([n_unc,nf])
+    
     for j in range(0, nf):
         for i in range(0, n_unc):
             wave_res=wave_unc[i]/(1+redshift)
@@ -604,6 +620,9 @@ def fit_ssp_lin_no_zero(redshift,sigma,Av_NOW,crval,cdelt,crpix,nf,n_c,pdl_flux_
             if val_now == 0:
                 val_now=1
             pdl_error[i]=1.0/(abs(val_now)**2)
+
+    print '-----pdl_model', np.sum(pdl_model)
+
 #
 # We fit
 #
@@ -612,8 +631,20 @@ def fit_ssp_lin_no_zero(redshift,sigma,Av_NOW,crval,cdelt,crpix,nf,n_c,pdl_flux_
     pdl_C_flast=np.ones(nf)
 
 # Just a linear FIT, without restrictions!
+
+#     print 'Inputs linfit1d'
+#     print np.sum(flux_unc)
+#     print np.sum(pdl_flux_masked)
+#     print np.sum(pdl_model)
+#     print np.sum(1/pdl_error)
+
+
     [y_model_now, coeffs] = linfit1d(pdl_flux_masked,pdl_model,1/pdl_error)
     y_model_now=y_model_now[:,0]
+
+#     print '-----y_model_now', y_model_now, np.sum(y_model_now), y_model_now.shape
+#     print '-----coeffs', coeffs
+
 #
 # We remove the models that are negative
 #
@@ -625,11 +656,20 @@ def fit_ssp_lin_no_zero(redshift,sigma,Av_NOW,crval,cdelt,crpix,nf,n_c,pdl_flux_
             nf_new=nf_new+1
         else:
             nf_neg=nf_neg+1
+    
+    print '----nf_new:', nf_new, (coeffs[:,0] > 0).sum()
+    print '----nf_neg:', nf_neg, (coeffs[:,0] < 0).sum()
+    print '----n_unc:', n_unc
+    print '----n_coeffs:', coeffs.shape
+    print '----nf:', nf       
+        
+            
     MOD=[]
     if nf_new > 0 :
         while nf_neg > 0:
             pdl_model_new=np.zeros([n_unc,nf_new])
-            nf_i=0;
+            nf_i=0
+            
             for k in range(0, nf):
                 C=coeffs[k][0]
                 if C > 0:
@@ -638,6 +678,7 @@ def fit_ssp_lin_no_zero(redshift,sigma,Av_NOW,crval,cdelt,crpix,nf,n_c,pdl_flux_
                     nf_i=nf_i+1
                 else:
                     coeffs[k][0]=0
+                    
             [yfit, coeffs_new] = linfit1d(pdl_flux_masked,pdl_model_new,1/pdl_error)
             y_model_now=yfit[:,0]
             nf_i=0
@@ -660,6 +701,10 @@ def fit_ssp_lin_no_zero(redshift,sigma,Av_NOW,crval,cdelt,crpix,nf,n_c,pdl_flux_
         #    C=coeffs[k][0]
     else:
         nf_new=nf
+        
+#     print 'Despues'
+#     print coeffs
+        
 ##############################
 # CHISQ VALUE
     chi=0
@@ -689,6 +734,7 @@ def fit_ssp_lin_no_zero(redshift,sigma,Av_NOW,crval,cdelt,crpix,nf,n_c,pdl_flux_
     chi_sq=chi_sq_min_now    
     norm_C=0
     norm_C_mass=0
+    
     for k in range(0, nf):
         dust=10**(-0.4*Av[k]*dust_rat)
         C=coeffs[k][0]
@@ -696,7 +742,10 @@ def fit_ssp_lin_no_zero(redshift,sigma,Av_NOW,crval,cdelt,crpix,nf,n_c,pdl_flux_
         norm_C_mass=norm_C_mass+C*ml[k]
         coeffs_N[k][0]=norm_C
         coeffs_NM[k][0]=norm_C_mass
-        pdl_model_spec_min=pdl_model_spec_min+C*pdl_model_no_mask[:,k]    
+        pdl_model_spec_min=pdl_model_spec_min+C*pdl_model_no_mask[:,k]
+
+    print '-----pdl_model_spec_min', np.sum(pdl_model_spec_min)
+
     for k in range(0, nf):
         C=coeffs[k][0]
         if norm_C > 0:
@@ -720,10 +769,11 @@ def fit_ssp_lin_no_zero(redshift,sigma,Av_NOW,crval,cdelt,crpix,nf,n_c,pdl_flux_
     pdl_res=flux_unc-pdl_model_spec_min
     pdl_wave_unc=wave_unc
     out_ps_now="junk";
+    
     title="X="+str(chi_sq)+" Av="+str(Av[0])+" z="+str(redshift)+" sigma="+str(sigma)
-    if plot > 0:
-        plot_results(plot,pdl_wave_unc,[pdl_flux_masked,pdl_model_spec_min,pdl_res],out_ps_now,title)
-    return [chi_sq,pdl_age_mod,pdl_met_mod,pdl_ml,pdl_Av,coeffs,coeffs_N,coeffs_NM,pdl_model_spec_min,pdl_res]
+#     if plot > 0:
+#         plot_results(plot,pdl_wave_unc,[pdl_flux_masked,pdl_model_spec_min,pdl_res],out_ps_now,title)
+    return [chi_sq,pdl_age_mod,pdl_met_mod,pdl_ml,pdl_Av,coeffs,coeffs_N,coeffs_NM,pdl_model_spec_min,pdl_res], [wave_unc, masked, pdl_model_spec_min]
 
 def fit_ssp_lin_no_zero_no_cont(redshift,sigma,Av_NOW,crval,cdelt,crpix,nf,n_c,pdl_flux_c_ini,hdr_c_ini,wave_unc,masked,e_flux_unc,flux_unc,n_mc,chi_sq_min_now,MIN_CHISQ,plot):
     Av=Av_NOW

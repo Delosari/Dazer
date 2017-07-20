@@ -7,6 +7,9 @@ from astropy.io.fits                import getdata
 from scipy.signal.signaltools       import convolve2d
 from scipy.interpolate.interpolate  import interp1d
 from numpy import array, core, loadtxt, empty, sqrt, abs, sum as np_sum, isnan, ones, copy, median, arange, exp, zeros, transpose, mean, diag, linalg, dot
+import pyneb as pn
+
+pn.RedCorr.law
 
 #Function to delete files
 def silentremove(filename_list):
@@ -22,7 +25,7 @@ def example_data(folder_data):
     arguments_dict = OrderedDict()
     arguments_dict['script']            = folder_data + 'auto_ssp_elines_rnd.py'            #0
     arguments_dict['input_spec']        = folder_data + 'NGC5947.spec_5.txt'                #1
-    arguments_dict['SSPs_lib']          = folder_data +'ssp_lib.fits,'+folder_data +'ssp_lib.3.fits'                     #2
+    arguments_dict['SSPs_lib']          = folder_data +'ssp_lib.fits,'+folder_data +'ssp_lib.fits'                     #2
     arguments_dict['output_file']       = folder_data + 'auto_ssp.NGC5947.cen.only.out'     #3
     arguments_dict['mask_file']         = folder_data + 'mask_elines.txt'                   #4
     arguments_dict['conf_file']         = folder_data + 'auto_ssp_V500_several_Hb.config'   #5
@@ -36,7 +39,7 @@ def example_data(folder_data):
     arguments_dict['delta_z']           = 0.001                                             #13
     arguments_dict['min_z']             = 0.015                                             #14
     arguments_dict['max_z']             = 0.025                                             #15
-    arguments_dict['input_sigma']       = 3.2                                               #16 #This one used to be 2
+    arguments_dict['input_sigma']       = 2.0                                               #16 #This one used to be 2
     arguments_dict['delta_sigma']       = 0.5                                               #17
     arguments_dict['min_sigma']         = 1                                                 #18
     arguments_dict['max_sigma']         = 9                                                 #19
@@ -59,18 +62,23 @@ def check_missing_flux_values(flux):
     
     return
 
-def A_l(Rv,l):
-    l=l/10000.; #Amstrongs to Microns
-    x=1/l
-    if x > 1.1:
-        y=(x-1.82)
-        ax=1+0.17699*y-0.50447*y**2-0.02427*y**3+0.72085*y**4+0.01979*y**5-0.77530*y**6+0.32999*y**7
-        bx=1.41338*y+2.28305*y**2+1.07233*y**3-5.38434*y**4-0.62251*y**5+5.30260*y**6-2.09002*y**7
-    else:
-        ax=0.574*x**1.61
-        bx=-0.527*x**1.61
-    Arat=ax+bx/Rv
-    return Arat
+def CCM89_Bal07(Rv, wave):
+    
+    x   = 1e4 / wave #Assuming wavelength is in Amstrongs
+    ax  = zeros(len(wave))
+    bx  = zeros(len(wave))
+    
+    idcs    = x > 1.1
+    y       = (x[idcs] - 1.82)
+    
+    ax[idcs]    = 1+0.17699*y-0.50447*y**2-0.02427*y**3+0.72085*y**4+0.01979*y**5-0.77530*y**6+0.32999*y**7
+    bx[idcs]    = 1.41338*y+2.28305*y**2+1.07233*y**3-5.38434*y**4-0.62251*y**5+5.30260*y**6-2.09002*y**7
+    ax[~idcs]   = 0.574*x[~idcs]**1.61
+    bx[~idcs]   = -0.527*x[~idcs]**1.61
+            
+    Xx  = ax+bx/Rv #WARNING better to rewrite this law
+    
+    return Xx
 
 class ssp_fitter():
     
@@ -161,7 +169,7 @@ class ssp_fitter():
                 fit_conf_dict.update(zip(self.sspSyn_config_params[i], param_values))
             
             #Add bases rows: 'START_W_n','END_W_n','MASK_FILE_n' ...
-            self.n_line_masks    = int(conf_lines[3])
+            self.n_line_masks = int(conf_lines[3])
             self.emlines_df   = DataFrame(columns=self.eline_mask_header)
             for i in range(4, 4 + self.n_line_masks):
                 
@@ -238,23 +246,22 @@ class ssp_fitter():
         self.fit_conf['em_lines']  = '{rootname}_{file_code}.{ext}'.format(rootname=output_root, file_code='elines', ext='txt')
         silentremove([self.fit_conf['output_file'], self.fit_conf['single'], self.fit_conf['spectrum'], self.fit_conf['em_lines']])
     
-        #--Setting SFH template
+        #--Setting SFH template         
+        #WARNING WE SHOULD JUST MAKE A ROUTINE TO OPEN ALL FITS INDIVIDUALLY
         sfh_base_flux, sfh_hdr          = getdata(self.ssp_lib_lum_address, 0, header=True)
         nBases_sfh, nPixels_sfh         = sfh_base_flux.shape
         coeffs_basis_sfh                = empty([nBases_sfh, 3])
         crpix_sfh, cdelt_shf, crval_sfh = sfh_hdr['CRPIX1'], sfh_hdr['CDELT1'], sfh_hdr['CRVAL1']
-        
-        print 'SFH bases'
-        print  nBases_sfh, nPixels_sfh
-        
+                
         #--Setting kinematics template
         kin_base_flux, kin_hdr          = getdata(self.ssp_lib_kin_address, 0, header=True)
-        nBases_kin, nPixels_kin         = sfh_base_flux.shape
+        nBases_kin, nPixels_kin         = kin_base_flux.shape
         coeffs_basis_kin                = empty([nBases_sfh, 3])
         crpix_kin, cdelt_kin, crval_kin = sfh_hdr['CRPIX1'], sfh_hdr['CDELT1'], sfh_hdr['CRVAL1']
         
-        print 'Kin bases'
-        print  nBases_kin, nPixels_kin
+#         print 'Que estamos importando'
+#         print '1', nBases_sfh, nPixels_sfh, self.ssp_lib_lum_address
+#         print '2', nBases_kin, nPixels_kin, self.ssp_lib_kin_address
         
         #Load spectrum masks
         mask_xmin, mask_xmax = loadtxt(self.fit_conf['mask_file'], unpack = True)
@@ -323,11 +330,16 @@ class ssp_fitter():
         self.fit_conf['cdelt_kin']          = cdelt_kin
         self.fit_conf['crval_kin']          = crval_kin  
         
-        pix_array                           = arange(0, nBases_kin)
-        self.fit_conf['kin_wave']           = (crval_kin + cdelt_kin * (pix_array + 1 - crpix_kin)) * (1 + self.fit_conf['input_z'])
-             
+        pix_array                           = arange(0, nPixels_kin)
+                
+        self.fit_conf['kinWave_zCor']       = (crval_kin + cdelt_kin * (pix_array + 1 - crpix_kin)) * (1 + self.fit_conf['input_z'])
+
+        self.fit_conf['nBases_lum']         = nBases_sfh        
+        self.fit_conf['nPixels_lum']        = nPixels_sfh
+         
         self.fit_conf['nBases_kin']         = nBases_kin        
         self.fit_conf['nPixels_kin']        = nPixels_kin        
+               
         self.fit_conf['kin_base_flux']      = kin_base_flux        
         self.fit_conf['kin_hdr']            = kin_hdr    
         self.fit_conf['zero_mask']          = total_masks * 1.0
@@ -338,28 +350,30 @@ class ssp_fitter():
         
         #obs_wave, obs_flux, obs_flux_err, obs_flux_err_adj, input_z, input_sigma, input_Av, nBases_kin, nPixels_kin, kin_base_flux, kin_hdr, Av_mask
         obs_wave            = self.fit_conf['obs_wave']
-        obs_flux            = self.fit_conf['obs_flux']
-        obs_flux_mask       = self.fit_conf['obs_flux_mask']
+        obs_flux            = self.fit_conf['obs_flux'] 
+        obs_flux_mask       = self.fit_conf['obs_flux'] * self.fit_conf['zero_mask']
         obs_flux_err_adj    = self.fit_conf['obs_flux_err_adj']
         input_z             = self.fit_conf['input_z']
         input_sigma         = self.fit_conf['input_sigma']
         input_Av            = self.fit_conf['input_Av']
+        
+        #WE should remove this kin rubbish and use a standard
         nBases_kin          = self.fit_conf['nBases_kin']
         nPixels_kin         = self.fit_conf['nPixels_kin']
         kin_base_flux       = self.fit_conf['kin_base_flux']
         kin_hdr             = self.fit_conf['kin_hdr']
-        zero_mask           = self.fit_conf['Av_mask']
-                             
+        zero_mask           = self.fit_conf['zero_mask']
+
         #Extra constants
         n_pixFlux           = len(obs_flux)
-        Av_vector           = input_Av * self.fit_conf['zero_mask'] #Av vector array with masked entries
+        Av_vector           = input_Av * ones(nBases_kin) #WARNING: Now this is going with the basis...
         kin_model           = empty((n_pixFlux, nBases_kin))
         kin_model_no_mask   = empty((n_pixFlux, nBases_kin))
-        
+                
         #Redshift corrected wavelength for the bases
-        wave_corr           = self.fit_conf['kin_wave']
+        wave_corr           = self.fit_conf['kinWave_zCor']
         dpix_c_val          = None #WARNING: Do we need this one?
-        
+          
         #Dispersion velocity definition
         r_sigma             = input_sigma/(wave_corr[1] - wave_corr[0])
         
@@ -392,17 +406,26 @@ class ssp_fitter():
                 kernel[0,j] = gaus
                 norm        = norm+gaus
             kernel = kernel / norm
-            
+              
             #Generate kinetic model
             kin_base_flux_conv      = convolve2d(kin_base_flux, kernel, mode='same')
             kin_base_flux_conv_i    = kin_base_flux_conv[i,:]
-            base_kin_flux_resamp_i  = interp1d(wave_corr, kin_base_flux_conv_i, bounds_error=False, fill_value=0.)(obs_wave)
             
+            #print '-----kin_base_flux_conv_i', kin_base_flux_conv_i.shape
+            
+            base_kin_flux_resamp_i  = interp1d(wave_corr, kin_base_flux_conv_i, bounds_error=False, fill_value=0.)(obs_wave)
+                
+            
+            #print '-----base_kin_flux_resamp_i', base_kin_flux_resamp_i.shape
+                        
             #Adjust the bases to the mask            
-            kin_model[:][i]         = base_kin_flux_resamp_i * zero_mask
-            kin_model_no_mask[:][i] = base_kin_flux_resamp_i
+            kin_model[:,i]          = base_kin_flux_resamp_i * zero_mask
+            kin_model_no_mask[:,i]  = base_kin_flux_resamp_i
             kin_model_err_i         = 0.01 * abs(obs_flux_err_adj) * zero_mask #Error in the bases modelled after the object spectrum
             
+#             print 'My kin_model_no_mask', np_sum(kin_model_no_mask[:,i])
+#             print 'My kin_model_err_i', np_sum(kin_model_err_i)
+
             #Check if there are nan entries in the bases
             check_missing_flux_values(kin_model[:,i])
         
@@ -410,90 +433,108 @@ class ssp_fitter():
         kin_model_dust              = empty((n_pixFlux, nBases_kin))        
         kin_model_final             = empty((n_pixFlux, nBases_kin))
         kin_model_final_nomask      = empty((n_pixFlux, nBases_kin))
+        pdl_error_i                 = ones(len(obs_flux_err_adj))
+        idx_zero                    = (obs_flux_err_adj == 0)
+        pdl_error_i[~idx_zero]      = 1.0/(abs(obs_flux_err_adj[~idx_zero])**2)
         
         for j in range(0, nBases_kin):
-            wave_res                    = obs_wave[i]/(1 + input_z)
-            dust_rat                    = A_l(3.1, wave_res)
-            atten_dust                  = 10 ** (-0.4 * Av_vector * dust_rat)  
+            wave_res                    = obs_wave/(1 + input_z)
+            dust_rat                    = CCM89_Bal07(3.1, wave_res)
+            atten_dust                  = 10 ** (-0.4 * Av_vector[j] * dust_rat)  
             kin_model_dust[:, j]        = atten_dust
             kin_model_final[:,j]        = kin_model[:, j] * atten_dust
             kin_model_final_nomask[:,j] = kin_model_no_mask[:,j] * atten_dust
-            pdl_error_i                 = 1.0/(abs(obs_flux_err_adj)**2) #WARNING: This one is just rewritten     
-            
+            #pdl_error_i                 = 1.0/(abs(obs_flux_err_adj)**2) #WARNING: This one is just rewritten     
+
+        print 'My kin_model_final', np_sum(kin_model_final)
+  
         #--Linear parameters fitting 
+
+#         print '-----The redshift', input_z
+#         print '-----The input_sigma', input_sigma
+#         print '-----The input_Av', input_Av, Av_vector.shape
+#         print '-----The crval2', self.fit_conf['crval_kin']
+#         print '-----The cdelt2', self.fit_conf['cdelt_kin']
+#         print '-----The crpix2', self.fit_conf['crpix_kin']        
+#         print '-----nf2/nBases_kin', nBases_kin
+#         print '-----n_c2/nPixels_kin', nPixels_kin
+#         print '-----pdl_flux_c_ini2/kin_base_flux', kin_base_flux.shape
+# #         print '-----kin_hdr/hdr2', kin_hdr
+#         print '-----obs_wave/wave_unc', obs_wave
+#         print '-----masked_Av/Av_vector', Av_vector.shape, Av_vector
+#         print '-----zero_mask', zero_mask.shape, zero_mask
+#         print '-----obs_flux_err_adj/e_flux_unc', obs_flux_err_adj.shape, obs_flux_err_adj
+#         print '-----obs_flux/flux_unc', obs_flux.shape, obs_flux
+#         print '-----self.n_mc', self.n_mc
+#         print '-----self.chiSq_min', self.chiSq_min
+#         print '-----wave_corr', wave_corr
+#         print '-----r_sigma', r_sigma
+#         print '-----wave_corr', wave_corr
+#         print '-----r_sigma', r_sigma
+#         print '-----kin_model', kin_model.shape, np_sum(kin_model)
+#         print '-----kin_model_final', kin_model_final.shape, np_sum(kin_model_final)
+
     
         #Initial stellar synthesis without restrictions
+        
+#         print 'Inputs linfit1d'
+#         print np_sum(obs_flux)
+#         print np_sum(obs_flux_mask)
+#         print np_sum(kin_model_final)
+#         print np_sum(1/pdl_error_i)
+        
         y_fit_0, coeffs_0   = self.linfit1d(obs_flux_mask, kin_model_final, 1/pdl_error_i)
-        y_model_0           = y_fit_0[:,0]
+        y_fit_0             = y_fit_0[:,0]
+ 
+#         print '-----y_model_now', y_fit_0, np_sum(y_fit_0), y_fit_0.shape
+#         print '-----coeffs', coeffs_0 
         
         #Count positive and negative coefficients
         plus_coeff  = (coeffs_0[:,0] > 0).sum()
         neg_coeff   = (coeffs_0[:,0] < 0).sum()
-        
+
+        print '----nf_new:', plus_coeff
+        print '----nf_neg:', neg_coeff
+        print '----n_unc:', n_pixFlux          
+        print '----coeffs_0:', coeffs_0.shape          
+        print '----nBases_kin:', nBases_kin          
+             
         #Start loops
+        counter = 0
         if plus_coeff > 0:
             
             while neg_coeff > 0:
-                
-                bases_model_n                       = zeros((n_pixFlux, plus_coeff))
-                
-                #Positive coefficients are filled with previous value
-                idx_plus                            = (coeffs_0[:,0] > 0)
-                bases_model_n[:,idx_plus]           = kin_model_final[:,idx_plus]
-                coeffs_0[:~idx_plus]                = 0 
+                                                
+                bases_model_n = zeros([n_pixFlux, plus_coeff])
+                                
+                idx_plus_0                          = (coeffs_0[:,0] > 0)
+                bases_model_n[:,0:idx_plus_0.sum()] = kin_model_final[:,idx_plus_0] #These are replace in order
+                coeffs_0[~idx_plus_0,0]             = 0 
                 
                 #Repeat fit
-                y_fit_n, coeffs_n                   = self.linfit1d(obs_flux_mask, bases_model_n, 1/pdl_error_i)
-                y_model_n                           = y_fit_n[:,0]
-                nf_i, nf_neg, nf_new                = 0, 0, 0
+                y_fit_n, coeffs_n = self.linfit1d(obs_flux_mask, bases_model_n, 1/pdl_error_i)
                 
-                print '-- Empieza la operacion:'
-                for k in range(0, nBases_kin):
-                    C = coeffs_0[k][0]
-                    
-                    if C > 0:
-                        val  = coeffs_n[nf_i][0]
-                        nf_i = nf_i+1
-                        if val > 0:
-                            coeffs_0[k][0]  = val
-                            nf_new          = nf_new+1
-                        else:
-                            coeffs_0[k][0]  = 0
-                            nf_neg=nf_neg+1
-            
-#                 #Compare fits
-#                 idx_plus_new                        = (coeffs_n[idx_plus] > 0)
-#                 coeffs_0[idx_plus][idx_plus_new]    = coeffs_n[idx_plus][idx_plus_new]
-#                 nf_new                              = [idx_plus][idx_plus_new].sum()
-#                 nf_neg                              = nBases_kin - nf_new
+                idx_plus_n  = coeffs_n[:,0] > 0
+                idx_min_n   = ~idx_plus_n
+                plus_coeff  = idx_plus_n.sum()
+                neg_coeff   = (idx_min_n).sum()
                 
-                if nf_new == 0:
-                    nf_neg = 0
-                    
+                #Replacing negaive by zero
+                coeffs_n[idx_min_n] = 0
+                coeffs_0[idx_plus_0] = coeffs_n
+
+                if plus_coeff == 0:
+                    neg_coeff = 0     
         else:
             plus_coeff = nBases_kin
-            
-            
-        #--Prepare the plotting:
-        chi             = 0
-        chi2            = 0
-        NFREE           = 0
-        out_spec        = []
-        chi_sec         = []
-        res_spec        = []
-        model_spec_min  = []
-        model_spec      = []
-        
-        out_spectra     = copy(y_model_n)
-        model_spec      = copy(y_model_n)
-        respec_spec     = obs_flux - out_spectra
-        model_spec_min  = copy(y_model_n)
-        chi_spec        = zero_mask * ((obs_flux_mask - out_spectra)**2.) / (obs_flux_err_adj[j]**2.)
-        chi             = np_sum(chi_spec)
-        
-        nFree           = (chi_sec != 0).sum()
-        
-        
+
+        #Calculate physical parameters from fit
+        obs_fit_spectrum = np_sum(coeffs_0.T * kin_model_final_nomask, axis=1)
+
+        print '-----obs_fit_spectrum', np_sum(obs_fit_spectrum)
+       
+        return obs_fit_spectrum
+                       
     def linfit1d(self, flux, bases_kin_dust_model, weigh=[1]):
         
         nx, ny      = bases_kin_dust_model.shape
@@ -510,7 +551,7 @@ class ssp_fitter():
         #Weight definition
         if len(weigh) == nx: 
             weigh   = diag(weigh)
-            A       = dot(weigh,A)
+            A       = dot(weigh, A)
             B       = dot(weigh, transpose(B))
         else:
             B       = transpose(B)

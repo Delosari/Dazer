@@ -316,7 +316,7 @@ class ReddeningLaws():
 
     def Epm_ReddeningPoints(self):
          
-        x_true           = arange(1.0, 2.8, 0.1) #in microns -1
+        x_true      = arange(1.0, 2.8, 0.1) #in microns -1
         X_Angs      = 1 / x_true * 1e4
          
         Xx          = array([1.36, 1.44, 1.84, 2.04, 2.24, 2.44, 2.66, 2.88, 3.14, 3.36, 3.56, 3.77, 3.96, 4.15, 4.26, 4.40, 4.52, 4.64])

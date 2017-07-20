@@ -1,8 +1,9 @@
-'''
-Created on Jun 12, 2017
+#-------------------------------------------------------------------------------------
 
-@author: vital
-'''
+from bin.dazer_methods import Dazer
+from bin.lib.ssp_functions.ssp_synthesis_tools import ssp_fitter
+
+#-------------------------------------------------------------------------------------
 
 #!/usr/bin/python
 import sys
@@ -59,10 +60,9 @@ if len(sys.argv) < 7:
     print "MIN_DELTA_CHISQ MAX_NITER CUT_MEDIAN_FLUX"
     print "start_w_peak end_w_peak"
     print "wavelength_to_norm width_AA new_back_templates.fits"
-    inline_params = ['ssp_Hector_Fit3D.py', 'NGC5947.spec_5.txt','ssp_lib.fits,ssp_lib.3.fits','auto_ssp.NGC5947.cen.only.out','mask_elines.txt','auto_ssp_V500_several_Hb.config' ,'1', '-1', '40', '3850', '6800', 'emission_lines.txt', '0.02', '0.001', '0.015', '0.025', '2', '0.5', '1', '9', '0.5', '0.1', '0.0', '1.6']
+    inline_params = ['ssp_Hector_Fit3D.py', 'NGC5947.spec_5.txt','ssp_lib.fits,ssp_lib.fits','auto_ssp.NGC5947.cen.only.out','mask_elines.txt','auto_ssp_V500_several_Hb.config' ,'1', '-1', '40', '3850', '6800', 'emission_lines.txt', '0.02', '0.001', '0.015', '0.025', '2', '0.5', '1', '9', '0.5', '0.1', '0.0', '1.6']
     sys.argv = inline_params    
 unc_file=sys.argv[1]
-print 'This file', unc_file, os.getcwd()
 
 clean_file="clean_"+sys.argv[1]
 junk_back_list=sys.argv[2]
@@ -80,6 +80,7 @@ out_fit="fit_"+outfile
 out_coeffs_file="coeffs_"+outfile
 out_fit="output."+outfile+".fits"
 out_ps=outfile
+
 #######################################
 # Clean previous results
 #######################################
@@ -248,7 +249,7 @@ if d_redshift !=0:
     fit_redshift=1
 else:
     fit_redshift=0
-print "FIT_RED "+str(fit_redshift)+" "+str(d_redshift)+" "+str(len(sys.argv))
+#print "FIT_RED "+str(fit_redshift)+" "+str(d_redshift)+" "+str(len(sys.argv))
 line=f.readline()
 data=line.split(" ")
 data=filter(None,data)
@@ -470,7 +471,7 @@ for line in f:
 f.close()
 
 sigma_e=np.median(e_flux_unc)
-print "SIGMA_E = "+str(sigma_e)
+#print "SIGMA_E = "+str(sigma_e)
 for i in range(0, n_unc):
     if e_flux_unc[i] > 1.5*sigma_e:
         e_flux_unc[i]=1.5*sigma_e    
@@ -514,10 +515,55 @@ print '-----chi_sq_min_now', chi_sq_min_now
 print '-----min_chi_sq', min_chi_sq
 
 
-ssp_dat=ssp.fit_ssp_lin_no_zero(redshift,sigma,Av,crval2,cdelt2,crpix2,nf2,n_c2,pdl_flux_c_ini2,hdr2,wave_unc,masked_Av,e_flux_unc,flux_unc,n_mc,chi_sq_min_now,min_chi_sq,plot)
+ssp_dat, mis_cosas = ssp.fit_ssp_lin_no_zero(redshift,sigma,Av,crval2,cdelt2,crpix2,nf2,n_c2,pdl_flux_c_ini2,hdr2,wave_unc,masked_Av,e_flux_unc,flux_unc,n_mc,chi_sq_min_now,min_chi_sq,plot)
 min_chi_sq=ssp_dat[0]
 # print "CUT = "+str(med_flux)+" "+str(CUT_MEDIAN_FLUX)
 # print str(redshift)+","+str(sigma)
+
+#--------------------------------------------------------------------
+
+
+print '\n----------------------------------------------------------------------------\n'
+
+dzp = Dazer()
+dz = ssp_fitter()
+
+#Data folder location
+data_folder         = '/home/vital/workspace/Fit_3D/example_files/'
+defaut_conf         = 'auto_ssp_V500_several_Hb.config'
+
+#Read parameters from command line
+command_fit_dict    = dz.load_command_params()
+
+#Read parameters from config file
+conf_file_address   = command_fit_dict['config_file_address'] if 'config_file_address' in command_fit_dict != None else data_folder + defaut_conf 
+config_fit_dict     = dz.load_config_params(conf_file_address)
+
+#Update the fit configuration giving preference to the values from the command line
+config_fit_dict.update(command_fit_dict)
+
+#Import input data: spectrum, masks, emision line loc, stellar bases...
+dz.load_input_data(config_fit_dict)
+
+dz.fit_conf['zero_mask'] = np.array(mis_cosas[1])
+
+
+obs_fit_spectrum = dz.fit_ssp()
+
+dzp.FigConf()
+#dzp.data_plot(dz.fit_conf['obs_wave'], dz.fit_conf['obs_flux'], label='obs_flux')
+dzp.data_plot(dz.fit_conf['obs_wave'], dz.fit_conf['zero_mask'], label='my mask')
+dzp.data_plot(mis_cosas[0], mis_cosas[1], label='Hector mask')
+dzp.data_plot(mis_cosas[0], mis_cosas[2], label='Hector fit')
+dzp.data_plot(mis_cosas[0], obs_fit_spectrum, label='my fit')
+
+dzp.FigWording('Wave', 'Flux', 'Input spectra')
+dzp.display_fig()
+
+print '\n----------------------------------------------------------------------------\n'
+
+#--------------------------------------------------------------------
+
 
 print 'Aqui acabamos'
 sys.exit(0)        
