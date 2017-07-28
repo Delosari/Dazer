@@ -5,7 +5,6 @@ from Reddening_Corrections  import ReddeningLaws
 from bin.lib.ssp_functions.ssp_synthesis_tools import ssp_fitter
 from numpy                  import array, loadtxt, genfromtxt, isnan, arange, insert, concatenate, power, exp, zeros, square, empty, percentile
 import pymc as pymc2
-import pymc3
 
 class Import_model_data(ReddeningLaws):
 
@@ -257,7 +256,11 @@ class Import_model_data(ReddeningLaws):
        
         return
 
-class SSP_Calculation(ssp_fitter):
+class Continua_FluxCalculation(ssp_fitter):
+
+    def __init__(self):
+        
+        ssp_fitter.__init__(self)
 
 class Recombination_FluxCalibration():
     
@@ -272,7 +275,7 @@ class Recombination_FluxCalibration():
         self.He3889_Check           = None
         
         #Set up the right emissivities
-        atomicData.setDataFile('he_i_rec_Pal12-Pal13.fits')
+        #atomicData.setDataFile('he_i_rec_Pal12-Pal13.fits')
         
         #Declare pyneb Hydrogen and Helium atoms to calculate emissivities
         self.H1                     = RecAtom('H', 1)
@@ -406,12 +409,13 @@ class Collisional_FluxCalibration(Import_model_data):
             
         return vector_emis
         
-class Inference_AbundanceModel(Import_model_data, Collisional_FluxCalibration, Recombination_FluxCalibration):
+class Inference_AbundanceModel(Import_model_data, Collisional_FluxCalibration, Recombination_FluxCalibration, Continua_FluxCalculation):
 
     def __init__(self):
 
         #Import tools to load data
         Import_model_data.__init__(self)
+        Continua_FluxCalculation.__init__(self)
         Collisional_FluxCalibration.__init__(self)
         Recombination_FluxCalibration.__init__(self)
 
@@ -667,7 +671,35 @@ class Inference_AbundanceModel(Import_model_data, Collisional_FluxCalibration, R
 
         return locals()
 
-class Run_MCMC(Inference_AbundanceModel):
+    def stellar_continua_fitting(self):
+
+        z_stars     =   pymc2.Uniform('z_stars',    0.000001, 0.15)
+        Av_stars    =   pymc2.Uniform('Av_stars',   0.000001, 0.15)
+        sigma_stars =   pymc2.Uniform('sigma_stars',0.000001, 0.15)
+        
+        @pymc2.deterministic #Combine theoretical fluxes into a single array
+        def ssp_Synthesis(z_stars=z_stars, Av_stars=Av_stars, sigma_stars=sigma_stars, masked_obsSFlux=self.sspFit_dict['obs_flux_masked']):
+            
+            #Perform fit
+            fitting_data_dict = self.fit_ssp(z_stars, Av_stars, sigma_stars)
+            
+            #Save coefficients for bootstrap statistics
+            
+            return fitting_data_dict['obs_fluxMasked']        
+        
+        @pymc2.stochastic(observed=True) #Likelihood
+        def likelihood_ssp(value = self.sspFit_dict['obs_flux_masked'], StellarCont_TheoFlux=ssp_Synthesis, sigmaContinuum=self.sigmaContinuum):
+            chi_F = sum(square(StellarCont_TheoFlux - value) / square(sigmaContinuum))
+            return - chi_F / 2
+        
+        @pymc2.deterministic() #Deterministic method to track the evolution of the chi:
+        def chiSq_ssp(value = self.sspFit_dict['obs_flux_masked'], StellarCont_TheoFlux=ssp_Synthesis, sigmaContinuum=self.sigmaContinuum):
+            chi_F = sum(square(StellarCont_TheoFlux - value) / square(sigmaContinuum))
+            return - chi_F / 2        
+        
+        return locals()
+
+class Run_MCMC(Inference_AbundanceModel, ssp_fitter):
 
     def __init__(self):
         
@@ -678,10 +710,12 @@ class Run_MCMC(Inference_AbundanceModel):
     def select_inference_model(self, model_code):
         
         #Declare inference model
-        if '_abs' not in model_code:
+        if 'basic' not in model_code:
             self.inf_dict = self.He_O_S_abundance_model()
-        else:
+        elif '_abs':
             self.inf_dict = self.helium_abundance_model_abs()
+        elif 'stellar':
+            self.inf_dict = self.stellar_continuum_fitting()
                     
     def run_pymc2(self, db_address, iterations = 10000, burn_phase = 1500, thining=2, variables_list = None):
         
