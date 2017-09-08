@@ -1,5 +1,5 @@
-# LmcAvg_GCMLW
-# A(x)/A(V) for x = 1/wave(in microns), from Gordon et al. (2003, ApJ, 594, 279)
+# From Gordon et al. (2003, ApJ, 594, 279)
+# A(x)/A(V) for x = 1/wave(in microns), 
 # Average LMC
 # 1/um	A_x/A_V
 1.e-9	0.000	

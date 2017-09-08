@@ -1,5 +1,5 @@
-from bin.dazer_methods import Dazer
-from bin.lib.ssp_functions.ssp_synthesis_tools import ssp_fitter
+from dazer_methods import Dazer
+from lib.ssp_functions.ssp_synthesis_tools import ssp_fitter
 from timeit import default_timer as timer
 
 dzp = Dazer()
@@ -24,29 +24,25 @@ dz.load_input_data(config_dict)
 
 #Perform SSP synthesis
 start = timer()   
-obs_fit_spectrum = dz.fit_ssp()
+fit_products = dz.fit_ssp(config_dict['input_z'], config_dict['input_sigma'], config_dict['input_Av'])
 end = timer()
 print 'ssp', ' time ', (end - start)
-
 
 # start = timer()   
 # Gamma_FF_HI = neb.FreeFreeContinuum("HI")
 # end = timer()
 # print 'FF', ' time ', (end - start)
 
-
-
 #Plot the results
 dzp.FigConf()
-dzp.data_plot(dz.fit_conf['obs_wave'], dz.fit_conf['obs_flux'], label='obs_flux')
-dzp.data_plot(dz.fit_conf['obs_wave'], dz.fit_conf['zero_mask'], label='my mask')
+dzp.data_plot(dz.sspFit_dict['obs_wave'], dz.sspFit_dict['obs_flux'], label='obs_flux')
+dzp.data_plot(dz.sspFit_dict['obs_wave'], dz.sspFit_dict['zero_mask'], label='my mask')
 # dzp.data_plot(dz.fit_conf['obs_wave'], mis_cosas[1], label='Hector mask')
 # dzp.data_plot(dz.fit_conf['obs_wave'], mis_cosas[2], label='Hector fit')
-dzp.data_plot(dz.fit_conf['obs_wave'], obs_fit_spectrum, label='my fit')
+dzp.data_plot(dz.sspFit_dict['obs_wave'], fit_products['flux_sspFit'], label='my fit')
 
 dzp.FigWording('Wave', 'Flux', 'Input spectra')
 dzp.display_fig()
-
 
 # #Plot input spectra and regions
 # dzp.FigConf()
@@ -66,11 +62,6 @@ dzp.display_fig()
 # dzp.data_plot(dz.fit_conf['obs_wave'], obs_fit_spectrum, label='fit spectrum, si')
 # dzp.FigWording('Wave', 'Flux', 'Input spectra')
 # dzp.display_fig()
-
-
-
-
-
 
 #Perform unlinear parameters fit
 

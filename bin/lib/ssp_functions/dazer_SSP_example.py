@@ -35,7 +35,6 @@ fitting_data_dict = dz.fit_ssp(dz.sspFit_dict['input_z'], dz.sspFit_dict['input_
 end = timer()
 print 'bicho', ' time ', (end - start)
 
-
 #Plot input and output data
 fig, axis = plt.subplots(1, 1)
 axis.plot(dz.sspFit_dict['obs_wave'], synth_obs, label  = 'Synthetic spectrum') 

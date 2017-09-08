@@ -3,59 +3,71 @@ from timeit import default_timer as timer
 import matplotlib.pyplot as plt
 import numpy as np
 
+def ndprint(a, format_string ='{0:.3f}'):
+    return [format_string.format(v,i) for i,v in enumerate(a)]
+
 dz = ssp_fitter()
 
-#Read parameters from command line
-command_dict        = dz.load_command_params()
+#Run data
+config_file_FIT3D           = 'auto_ssp_V500_several_Hb.config'
+stellar_library_FIT3D       = 'ssp_lib.fits'
+stellar_library_STARLIGHT   = '/home/vital/Starlight/Dani_Bases_Extra.txt'
+data_folder                 = '/home/vital/workspace/Fit_3D/example_files/'
 
-#Read parameters from config file
-conf_file_address   = 'auto_ssp_V500_several_Hb.config'
-config_dict         = dz.load_config_params(conf_file_address)
+#Observational data
+obs_Fit3D = dz.load_FIT3D_data(data_folder + config_file_FIT3D, data_folder) 
 
-#Update the fit configuration giving preference to the values from the command line
-config_dict.update(command_dict)
+#Read observational data
+obs_data = np.loadtxt(data_folder + obs_Fit3D['input_spec'])
+obs_wave, obs_flux, obs_fluxVar = obs_data[:,1], obs_data[:,2], obs_data[:,3]
+obs_fluxErr = np.sqrt(abs(obs_fluxVar))
 
-#Preload stellar bases
-dz.load_stellar_bases(dz.ssp_folder, 'FIT3D_example', config_dict)
+#Preload stellar bases fit
+sspLib_dict = dz.load_stellar_bases(data_folder + stellar_library_FIT3D, 'FIT3D_example', obs_Fit3D)
 
-#We use prepare synthetic observation to compare the quality of the fit
-coeff_theo                      = np.loadtxt(dz.ssp_folder + 'bases_coeff.txt')
-spectrum_matrix                 = np.loadtxt(dz.ssp_folder + config_dict['input_spec'])
-obs_wave, obs_flux, obs_fluxVar = spectrum_matrix[:,1], spectrum_matrix[:,2], spectrum_matrix[:,3]
-obs_fluxErr                     = np.sqrt(abs(obs_fluxVar))
+# # #---Reading data from STARLIGHT configuration
+# #Preload stellar bases fit
+# config_starlight = {}
+# config_starlight['obs_wave'] = np.linspace(4200, 6500, 6500 - 4200 + 1)
+# config_starlight['norm_basesWave'] = 5200.0  F
+# sspLib_dict_PhD = dz.load_stellar_bases(stellar_library2, 'starlight_mode', config_starlight)
 
-print 'Input coefficients', coeff_theo[coeff_theo != 0], np.where(coeff_theo != 0)
-
-synth_obs           = dz.generate_synthObs(obs_wave, coeff_theo, dz.sspLib_dict['basesWave'], dz.sspLib_dict['fluxBases'], 
-                     config_dict['input_Av'], 
-                     config_dict['input_z'], 
-                     config_dict['input_sigma'])
-
-#Import input data: spectrum, masks, emision line loc, stellar bases...
-dz.preload_fitData(obs_wave, obs_flux, config_dict, obs_fluxErr)
-fitting_data_dict = dz.fit_ssp(dz.sspFit_dict['input_z'], dz.sspFit_dict['input_sigma'], dz.sspFit_dict['input_Av'])
+#Generate a synthetic spectrum
+coefficients_address = '/home/vital/workspace/Fit_3D/example_files/coeffs_2.txt'
+coeff_theo = np.loadtxt(coefficients_address)
+synth_obs = dz.generate_synthObs(obs_wave, coeff_theo, sspLib_dict['basesWave'], sspLib_dict['fluxBases'], obs_Fit3D['input_Av'], obs_Fit3D['input_z'], obs_Fit3D['input_sigma'])
+synth_err = obs_fluxErr
+  
+#Input data
+#dz.preload_fitData(obs_wave, synth_obs, obs_Fit3D, sspLib_dict, obs_fluxErr, data_folder)
+  
+#Run the fit
+scheme_fit = 'nnls'
+fitting_data_dict = dz.fit_ssp(dz.sspFit_dict['input_z'], dz.sspFit_dict['input_sigma'], dz.sspFit_dict['input_Av'], scheme_fit)
+  
 coeff_output = fitting_data_dict['weight_coeffs']
-idx_coefs = np.where(coeff_output != 0)
-print 'Output New coefficients', coeff_output[coeff_output != 0], idx_coefs
-
+  
+# idx_coefs = np.where(coeff_output != 0)
+# coeff_lsq = fitting_data_dict['coeffs_lsq']
+# idx_coefs_lsq = np.where(coeff_lsq > 0.01)
+print 'Initial coefficients', ndprint(coeff_theo[coeff_theo != 0])#, np.where(coeff_theo != 0)
+print '{}  coefficients'.format(scheme_fit), ndprint(coeff_output[coeff_output > 0.01])#, idx_coefs
+# print 'leastSq coefficients', ndprint(coeff_lsq[idx_coefs_lsq])#, idx_coefs_lsq
+  
 #Plot output data
 fig, axis = plt.subplots(1, 1)
-
-axis.plot(dz.sspFit_dict['obs_wave'], synth_obs, label='Synthetic spectrum')
-
-#Spectra components
-for idx in idx_coefs[0]:
-    label = 'Component {}'.format(round(coeff_output[idx]),4)
-    axis.plot(dz.sspFit_dict['obs_wave'], fitting_data_dict['flux_components'][:,idx], label=label)
-axis.plot(fitting_data_dict['obs_wave'], fitting_data_dict['flux_sspFit'], label='SSP synthesis product')
- 
-axis.plot(dz.sspFit_dict['obs_wave'], obs_flux, label='Original spectrum')
+axis.plot(dz.sspFit_dict['obs_wave'], synth_obs, label='Synthetic spectrum', linestyle='--')
+# for idx in idx_coefs[0]:
+#     label = 'Component {}'.format(round(coeff_output[idx]),4)
+#     axis.plot(dz.sspFit_dict['obs_wave'], fitting_data_dict['flux_components'][:,idx], label=label)
+axis.plot(fitting_data_dict['obs_wave'], fitting_data_dict['flux_sspFit'], label='SSP synthesis product', linestyle='--')
+  
+  
+# axis.plot(dz.sspFit_dict['obs_wave'], obs_flux, label='Original spectrum')
 # axis.plot(fitting_data_dict['obs_wave'], fitting_data_dict['obs_fluxMasked'], label='Observed maskd spectrum')
 # axis.plot(fitting_data_dict['obs_wave'], fitting_data_dict['fluxMasked_sspFit'], label='SSP synthesis product mask')
 # axis.plot(dz.sspFit_dict['obs_wave'], dz.sspFit_dict['zero_mask'], label='Mask')
 axis.update({'xlabel':'Wavelength', 'ylabel':'Flux', 'title':'SSP synthesis fitting with 102 bases'})
 axis.legend()
 plt.show()
-
-# np.savetxt(dz.ssp_folder + 'bases_coeff.txt', fitting_data_dict['weight_coeffs'])
 

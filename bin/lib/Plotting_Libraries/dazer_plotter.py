@@ -449,7 +449,10 @@ class Plot_Conf(Fig_Conf):
         plotAxis.set_xlim(x_range[0],x_range[-1])
         plotAxis.set_ylim(y_range[0],y_range[-1])
 
-    def insert_image(self, image_address, Image_Coordinates = [0.20,0.5], Zoom = 1, Image_Box=(20,-20), Image_xyCoords = 'data', Image_BoxCoords = "offset points"):
+    def insert_image(self, image_address, Image_Coordinates = [0.20,0.5], Zoom = 1, Image_Box=(20,-20), Image_xyCoords = 'data', Image_BoxCoords = "offset points", axis_plot=None):
+  
+        if axis_plot == None:
+            axis_plot = self.Axis
                 
         arr_hand = read_png(image_address)
         Image_Frame = OffsetImage(arr_hand, zoom=Zoom)
@@ -457,7 +460,7 @@ class Plot_Conf(Fig_Conf):
             xybox=Image_Box,
             xycoords=Image_xyCoords,
             boxcoords=Image_BoxCoords)
-        self.Axis.add_artist(ab)
+        axis_plot.add_artist(ab)
 
     def plot_text(self, x_coords, y_coords, text, x_pad = 1, y_pad = 1, color = 'black', fontsize = 12, axis_plot=None):
         
@@ -466,12 +469,12 @@ class Plot_Conf(Fig_Conf):
         
         #Single string go ahead
         if isinstance(text, (str, string_)):
-            axis_plot.text(x_coords * x_pad, y_coords * y_pad, text, fontsize=fontsize)
+            axis_plot.text(x_coords * x_pad, y_coords * y_pad, text, fontsize=fontsize, color = color)
         
         #Uncertainties entry
         elif isinstance(text, UFloat):
             entry = r'${:L}$'.format(text)
-            axis_plot.text(x_coords * x_pad, y_coords * y_pad, entry, fontsize=fontsize)
+            axis_plot.text(x_coords * x_pad, y_coords * y_pad, entry, fontsize=fontsize, color = color)
         
         #else it is an array loop through
         else:

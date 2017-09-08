@@ -25,9 +25,12 @@ class ReddeningLaws():
                              'HPas13_3','HPas12_3','HPas_11_3','HPas_10_3','HPas_9_3','HPas_8_3','HPas_7_3'])
         
         #Dictionary with the reddening curves
-        self.reddening_curves_calc = {'MM72'    :self.f_Miller_Mathews1972,
-                                      'CCM89'   :self.X_x_Cardelli1989,
-                                      'G03'     :self.X_x_Gordon2003}
+        self.reddening_curves_calc = {'MM72'            : self.f_Miller_Mathews1972,
+                                      'CCM89'           : self.X_x_Cardelli1989,
+                                      'G03_bar'         : self.X_x_Gordon2003_bar,
+                                      'G03_average'     : self.X_x_Gordon2003_average,
+                                      'G03_supershell'  : self.X_x_Gordon2003_supershell
+                                      }
     
     def checking_for_ufloat(self, x):
                 
@@ -46,8 +49,10 @@ class ReddeningLaws():
 
         linformat_df = read_csv('/home/vital/workspace/dazer/format/emlines_pyneb_optical_infrared.dz', index_col=0, names=['ion', 'lambda_theo', 'latex_format'], delim_whitespace=True)
         lineslog_frame['latex_format'] = 'none'
+        
         for line in lineslog_frame.index:
-            lineslog_frame.loc[line,'latex_format'] = r'${}$'.format(linformat_df.loc[line, 'latex_format'])
+            if '_w' not in line:    #Structure to avoid wide components
+                lineslog_frame.loc[line,'latex_format'] = r'${}$'.format(linformat_df.loc[line, 'latex_format'])
         
         #Load electron temperature and density (if not available it will use Te = 10000K and ne = 100cm^-3)             
         T_e = self.checking_for_ufloat(obj_data.TeSIII) if ~isnan(self.checking_for_ufloat(obj_data.TeSIII)) else 10000.0
@@ -104,6 +109,14 @@ class ReddeningLaws():
         output_dict['red_x']    = lineslog_frame.loc[ObsRed_Hindx,'x axis values'].values
         output_dict['red_y']    = lineslog_frame.loc[ObsRed_Hindx,'y axis values'].values
         output_dict['red_ions'] = list(lineslog_frame.loc[ObsRed_Hindx,'latex_format'].values)
+        
+        #--- Store fluxes
+        output_dict['Blue_ObsRatio'] = unum_log10(lineslog_frame.loc[ObsBlue_Hindx,'line_ObsRecombRatio'].values)
+        output_dict['Red_ObsRatio'] = unum_log10(lineslog_frame.loc[ObsRed_Hindx,'line_ObsRecombRatio'].values)        
+        output_dict['line_Flux_Blue'] = lineslog_frame.loc[ObsBlue_Hindx,'line_Flux'].values
+        output_dict['line_Flux_Red'] = lineslog_frame.loc[ObsRed_Hindx,'line_Flux'].values
+        output_dict['line_wave_Blue'] = lineslog_frame.loc[ObsBlue_Hindx,'lambda_theo'].values
+        output_dict['line_wave_Red'] = lineslog_frame.loc[ObsRed_Hindx,'lambda_theo'].values
         
         #--- Inside limits
         if obj_data.h_gamma_valid == 'yes':
@@ -300,14 +313,42 @@ class ReddeningLaws():
                         
         return X_x
     
-    def X_x_Gordon2003(self):
+    def X_x_Gordon2003_bar(self):
         
         #Default R_V is 3.4
         R_v = self.R_v if self.R_v != None else 3.4 #This is not very nice   
         x = 1.0 / (self.wavelength_rc / 10000.0)
         
         #This file format has 1/um in column 0 and A_x/A_V in column 1
-        file_data = loadtxt('/home/vital/workspace/dazer/bin/lib/Astro_Libraries/gordon_2003_rC.txt')
+        file_data = loadtxt('/home/vital/workspace/dazer/bin/lib/Astro_Libraries/gordon_2003_SMC_bar.txt')
+        
+        #This file has column        
+        Xx_interpolator = interp1d(file_data[:, 0], file_data[:, 1])
+        X_x = R_v * Xx_interpolator(x)
+        return X_x
+
+    def X_x_Gordon2003_average(self):
+        
+        #Default R_V is 3.4
+        R_v = self.R_v if self.R_v != None else 3.4 #This is not very nice   
+        x = 1.0 / (self.wavelength_rc / 10000.0)
+        
+        #This file format has 1/um in column 0 and A_x/A_V in column 1
+        file_data = loadtxt('/home/vital/workspace/dazer/bin/lib/Astro_Libraries/gordon_2003_LMC_average.txt')
+
+        #This file has column        
+        Xx_interpolator = interp1d(file_data[:, 0], file_data[:, 1])
+        X_x = R_v * Xx_interpolator(x)
+        return X_x
+
+    def X_x_Gordon2003_supershell(self):
+        
+        #Default R_V is 3.4
+        R_v = self.R_v if self.R_v != None else 3.4 #This is not very nice   
+        x = 1.0 / (self.wavelength_rc / 10000.0)
+        
+        #This file format has 1/um in column 0 and A_x/A_V in column 1
+        file_data = loadtxt('/home/vital/workspace/dazer/bin/lib/Astro_Libraries/gordon_2003_LMC2_supershell.txt')
         
         #This file has column        
         Xx_interpolator = interp1d(file_data[:, 0], file_data[:, 1])
