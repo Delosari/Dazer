@@ -23,7 +23,7 @@ class Chemical_Analysis_pyneb():
     def load_elements(self):
 
         #Set atomic data 
-        atomicData.setDataFile('he_i_rec_Pal12-Pal13.fits')
+        #atomicData.setDataFile('he_i_rec_Pal12-Pal13.fits')
         atomicData.setDataFile('s_iii_coll_HRS12.dat')
  
         #Default: 's_iii_atom_PKW09.dat' 

@@ -2,8 +2,8 @@ from pyneb                  import atomicData, RecAtom, Atom
 from collections            import OrderedDict
 from uncertainties.unumpy   import nominal_values, std_devs
 from Reddening_Corrections  import ReddeningLaws
-from bin.lib.ssp_functions.ssp_synthesis_tools import ssp_fitter
-from numpy                  import array, loadtxt, genfromtxt, isnan, arange, insert, concatenate, power, exp, zeros, square, empty, percentile
+from lib.ssp_functions.ssp_synthesis_tools import ssp_fitter
+from numpy                  import array, loadtxt, genfromtxt, isnan, arange, insert, concatenate, power, exp, zeros, square, empty, percentile, random, median
 import pymc as pymc2
 
 class Import_model_data(ReddeningLaws):
@@ -261,7 +261,9 @@ class Continua_FluxCalculation(ssp_fitter):
     def __init__(self):
         
         ssp_fitter.__init__(self)
+                        
 
+    
 class Recombination_FluxCalibration():
     
     def __init__(self):

@@ -647,6 +647,7 @@ class Pdf_printer():
             self.pdfDoc.packages.append(Package('preview', options=['active','tightpage',]))
             self.pdfDoc.packages.append(Package('hyperref', options=['unicode=true',]))
             self.pdfDoc.append(NoEscape(r'\pagenumbering{gobble}'))
+            self.pdfDoc.packages.append(Package('nicefrac'))
             
         elif pdf_type == 'longtable':
             self.pdfDoc.append(NoEscape(r'\pagenumbering{gobble}'))
@@ -2154,14 +2155,25 @@ class Dazer_Files(Txt_Files_Manager):
                 colsPerDict_dict['OBJ_diagnostic']              = ['SIII_lines', 'T_low', 'T_high', 'O_valid', 'N_valid', 'S_valid', 'Ignore_article', '[OIII]5007A/[OIII]4959A','[NII]6548A/[NII]6584A','[SIII]9531A/[SIII]9069A','[OIII]5007A/[OIII]4959A_emis','[NII]6548A/[NII]6584A_emis','[SIII]9531A/[SIII]9069A_emis']
                 colsPerDict_dict['Fits_properties']             = ['aperture','Blue_Grating','Red_Grating','Blue_CENWAVE','Red_CENWAVE','Dichroic','RA','DEC','UT_OBS','Wmin_Blue','Wmax_Blue','Wmin_Red','Wmax_Red']
                 colsPerDict_dict['Reduction_data']              = ['obsfolder','calibration','calibration_star','telluric_star','Standard_stars','reduc_tag','join_wavelength','h_gamma_valid', 'z_SDSS', 'z_Blue', 'z_Blue_error', 'z_Red', 'z_Red_error']                
-                colsPerDict_dict['Reddening']                   = ['E(B-V)_Galactic_dust', 'cHbeta_reduc', 'cHbeta_emis']
+                colsPerDict_dict['Reddening']                   = ['E(B-V)_Galactic_dust', 'cHbeta_reduc', 'cHbeta_emis', 'cHbeta_G03_bar', 'cHbeta_G03_average', 'cHbeta_G03_supershell']
                 colsPerDict_dict['Physical_Data']               = ['neSII','neOII','TeOII','TeSII','TeNII','TeOIII','TeSIII','TeOII_from_TeOIII','TeNII_from_TeOIII','TeSIII_from_TeOIII','TeOIII_from_TeSIII']
                 colsPerDict_dict['Chemical_Abundances']         = ['SII_HII','SIII_HII','SIV_HII', 'ICF_SIV','OII_HII','OII_HII_3279A','OII_HII_7319A', 'OII_HII_ffO2', 'O_R3200', 'O_R3200_ffO2', 'O_R7300', 'O_R3', 'OIII_HII','NII_HII','ArIII_HII','ArIV_HII','HeII_HII_from_O','HeIII_HII_from_O','HeII_HII_from_S','HeIII_HII_from_S','SI_HI','OI_HI', 'OI_HI_ff02','NI_OI','NI_HI','HeI_HI_from_O','HeI_HI_from_S','Ymass_O','Ymass_S']
+                
                 colsPerDict_dict['Physical_Data_emis']          = map(lambda orig_string: orig_string + '_emis',    colsPerDict_dict['Physical_Data'])
                 colsPerDict_dict['Chemical_Abundances_emis']    = map(lambda orig_string: orig_string + '_emis',    colsPerDict_dict['Chemical_Abundances'])
                 colsPerDict_dict['Physical_Data_emis2nd']       = map(lambda orig_string: orig_string + '_emis2nd', colsPerDict_dict['Physical_Data'])
                 colsPerDict_dict['Chemical_Abundances_emis2nd'] = map(lambda orig_string: orig_string + '_emis2nd', colsPerDict_dict['Chemical_Abundances'])
- 
+                
+                colsPerDict_dict['Physical_Data_G03bar']   = map(lambda orig_string: orig_string + '_G03bar', colsPerDict_dict['Physical_Data'])
+                colsPerDict_dict['Chemical_Abundances_G03bar'] = map(lambda orig_string: orig_string + '_G03bar', colsPerDict_dict['Chemical_Abundances'])
+                
+                colsPerDict_dict['Physical_Data_G03average']   = map(lambda orig_string: orig_string + '_G03average', colsPerDict_dict['Physical_Data'])
+                colsPerDict_dict['Chemical_Abundances_G03average'] = map(lambda orig_string: orig_string + '_G03average', colsPerDict_dict['Chemical_Abundances'])
+
+                colsPerDict_dict['Physical_Data_superS']   = map(lambda orig_string: orig_string + '_G03superS', colsPerDict_dict['Physical_Data'])
+                colsPerDict_dict['Chemical_Abundances_superS'] = map(lambda orig_string: orig_string + '_G03superS', colsPerDict_dict['Chemical_Abundances'])
+
+
             #Everything into one sheet
             else:
                 colsPerDict_dict = {'sheet' : list(dataframe.columns.values)}
