@@ -1,8 +1,8 @@
-from bin.dazer_methods import Dazer
-from bin.lib.Astro_Libraries.Abundances_InferenceModel_Helium_v16 import Run_MCMC
+from dazer_methods import Dazer
+from lib.Astro_Libraries.Abundances_InferenceModel_Helium_v16 import Run_MCMC
 
 #MCMC configuration run
-default_db_folder   = '/home/vital/Astrodata/Inferece_output/'
+default_db_folder   = '/home/vital/Astrodata/Inference_output/'
 db_name_ext         = 'v2_RecombAndsulfur_v1'
 iterat, burn, thin  = 15000, 1500, 2
 synth_model         = 'Model3_sulfur'
@@ -20,7 +20,7 @@ bm.select_inference_model(synth_model)
             
 #Variables to save
 #db_address  = '{}HeAbund_pymc2_{}_it{}_burn{}_thin{}_{}'.format(default_db_folder, synth_model, iterat, burn, thin, db_name_ext) 
-db_address  = '{}HeAbund_pymc2_it{}_burn{}_thin{}_{}'.format(default_db_folder, iterat, burn, thin, db_name_ext) 
+db_address  = '{}Sulfur_Helium{}_burn{}_thin{}_{}'.format(default_db_folder, iterat, burn, thin, db_name_ext) 
                  
 # #Run sampler
 bm.run_pymc2(db_address, iterat, burn, thin, variables_list=params_list)

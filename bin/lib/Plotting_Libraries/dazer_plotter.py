@@ -388,7 +388,14 @@ class Plot_Conf(Fig_Conf):
                             'S2_abund':r'$S^{+}$',
                             'S3_abund':r'$S^{2+}$',
                             'O2_abund':r'$O^{+}$',
-                            'O3_abund':r'$O^{2+}$'        
+                            'O3_abund':r'$O^{2+}$',     
+                            'S3_abund':r'$S^{2+}$',
+                            'O2_abund':r'$O^{+}$',
+                            'O3_abund':r'$O^{2+}$',        
+                            'z_star':r'$z_{\star}$',
+                            'sigma_star':r'$\sigma_{\star}$',
+                            'Av_star':r'$Av_{\star}$',
+                            'chiSq_ssp':r'$\chi^{2}_{SSP}$',                            
                             }
                 
     def data_plot(self, x, y, label = '', color = None, linestyle = None, markerstyle = None, linewidth = None, markersize = None, x_error=None, y_error=None, cmap=None, e_style = None, graph_axis = None):

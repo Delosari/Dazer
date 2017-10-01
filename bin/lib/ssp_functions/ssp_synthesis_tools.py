@@ -7,11 +7,13 @@ from astropy.io.fits                import getdata
 from scipy.signal.signaltools       import convolve2d
 from scipy.interpolate.interpolate  import interp1d
 from scipy.optimize                 import lsq_linear, nnls
-from numpy import array, power, searchsorted, loadtxt, empty, sqrt, abs, sum as np_sum, square, isnan, ones, copy, median, arange, exp, zeros, transpose, mean, diag, linalg, dot, multiply, outer, asfortranarray, inf, random
+from numpy import array, power, searchsorted, loadtxt, empty, sqrt, abs, sum as np_sum, square, isnan, ones, copy, median, arange, exp, zeros, transpose, mean, diag, linalg, dot, multiply, outer, asfortranarray, inf, random, int64
 import pyneb as pn
 import ntpath
 from timeit import default_timer as timer
 import matplotlib.pyplot as plt
+import theano
+import theano.tensor as t
 
 #Function to delete files
 def silent_remove(filename_list):
@@ -451,7 +453,7 @@ class ssp_fitter(ssp_synthesis_importer):
         
         #-----------Resampling the bases
         if resample_int != None:
-            bases_wave_resam = arange(int(resample_range[0]), int(resample_range[-1]), resample_int)
+            bases_wave_resam = arange(int(resample_range[0]), int(resample_range[-1]), resample_int, dtype=float)
             
             #Loop through the bases. (It is assumed the bases may have different wavelength ranges)
             bases_flux_resam = empty((sspLib_dict['nBases'], len(bases_wave_resam)))
@@ -484,7 +486,13 @@ class ssp_fitter(ssp_synthesis_importer):
         else:
             sspLib_dict['normFlux_bases'] = 1.0
             sspLib_dict['bases_flux_norm'] = sspLib_dict['basesFlux_resam']             
-                        
+        
+        
+        #Display the bases limits:
+        if resample_range != None:
+            print '---Bases wavelength range:', sspLib_dict['basesWave_resam'][0], sspLib_dict['basesWave_resam'][-1]
+
+             
         return sspLib_dict
 
     def calculate_synthStellarSED(self, Av_star, z_star, sigma_star, coeff_file, sspLib_starlight, resample_range=(4000, 6900), resample_int = 1, norm_factor = 100):
@@ -497,37 +505,52 @@ class ssp_fitter(ssp_synthesis_importer):
         
         #Synth spectrum in bases library units
         synth_dict['obs_wave']          = sspLib_starlight['basesWave_resam']
-        synth_dict['obs_flux']          = np_sum(bases_coeff.T * sspLib_starlight['basesFlux_resam'].T, axis=1)            
+        synth_dict['obs_flux']          = np_sum(bases_coeff.T * sspLib_starlight['basesFlux_resam'].T, axis=1) * 0.1          
                 
         #Synth spectrum including physical parameters
-        obs_wave_resam                  = arange(int(resample_range[0]), int(resample_range[-1]), resample_int)
-        ssp_grid                        = self.physical_SED_model(obs_wave_resam, obs_wave_resam, sspLib_starlight['bases_flux_norm'], Av_star, z_star, sigma_star, Rv_coeff = 3.1)
+        obs_wave_rest                   = arange(int(resample_range[0]), int(resample_range[-1]), resample_int, dtype=float)
+        obs_wave_resam                  = obs_wave_rest * (1.0 + z_star)
+        ssp_grid                        = self.physical_SED_model(sspLib_starlight['basesWave_resam'], obs_wave_resam, sspLib_starlight['bases_flux_norm'], Av_star, z_star, sigma_star, Rv_coeff = 3.1)
         obs_flux_norm                   = np_sum(bases_coeff.T * ssp_grid, axis=1)
         obs_flux_resam                  = obs_flux_norm * norm_factor
         nBases                          = ssp_grid.shape[1]
- 
-        synth_dict['normFlux_obs']      = norm_factor
-        synth_dict['obs_flux_norm']     = obs_flux_norm
-        synth_dict['obs_wave_resam']    = obs_wave_resam
-        synth_dict['obs_flux_resam']    = obs_flux_resam 
-        synth_dict['bases_one_array']   = ones(nBases) 
- 
+        nBases_one_vector               = ones(nBases) 
+         
         #Generate synth spectrum
         sigma_err                       = 0.01 * median(obs_flux_resam)
-        synth_dict['obs_flux_err_resam']= random.normal(0.0, sigma_err, len(obs_flux_norm))        
-        synth_dict['obs_flux_err_norm'] = synth_dict['obs_flux_err_resam'] / norm_factor
-            
+        obs_fluxEr_resam                = random.normal(0.0, sigma_err, len(obs_flux_norm))        
+        #obs_fluxEr_norm                 = obs_fluxEr_resam / norm_factor
+        obs_fluxEr_norm                 = 0.02
+                              
         #Synthetic masks
         masks_default = OrderedDict()
         masks_default['HI_delta']       = (4062,4130)
         masks_default['HI_gamma']       = (4310,4365)
         masks_default['HI_beta']        = (4830,4900)
         masks_default['HI_alpha']       = (6540,6580)
-        synth_dict['masks_dict']        = masks_default
         
-        #Dictionary with synth data
-        synth_dict['nObsPix']           = len(obs_flux_resam)
-      
+        #Pixels within the spectrum mask
+        redshift = 1 + z_star
+        boolean_mask = ones(len(obs_flux_resam), dtype=bool)
+        for line in masks_default:
+            wmin, wmax = masks_default[line]
+            idx_cur_spec_mask   = (obs_wave_resam > wmin * redshift) & (obs_wave_resam < wmax * redshift)
+            boolean_mask        = boolean_mask & ~idx_cur_spec_mask
+                
+        #Store the data vector
+        synth_dict['normFlux_stellar']      = norm_factor
+        synth_dict['stellar_flux_True']     = obs_flux_resam
+        synth_dict['stellar_flux_norm']     = obs_flux_norm + obs_fluxEr_norm
+        synth_dict['stellar_wave_resam']    = obs_wave_resam
+        synth_dict['stellar_wave_rest']     = obs_wave_rest
+        synth_dict['stellar_flux_resam']    = obs_flux_resam + obs_fluxEr_resam
+        synth_dict['stellar_fluxEr_resam']  = obs_fluxEr_resam
+        synth_dict['stellar_fluxEr_norm']   = obs_fluxEr_norm
+        synth_dict['stellar_one_array']   = ones(nBases) 
+        synth_dict['nObsPix']           = len(obs_flux_resam)       
+        synth_dict['boolean_mask']      = boolean_mask
+        synth_dict['int_mask']          = synth_dict['boolean_mask'] * 1
+                           
         return synth_dict
 
     def ready_data_sspFit(self, obs_dict, ssp_lib_dict):
@@ -550,18 +573,15 @@ class ssp_fitter(ssp_synthesis_importer):
         
         return fit_data
 
-    def physical_SED_model(self, rest_wave, obs_wave, bases_flux, Av_star, z_star, sigma_star, Rv_coeff = 3.1):
-        
+    def physical_SED_model(self, bases_wave_rest, obs_wave, bases_flux, Av_star, z_star, sigma_star, Rv_coeff = 3.4):
+                        
         #Calculate wavelength at object z
-        wave_z = rest_wave * (1 + z_star)
-         
-        #Compute reddening
-        Av_vector       = Av_star * ones(bases_flux.shape[0])
-        Xx_redd         = CCM89_Bal07(Rv_coeff, rest_wave)   
+        wave_z = bases_wave_rest * (1 + z_star) 
         
         #Calculate stellar broadening kernel
         r_sigma         = sigma_star/(wave_z[1] - wave_z[0])
-        box             = int(3 * r_sigma) if int(3 * r_sigma) < 3 else 3
+
+        box             = int64(3 * r_sigma) if int64(3 * r_sigma) < 3 else 3
         kernel_len      = 2 * box + 1
         kernel          = zeros((1, kernel_len)) 
         kernel_range    = arange(0, 2 * box + 1)
@@ -572,19 +592,19 @@ class ssp_fitter(ssp_synthesis_importer):
         kernel          = kernel / norm
          
         #Convove bases with respect to kernel for dispersion velocity calculation
-        bases_grid_convolve  = convolve2d(bases_flux, kernel, mode='same', boundary='symm')  
+        bases_grid_convolve = convolve2d(bases_flux, kernel, mode='same', boundary='symm')  
         
-        print 'Kernel'
-        print kernel
-        print 'Por aqui voy'
-        print bases_flux
-        print 'Output'
-        print bases_grid_convolve
-
         #Interpolate bases to wavelength range
+#         print 'Z', z_star
+#         print wave_z[0], wave_z[-1]
+#         print obs_wave[0], obs_wave[-1]
+#         print
         bases_grid_interp       = (interp1d(wave_z, bases_grid_convolve, axis=1, bounds_error=True)(obs_wave)).T       
         
-        #Generate final flux model including dust        
+        #Generate final flux model including reddening
+        Av_vector               = Av_star * ones(bases_grid_interp.shape[1])
+        obs_wave_resam_rest     = obs_wave/(1 + z_star)
+        Xx_redd                 = CCM89_Bal07(Rv_coeff, obs_wave_resam_rest) 
         dust_attenuation        = power(10, -0.4 * outer(Xx_redd, Av_vector))
         bases_grid_redd         = bases_grid_interp * dust_attenuation
 
@@ -594,7 +614,7 @@ class ssp_fitter(ssp_synthesis_importer):
         
         '''basesWave: Bases wavelength must be at rest'''
         nbases              = basesCoeff.shape[0]        
-        bases_wave_resam    = arange(int(resample_range[0]), int(resample_range[-1]), resample_int)
+        bases_wave_resam    = arange(int(resample_range[0]), int(resample_range[-1]), resample_int, dtype=float)
         npix_resample       = len(bases_wave_resam)
         
         #Resampling the range
@@ -637,37 +657,40 @@ class ssp_fitter(ssp_synthesis_importer):
                                       
         return synth_wave, synth_flux
   
-    def ssp_fit(self, input_z, input_sigma, input_Av, fit_data, fit_scheme = 'nnls'):
-        
+    def ssp_fit(self, input_z, input_sigma, input_Av, obs_wave, obs_flux_masked, fit_data, fit_scheme = 'nnls'):
+                
         #Quick naming
-        obs_wave        = fit_data['obs_wave_resam']
-        obs_flux_masked = fit_data['obs_flux_norm_masked']
-        rest_wave       = fit_data['basesWave_resam']
-        bases_flux      = fit_data['bases_flux_norm']
-        int_mask        = fit_data['int_mask']
-        obsFlux_mean    = fit_data['normFlux_obs']
+        #obs_wave        = fit_data['obs_wave_resam']
+        #obs_flux_masked = fit_data['obs_flux_norm_masked']
+        rest_wave       = fit_data['basesWave_resam']           #This one could be part of the self.
+        bases_flux      = fit_data['bases_flux_norm']           #This one could be part of the self.
+        int_mask        = fit_data['int_mask']                  
+        obsFlux_mean    = fit_data['normFlux_obs']              #This one could be part of the self.
         
         #Apply physical data to stellar grid
-        ssp_grid = self.physical_SED_model(rest_wave, obs_wave, bases_flux, input_Av, input_z, input_sigma, 3.1)
+        ssp_grid = self.physical_SED_model(rest_wave, obs_wave, bases_flux, input_Av, input_z, input_sigma, 3.4)
         ssp_grid_masked = (int_mask * ssp_grid.T).T
 
+        #Non-negative least square fit
+        if fit_scheme == 'nnls':
+            #start = timer()   
+            optimize_result = nnls(ssp_grid_masked, obs_flux_masked)
+            #end = timer()
+            #print 'nnls', ' time ', (end - start), '\n'   
+            
+            coeffs_bases_norm   = optimize_result[0]
+            coeffs_bases        = coeffs_bases_norm * obsFlux_mean
+
         #---Leasts square fit
-        if fit_scheme == 'lsq':
+        elif fit_scheme == 'lsq':
             start = timer()   
             optimize_result = lsq_linear(ssp_grid_masked, obs_flux_masked, bounds=(0, inf))
             end = timer()
             print 'lsq', ' time ', (end - start)
             
             coeffs_bases = optimize_result.x * obsFlux_mean
-        
-        elif fit_scheme == 'nnls':
-            start = timer()   
-            optimize_result = nnls(ssp_grid_masked, obs_flux_masked)
-            end = timer()
-            print 'nnls', ' time ', (end - start), '\n'   
-            
-            coeffs_bases = optimize_result[0] * obsFlux_mean
-             
+
+          
         #---Linear fitting without restrictions
         else:
             
@@ -713,19 +736,18 @@ class ssp_fitter(ssp_synthesis_importer):
             
             end = timer()
             print 'FIT3D', ' time ', (end - start)
-            
               
         #Save data to export
         fit_products                        = {}
-        flux_sspFit                         = np_sum(coeffs_bases.T * ssp_grid_masked, axis=1)
-        fluxMasked_sspFit                   = flux_sspFit * int_mask
+        flux_sspFit_norm                    = np_sum(coeffs_bases_norm.T * ssp_grid_masked, axis=1)
+        flux_sspFit                         = np_sum((coeffs_bases_norm * obsFlux_mean).T * ssp_grid_masked, axis=1)
         fit_products['flux_components']     = coeffs_bases.T * ssp_grid_masked
         fit_products['weight_coeffs']       = coeffs_bases
+        fit_products['flux_sspFit_norm']    = flux_sspFit_norm
         fit_products['flux_sspFit']         = flux_sspFit
-        fit_products['fluxMasked_sspFit']   = fluxMasked_sspFit
-                
+        
         return fit_products 
- 
+    
     def load_observation_mask(self, obs_dict, obs_flux_resam):
 
         #Declare type of masks
@@ -736,7 +758,7 @@ class ssp_fitter(ssp_synthesis_importer):
             boolean_mask = self.load_FIT3D_mask(obs_dict, obs_flux_resam)
             
         elif data_type == 'starlight':
-                      
+              
             boolean_mask = ones(len(obs_flux_resam)) #self.starlight_mask(obs_dict, obs_flux_resam)
                              
         return boolean_mask

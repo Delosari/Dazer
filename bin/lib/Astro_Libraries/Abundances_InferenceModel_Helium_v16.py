@@ -211,7 +211,7 @@ class Import_model_data():
         
         return
 
-    def prepare_run_data(self, norm_by_Hbeta = False, deblend_Check = True, red_curve = 'G03', Rv = 3.4):
+    def prepare_run_data(self, norm_by_Hbeta = False, deblend_Check = True, red_curve = 'G03_average', Rv = 3.4):
 
         #Variables to speed up the code
         self.nHydrogen              = len(self.obj_data['H_labels'])
@@ -278,7 +278,6 @@ class Recombination_FluxCalculation(ReddeningLaws, Import_model_data):
         self.He3889_Check           = None
         
         #Set up the right emissivities
-        atomicData.setDataFile('he_i_rec_Pal12-Pal13.fits')
         atomicData.setDataFile('s_iii_coll_HRS12.dat')
         
         #Declare pyneb Hydrogen and Helium atoms to calculate emissivities

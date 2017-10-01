@@ -115,13 +115,14 @@ class Import_model_data(ReddeningLaws):
             self.obj_data['n_e']            = 500.0
             self.obj_data['tau']            = 1.0
             self.obj_data['T_low']          = 15500.0
-            self.obj_data['T_high']         = 16500.0
+            #self.obj_data['T_high']         = 16500.0
+            self.obj_data['T_high']         = 1.0807 * self.obj_data['T_low'] - 0.0846
             self.obj_data['cHbeta']         = 0.1
             self.obj_data['xi']             = 1.0  
-            self.obj_data['TOIII']          = 17000.0
+            self.obj_data['TOIII']          = 16000.0
             self.obj_data['TOIII_error']    = self.obj_data['TOIII'] * 0.2
-            self.obj_data['nSII']           = 150.0
-            self.obj_data['nSII_error']     = 50.0
+            self.obj_data['nSII']           = 500.0
+            self.obj_data['nSII_error']     = 200.0
         
         if model == 'ssp_synthesis':
      
@@ -301,18 +302,22 @@ class Recombination_FluxCalibration():
         
         #Hydrogen calculation parameters
         self.calculate_H_params(Te, ne)
-
+        
+        #Hbeta parameters
+        Hbeta_emis      = self.H1.getEmissivity(Te, ne, label = self.Hbeta_pynebCode)
+        Hbeta_Kalpha    = self.Kalpha_Ratio_H(T_4 = Te/10000.0, H_label = self.Hbeta_label)
+        
         #Calculate the emissivities for each of the lines for the given temperature and density
-        emis_module = self.data_dic['Emissivity_H_vector'] / self.Hbeta_emis
+        emis_module     = self.data_dic['Emissivity_H_vector'] / Hbeta_emis
                 
         #Calculate the Collisional excitation fraction
-        CR_Module   = (1.0 + 0.0001* xi * self.data_dic['Kalpha_vector']) / (1.0 + 0.0001* xi * self.Hbeta_Kalpha)
+        CR_Module       = (1.0 + 0.0001* xi * self.data_dic['Kalpha_vector']) / (1.0 + 0.0001* xi * Hbeta_Kalpha)
                 
         #Calculate the reddening component
-        f_module    = power(10, -1 * self.data_dic['flambda_H_vector'] * cHbeta)
+        f_module        = power(10, -1 * self.data_dic['flambda_H_vector'] * cHbeta)
 
         #Calculate theoretical Hydrogen flux for each emission line
-        H_Flux      = emis_module * CR_Module * f_module
+        H_Flux          = emis_module * CR_Module * f_module
                      
         return H_Flux
 
@@ -320,12 +325,16 @@ class Recombination_FluxCalibration():
         
         #Helium calculation parameters
         self.calculate_He_params(Te, ne, tau)
-             
+        
+        #Hbea kalpha
+        Hbeta_emis      = self.H1.getEmissivity(Te, ne, label = self.Hbeta_pynebCode)
+        Hbeta_Kalpha    = self.Kalpha_Ratio_H(T_4 = Te/10000.0, H_label = self.Hbeta_label)
+        
         #Calculate the emissivities for each of the lines for the given temperature and density
-        emis_module = self.data_dic['Emissivity_He_vector'] / self.Hbeta_emis
+        emis_module = self.data_dic['Emissivity_He_vector'] / Hbeta_emis
                 
         #Calculate the collisional excitation fraction
-        CR_Module   = 1 / (1.0 + 0.0001* xi * self.Hbeta_Kalpha)
+        CR_Module   = 1 / (1.0 + 0.0001* xi * Hbeta_Kalpha)
 
         #Calculate the reddening component
         f_module    = power(10, -1 *  self.data_dic['flambda_He_vector'] * cHbeta)
@@ -341,8 +350,8 @@ class Recombination_FluxCalibration():
         T_4 = Te / 10000.0
         
         #Calculate the hbeta parameters
-        self.Hbeta_Kalpha   = self.Kalpha_Ratio_H(T_4 = T_4, H_label = self.Hbeta_label)
-        self.Hbeta_emis     = self.H1.getEmissivity(Te, ne, label = self.Hbeta_pynebCode)
+        #self.Hbeta_Kalpha   = self.Kalpha_Ratio_H(T_4 = T_4, H_label = self.Hbeta_label)
+        #self.Hbeta_emis     = self.H1.getEmissivity(Te, ne, label = self.Hbeta_pynebCode)
 
         #Calculate physical parameters for Hydrogen lines
         for i in self.nHydrogen_range:
@@ -393,14 +402,17 @@ class Collisional_FluxCalibration(Import_model_data):
         
     def coll_Flux(self, ion, Te, ne, cHbeta, ionic_abund):
         
+        #Calculate Hbeta emissivity for this ion temperatre
+        Hbeta_emis      = self.H1.getEmissivity(Te, ne, label = self.Hbeta_pynebCode)
+
         #Ions emissivities by Hbeta emissivity
-        emis_module = self.metal_emis(ion, Te, ne) / self.Hbeta_emis
+        emis_module     = self.metal_emis(ion, Te, ne) / Hbeta_emis
                 
         #Reddening factor
-        f_module    = power(10, -1 * self.data_dic['flambda_{}_vector'.format(ion)] * cHbeta)
+        f_module        = power(10, -1 * self.data_dic['flambda_{}_vector'.format(ion)] * cHbeta)
 
         #Metals flux
-        metal_flux  = ionic_abund * emis_module * f_module
+        metal_flux      = ionic_abund * emis_module * f_module
         
         return metal_flux
     
@@ -466,15 +478,18 @@ class Inference_AbundanceModel(Import_model_data, Collisional_FluxCalibration, R
             self.prepare_run_data(norm_by_Hbeta = False, deblend_Check=False)
                  
             if '_abs' not in model:
-                self.obj_data['H_Flux']     = self.H_theoFlux(self.obj_data['T_high'], self.obj_data['n_e'], self.obj_data['xi'], self.obj_data['cHbeta'])
+
+                self.obj_data['H_Flux']     = self.H_theoFlux(self.obj_data['T_low'], self.obj_data['n_e'], self.obj_data['xi'], self.obj_data['cHbeta'])
                 self.obj_data['He_Flux']    = self.He_theoFlux(self.obj_data['T_high'], self.obj_data['n_e'], self.obj_data['tau'], self.obj_data['xi'], self.obj_data['cHbeta'], self.obj_data['y_plus'])
+                
                 self.obj_data['S2_Flux']    = self.coll_Flux('S2', self.obj_data['T_low'], self.obj_data['n_e'], self.obj_data['cHbeta'], self.obj_data['S2_abund'])
                 self.obj_data['S3_Flux']    = self.coll_Flux('S3', self.obj_data['T_low'], self.obj_data['n_e'], self.obj_data['cHbeta'], self.obj_data['S3_abund'])
                 self.obj_data['O2_Flux']    = self.coll_Flux('O2', self.obj_data['T_low'], self.obj_data['n_e'], self.obj_data['cHbeta'], self.obj_data['O2_abund'])
                 self.obj_data['O3_Flux']    = self.coll_Flux('O3', self.obj_data['T_high'], self.obj_data['n_e'], self.obj_data['cHbeta'], self.obj_data['O3_abund'])
-    
+                                     
                 self.obj_data['H_error']    = self.obj_data['H_Flux'] * 0.01
                 self.obj_data['He_error']   = self.obj_data['He_Flux'] * 0.02
+                
                 self.obj_data['S2_error']   = self.obj_data['S2_Flux'] * 0.02
                 self.obj_data['S3_error']   = self.obj_data['S3_Flux'] * 0.02
                 self.obj_data['O2_error']   = self.obj_data['O2_Flux'] * 0.02
@@ -619,20 +634,25 @@ class Inference_AbundanceModel(Import_model_data, Collisional_FluxCalibration, R
 
     def He_O_S_abundance_model(self):
         
-        y_plus      =   pymc2.Uniform(           'y_plus',    0.050,                       0.15)
-        S2_abund    =   pymc2.Uniform(           'S2_abund',  0.000001,                    0.15)
-        S3_abund    =   pymc2.Uniform(           'S3_abund',  0.000001,                    0.15)
-        O2_abund    =   pymc2.Uniform(           'O2_abund',  0.000001,                    0.15)
-        O3_abund    =   pymc2.Uniform(           'O3_abund',  0.000001,                    0.15)                        
-        ne          =   pymc2.TruncatedNormal(   'ne',        self.obj_data['nSII'],       self.obj_data['nSII_error']**-2,    a = 0.0 ,   b = 1000.0)
-        T_low       =   pymc2.Normal(            'T_low',     self.obj_data['TOIII']-500,  self.obj_data['TOIII_error']**-2)
-        T_high      =   pymc2.Normal(            'T_high',    self.obj_data['TOIII'],      self.obj_data['TOIII_error']**-2)
-        tau         =   pymc2.TruncatedNormal(   'tau',       0.75,                        0.5**-2,    a = 0.0,    b = 7.0)
-        cHbeta      =   pymc2.TruncatedNormal(   'cHbeta',    0.15,                        0.05**-2,   a = 0.0,    b = 3.0)
-        xi          =   pymc2.TruncatedNormal(   'xi',        1,                           200**-2,    a = 0.0,    b = 1000.0)
-
+        y_plus      =   pymc2.Uniform(           'y_plus',    0.050,                            0.15)
+        S2_abund    =   pymc2.Uniform(           'S2_abund',  0.000001,                         0.15)
+        S3_abund    =   pymc2.Uniform(           'S3_abund',  0.000001,                         0.15)
+        O2_abund    =   pymc2.Uniform(           'O2_abund',  0.000001,                         0.15)
+        O3_abund    =   pymc2.Uniform(           'O3_abund',  0.000001,                         0.15)                        
+        ne          =   pymc2.TruncatedNormal(   'ne',        self.obj_data['nSII'],            self.obj_data['nSII_error']**-2,    a = 0.0 ,   b = 1000.0)
+#        T_low       =   pymc2.TruncatedNormal(   'T_low',     self.obj_data['TOIII']-1000.0,    self.obj_data['TOIII_error']**-2,    a = 0.0 ,   b = 50000.0)
+#        T_high      =   pymc2.TruncatedNormal(   'T_high',    self.obj_data['TOIII'],           self.obj_data['TOIII_error']**-2,    a = 0.0 ,   b = 50000.0)
+        T_low       =   pymc2.TruncatedNormal(   'T_low',    self.obj_data['TOIII'],           self.obj_data['TOIII_error']**-2,    a = 0.0 ,   b = 50000.0)
+        tau         =   pymc2.TruncatedNormal(   'tau',       0.75,                             0.5**-2,    a = 0.0,    b = 7.0)
+        cHbeta      =   pymc2.TruncatedNormal(   'cHbeta',    0.15,                             0.05**-2,   a = 0.0,    b = 3.0)
+        xi          =   pymc2.TruncatedNormal(   'xi',        1,                                200**-2,    a = 0.0,    b = 1000.0)
+        
         @pymc2.deterministic #Calculate Hydrogen theoretical flux
-        def H_model(Te=T_high, ne=ne, xi=xi, cHbeta=cHbeta):
+        def T_high(T_low=T_low): 
+            return 1.0807 * T_low - 0.0846
+            
+        @pymc2.deterministic #Calculate Hydrogen theoretical flux
+        def H_model(Te=T_low, ne=ne, xi=xi, cHbeta=cHbeta):
             return self.H_theoFlux(Te=Te, ne=ne, xi=xi, cHbeta=cHbeta)
            
         @pymc2.deterministic #Calculate Helium theoretical flux 
@@ -653,7 +673,7 @@ class Inference_AbundanceModel(Import_model_data, Collisional_FluxCalibration, R
 
         @pymc2.deterministic #Calculate O3 theoretical flux 
         def O3_model(ion='O3', Te=T_high, ne=ne, cHbeta=cHbeta, ionic_abund=O3_abund):
-            return self.coll_Flux('O3',Te,ne,cHbeta,ionic_abund)
+            return self.coll_Flux('O3',Te,  ne, cHbeta, ionic_abund)
 
         @pymc2.deterministic #Combine theoretical fluxes into a single array
         def H_He_TheoFlux(H_Ftheo=H_model, He_Ftheo=He_model):
@@ -675,21 +695,6 @@ class Inference_AbundanceModel(Import_model_data, Collisional_FluxCalibration, R
             O2_O3_TheoFlux[:2] = O2_Ftheo[:]
             O2_O3_TheoFlux[2:] = O3_Ftheo[:]
             return O2_O3_TheoFlux 
- 
-        @pymc2.stochastic(observed=True) #Likelihood
-        def Likelihood_model_Recomb(value = self.H_He_Obs_Flux, H_He_TheoFlux = H_He_TheoFlux, sigmaLines = self.H_He_Obs_Error):
-            chi_F = sum(square(H_He_TheoFlux - value) / square(sigmaLines))
-            return - chi_F / 2
-
-        @pymc2.stochastic(observed=True) #Likelihood
-        def Likelihood_model_S(value = self.S2_S3_Obs_Flux, S2_S3_TheoFlux = S2_S3_TheoFlux, sigmaLines = self.S2_S3_Obs_Error):
-            chi_F = sum(square(S2_S3_TheoFlux - value) / square(sigmaLines))
-            return - chi_F / 2
-
-        @pymc2.stochastic(observed=True) #Likelihood
-        def Likelihood_model_O(value = self.O2_O3_Obs_Flux, O2_O3_TheoFlux = O2_O3_TheoFlux, sigmaLines = self.O2_O3_Obs_Error):
-            chi_F = sum(square(O2_O3_TheoFlux - value) / square(sigmaLines))
-            return - chi_F / 2
 
         @pymc2.deterministic() #Deterministic method to track the evolution of the chi:
         def ChiSq_Recomb(H_He_ObsFlux = self.H_He_Obs_Flux, H_He_TheoFlux = H_He_TheoFlux, sigmaLines = self.H_He_Obs_Error):
@@ -704,6 +709,21 @@ class Inference_AbundanceModel(Import_model_data, Collisional_FluxCalibration, R
         @pymc2.deterministic() #Deterministic method to track the evolution of the chi:
         def ChiSq_O(O2_O3_Obs_Flux = self.O2_O3_Obs_Flux, O2_O3_TheoFlux = O2_O3_TheoFlux, sigmaLines = self.O2_O3_Obs_Error):
             chi_F = sum(square(O2_O3_TheoFlux - O2_O3_Obs_Flux) / square(sigmaLines))
+            return - chi_F / 2
+
+        @pymc2.stochastic(observed=True) #Likelihood
+        def Likelihood_model_Recomb(value = self.H_He_Obs_Flux, H_He_TheoFlux = H_He_TheoFlux, sigmaLines = self.H_He_Obs_Error):
+            chi_F = sum(square(H_He_TheoFlux - value) / square(sigmaLines))
+            return - chi_F / 2
+
+        @pymc2.stochastic(observed=True) #Likelihood
+        def Likelihood_model_S(value = self.S2_S3_Obs_Flux, S2_S3_TheoFlux = S2_S3_TheoFlux, sigmaLines = self.S2_S3_Obs_Error):
+            chi_F = sum(square(S2_S3_TheoFlux - value) / square(sigmaLines))
+            return - chi_F / 2
+
+        @pymc2.stochastic(observed=True) #Likelihood
+        def Likelihood_model_O(value = self.O2_O3_Obs_Flux, O2_O3_TheoFlux = O2_O3_TheoFlux, sigmaLines = self.O2_O3_Obs_Error):
+            chi_F = sum(square(O2_O3_TheoFlux - value) / square(sigmaLines))
             return - chi_F / 2
 
         return locals()

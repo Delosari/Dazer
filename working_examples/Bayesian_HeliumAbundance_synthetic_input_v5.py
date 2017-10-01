@@ -1,10 +1,10 @@
-from bin.dazer_methods import Dazer
-from bin.lib.Astro_Libraries.Abundances_InferenceModel_Helium_v18 import Run_MCMC
+from dazer_methods import Dazer
+from lib.Astro_Libraries.Abundances_InferenceModel_Helium_v18 import Run_MCMC
 
 #MCMC configuration run
-default_db_folder   = '/home/vital/Astrodata/Inferece_output/'
+default_db_folder   = '/home/vital/Astrodata/Inference_output/'
 db_name_ext         = 'v2_He_S_O_v1NoChi'
-iterat, burn, thin  = 15000, 1500, 2 #15000, 1500, 2
+iterat, burn, thin  = 10000, 1000, 1 #15000, 1500, 2
 synth_model         = 'Model3_Metals'
 params_list         = ['y_plus','T_high','T_low','ne','tau','cHbeta','xi','S2_abund','S3_abund','O2_abund','O3_abund']             
                         #'ChiSq_Recomb','ChiSq_S','ChiSq_O',
@@ -24,7 +24,7 @@ db_address  = '{}HeAbund_pymc2_it{}_burn{}_thin{}_{}'.format(default_db_folder, 
                 
 # #Run sampler
 bm.run_pymc2(db_address, iterat, burn, thin, variables_list=params_list)
- 
+
 #Load database
 pymc2_db, stat_db_dict = bm.load_pymc_database(db_address)
  
