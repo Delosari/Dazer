@@ -656,7 +656,17 @@ class ssp_fitter(ssp_synthesis_importer):
         synth_flux                  = np_sum(basesCoeff.T * bases_grid_model, axis=1)
                                       
         return synth_wave, synth_flux
-  
+
+    def ssp_fitting(self, ssp_grid, obs_flux_masked, int_mask):
+        
+        ssp_grid_masked     = (int_mask * ssp_grid.T).T
+        
+        optimize_result     = nnls(ssp_grid_masked, obs_flux_masked)
+        
+        coeffs_bases_norm   = optimize_result[0]
+        
+        return coeffs_bases_norm
+    
     def ssp_fit(self, input_z, input_sigma, input_Av, obs_wave, obs_flux_masked, fit_data, fit_scheme = 'nnls'):
                 
         #Quick naming
@@ -689,7 +699,6 @@ class ssp_fitter(ssp_synthesis_importer):
             print 'lsq', ' time ', (end - start)
             
             coeffs_bases = optimize_result.x * obsFlux_mean
-
           
         #---Linear fitting without restrictions
         else:
@@ -745,7 +754,7 @@ class ssp_fitter(ssp_synthesis_importer):
         fit_products['weight_coeffs']       = coeffs_bases
         fit_products['flux_sspFit_norm']    = flux_sspFit_norm
         fit_products['flux_sspFit']         = flux_sspFit
-        
+
         return fit_products 
     
     def load_observation_mask(self, obs_dict, obs_flux_resam):

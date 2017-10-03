@@ -808,12 +808,10 @@ class Pdf_printer():
             self.pdfDoc.append(NewPage())
         
     def generate_pdf(self, clean_tex = True, output_address=None):
-
         if output_address == None:
             if self.pdf_type == 'table':
                 self.pdfDoc.append(NoEscape(r'\end{preview}')) 
-            self.pdfDoc.generate_pdf(clean_tex = clean_tex)
-        
+            self.pdfDoc.generate_pdf(clean_tex = clean_tex)        
         else:
             self.table.generate_tex(output_address) 
             
