@@ -607,6 +607,444 @@ class Fitting_Gaussians():
     
         return
 
+class Fitting_Gaussians_v2():
+    
+    def __init__(self):
+        
+        #Variables included in the series
+        self.fitting_parameters =   ['idx0', 'idx1', 'idx2', 'idx3', 'idx4', 'idx5'] 
+        self.fitting_parameters +=  ['area_intg', 'area_intg_er', 'flux_gauss', 'flux_gauss_er', 'flux_intg', 'flux_intg_er'] #Additionally there is (A, mu, sigma, Eqw) + idx + _norm + _norm_er
+        self.fitting_parameters +=  ['m_zerolev', 'n_zerolev', 'zerolev_mean', 'zerolev_std', 'zerolev_linear', 'zerolev_width', 'continuum_width']
+        self.fitting_parameters +=  ['fit_routine', 'MC_iterations', 'blended_check', 'start_treatment', 'line_number', 'add_wide_component', 'wide_component']
+        self.fitting_parameters +=  ['params_lmfit', 'params_lmfit_wide', 'parameters_list', 'fit_output']
+        self.fitting_parameters +=  ['Wave1', 'Wave2', 'Wave3', 'Wave4', 'Wave5', 'Wave6']
+        self.fitting_parameters +=  ['group_label', 'blended_lambdas', 'blended_labels', 'blended_ions']
+        self.fitting_parameters +=  ['maxLambdas', 'maxPeaks', 'x_scaler', 'y_scaler', 'x_n', 'y_n', 'zerolev_n', 'sigZerolev_n']
+        self.fitting_parameters +=  ['Blue_wave_zerolev', 'Red_wave_zerolev', 'Blue_flux_zerolev', 'Red_flux_zerolev']
+        self.fitting_parameters +=  ['A0_norm', 'A0_norm_er', 'mu0_norm', 'mu0_norm_er', 'sigma0_norm', 'sigma0_norm_er']        
+        self.fitting_parameters +=  ['fwhm0_norm', 'fwhm0_norm_er', 'area_G0_norm', 'area_G0_norm_er']
+        self.fitting_parameters +=  ['A0', 'mu0', 'sigma0', 'flux_gauss0']        
+        self.fitting_parameters +=  ['A0_er', 'mu0_er', 'sigma0_er', 'flux_gauss0_er']        
+        self.fitting_parameters +=  ['x_resample', 'y_resample', 'zerolev_resample', 'y_comps']        
+        self.fitting_parameters +=  ['eqw0', 'eqw0_er']        
+                    
+        #Ordered dictionary for lmfit
+        self.params_lmfit       = Parameters()
+
+        self.GHcoeffs = {}
+        self.GHcoeffs['c0'] = sqrt(6.0) / 4.0
+        self.GHcoeffs['c1'] = -sqrt(3.0)
+        self.GHcoeffs['c2'] = -sqrt(6.0)
+        self.GHcoeffs['c3'] = 2.0 * sqrt(3.0) / 3.0
+        self.GHcoeffs['c4'] = sqrt(6.0) / 3.0
+        
+        self.skeness_limit = {'fixed':(False)}
+        self.kutorsis_limit = {'fixed':(False)}
+        
+        self.skeness_Glimit = {'fixed':(True)}
+        self.kutorsis_Glimit = {'fixed':(True)}        
+
+        N2 = Atom('N', 2)
+        N2_6548A = N2.getEmissivity(tem=10000, den=100, wave=6548)
+        N2_6584A = N2.getEmissivity(tem=10000, den=100, wave=6584)
+        
+        self.N2_Ratio = N2_6584A / N2_6548A
+        
+        self.sqrt2pi = sqrt(2*pi)
+
+    def load_lmfit_parameters(self, x, y, zerolev, err_zerolev, n_comps, wide_component = False, A_limits = 0.30, mu_precission = 2, sigma_limit = 5):
+        
+        #WARNING: lmfit uses ordered dictionaries... this consumes resources
+        
+        #Scale parameters
+        ind_max = argmax(y)
+        self.fit_dict['x_scaler'], self.fit_dict['y_scaler'] = x[ind_max], y[ind_max]
+        
+        #Scale the range
+        self.fit_dict['x_n']                = x - self.fit_dict.x_scaler
+        self.fit_dict['y_n']                = y / self.fit_dict.y_scaler
+        self.fit_dict['zerolev_n']          = zerolev / self.fit_dict.y_scaler
+        self.fit_dict['sigZerolev_n']       = err_zerolev / self.fit_dict.y_scaler
+
+        #Get line maxima and minima
+        peak_wave, peak_flux, minima_wave, minima_flux = self.get_lines_peaks(ind_max, n_comps)
+        
+        #Store peaks location for log        
+        self.fit_dict['maxLambdas']         = peak_wave + self.fit_dict['x_scaler']
+        self.fit_dict['maxPeaks']           = peak_flux * self.fit_dict['y_scaler']
+        self.fit_dict['params_lmfit_wide']  = None
+        
+        #Clear lmfit dictionary        
+        self.params_lmfit.clear()
+        
+        #Just one component
+        if n_comps:
+            self.params_lmfit.add('A0',     value = peak_flux[0] - mean(self.fit_dict.zerolev_n), min = 0.0)
+            self.params_lmfit.add('mu0',    value = peak_wave[0], min = peak_wave[0] - mu_precission, max = peak_wave[0] + mu_precission)
+            self.params_lmfit.add('sigma0', value = 1, min = 0)
+            self.params_lmfit.add('fwhm0',  expr = '2.354820045 * {sigma}'.format(sigma = 'sigma0'))
+            self.params_lmfit.add('area_G0', expr = 'A0 * sigma0 * {sqrt2pi}'.format(sqrt2pi = self.sqrt2pi))
+        
+        #Blended structure            
+        else:
+            for i in range(n_comps):  
+                index = str(i)
+                self.params_lmfit.add('A'     + index, value = peak_flux[i] - mean(self.fit_dict.zerolev_n), min = 0.0)
+                self.params_lmfit.add('mu'    + index, value = peak_wave[i], min = peak_wave[i] - mu_precission, max = peak_wave[i] + mu_precission)
+                self.params_lmfit.add('sigma' + index, value = 1, min = 0)
+                self.params_lmfit.add('fwhm'  + index, expr = '2.354820045 * {sigma}'.format(sigma = 'sigma'  + index))
+                self.params_lmfit.add('area_G' + index, expr = '{A} * {sigma} * {sqrt2pi}'.format(A = 'A'  + index, sigma = 'sigma' + index, sqrt2pi = self.sqrt2pi))        
+                
+        #For blended components we set the same sigma: #WARNING: We could not just delete this
+        if n_comps > 1:
+            small_components = range(n_comps)
+            Highest_index = argmax(self.fit_dict.maxPeaks)
+            
+            del small_components[Highest_index]
+            
+            for indx in small_components: #We set the same sigma               
+                expresion = 'sigma{index_big} * ((mu{index_small} + {scaler}) / (mu{index_big} + {scaler}))'.format(
+                                index_big = Highest_index, index_small = str(indx), scaler = self.fit_dict['x_scaler'])
+                self.params_lmfit['sigma' + str(indx)].set(expr = expresion) 
+                      
+        #Special condition: Wide componentine in Halpha
+        wide_params_list = []        
+        if self.fit_dict.add_wide_component:
+            
+            #Additional fitter
+            params_W = Parameters()
+            
+            #TRICK TO ADD AN ADDITIONAL VALUE
+            n_nindex = str(n_comps)               
+            params_W.add('A'  + n_nindex,       value  = 0.2, min = 0)
+            params_W.add('mu' + n_nindex,       value = 0.0)
+            params_W.add('sigma' + n_nindex,    value = 6, min = 3, max = 20.0)
+            params_W.add('fwhm' + n_nindex,     expr = '2.354820045 * {sigma}'.format(sigma = 'sigma'  + n_nindex))
+            params_W.add('area_G' + n_nindex,    expr = '{A} * {sigma} * {sqrt2pi}'.format(A = 'A'  + n_nindex, sigma = 'sigma' + n_nindex, sqrt2pi = self.sqrt2pi))
+            wide_params_list = params_W.keys()
+            
+            #Update for Nitrogen relation: Mode 1 adjuxt the fluxes
+            self.params_lmfit['area_G0'].set(expr = 'area_G2 / {N2_ratio}'.format(N2_ratio = 2.94))
+            self.fit_dict['params_lmfit_wide'] = params_W
+            
+        #Store the data 
+        self.fit_dict['params_lmfit'] = self.params_lmfit
+        self.fit_dict['parameters_list'] = array(self.params_lmfit.keys() + wide_params_list) 
+
+        return
+
+    def get_lines_peaks(self, ind_max, Ncomps):
+        
+        target_wavelengths = None
+                    
+        #-- Single line  #WARNING: Should this change for fitting absoving lines
+        if self.fit_dict.blended_check == False:            
+            peak_flux = array([self.fit_dict.y_n[ind_max]]) 
+            peak_wave = array([self.fit_dict.x_n[ind_max]])    
+            minima_wave, minima_flux = 0.0, 0.0 
+            
+        #--Blended line
+        else:
+            max_index, min_index = argrelextrema(self.fit_dict.y_n, greater)[0], argrelextrema(self.fit_dict.y_n, less)[0]
+            maxima_wavelengths = sort(self.fit_dict.x_n[max_index])
+            minima_wavelengths = sort(self.fit_dict.x_n[min_index])
+          
+            #With wide component #ONLY WORKS FOR THE BLENDED HALPHA SCHEME
+            if self.fit_dict.add_wide_component == False:
+                target_wavelengths = array(self.fit_dict.blended_lambdas) - self.fit_dict.x_scaler
+            else:
+                target_wavelengths = array(self.fit_dict.blended_lambdas + [self.fit_dict.blended_lambdas[1]]) - self.fit_dict.x_scaler
+            
+            #Determine peak waves and fluxes     
+            if len(max_index) == Ncomps:
+                peak_flux, minima_flux  = self.fit_dict.y_n[max_index], self.fit_dict.y_n[min_index]
+                peak_wave, minima_wave  = maxima_wavelengths, minima_wavelengths
+            else:
+                closest_indeces = self.search_targets_in_array(maxima_wavelengths, target_wavelengths)
+                peak_wave, peak_flux = self.fit_dict.x_n[max_index][closest_indeces], self.fit_dict.y_n[max_index][closest_indeces]
+            
+            #Append peak waves and fluxes if wide component
+            if self.fit_dict.add_wide_component:
+                if len(peak_wave) ==  len(target_wavelengths) - 1:
+                    peak_wave = append(peak_wave, [0])
+                    peak_flux = append(peak_flux, [0.1])
+            
+            minima_wave, minima_flux =  self.fit_dict.x_n[min_index], self.fit_dict.y_n[min_index]
+            
+        return peak_wave, peak_flux, minima_wave, minima_flux
+
+    def search_targets_in_array(self, known_array, test_array):
+        
+        #This function gives the indeces of the closest values within a sorted array
+        
+        index_sorted        = argsort(known_array)
+        known_array_sorted  = known_array[index_sorted]
+        known_array_middles = known_array_sorted[1:] - diff(known_array_sorted.astype('f'))/2
+        idx1                = searchsorted(known_array_middles, test_array)
+        indices             = index_sorted[idx1]
+        
+        return indices
+
+    def fit_single_line(self, x, y, zero_lev, err_continuum, fitting_parameters):
+
+        #Declare parameters and containers for the fit
+        params_dict         = fitting_parameters.valuesdict()
+        initial_values      = (params_dict['A0'], params_dict['mu0'], params_dict['sigma0'])
+                            
+        #Perform the fit using kapteyn
+        fitobj              = kmpfit.Fitter(residuals=residual_gauss_kmpfit, data=(x, y, zero_lev, err_continuum))
+        mean_area           = simps(y, x) - simps(zero_lev, x)
+        fitobj.fit(params0  = initial_values)
+        params_array        = fitobj.params
+            
+        #Compute Bootstrap output        
+        A                   = params_array[0]
+        mu                  = params_array[1]
+        sigma               = params_array[2]         
+        fwhm0_norm          = 2.354820045 * sigma
+        areaG0_norm         = A * sigma * self.sqrt2pi
+
+        #Store the data
+        self.fit_dict['area_intg'],     self.fit_dict['area_intg_er']       = mean_area, 0.0
+        self.fit_dict['A0_norm'],       self.fit_dict['A0_norm_er']         = A, 0.0
+        self.fit_dict['mu0_norm'],      self.fit_dict['mu0_norm_er']        = mu, 0.0  
+        self.fit_dict['sigma0_norm'],   self.fit_dict['sigma0_norm_er']     = sigma, 0.0  
+        self.fit_dict['fwhm0_norm'],    self.fit_dict['fwhm0_norm_er']      = fwhm0_norm, 0.0
+        self.fit_dict['area_G0_norm'],  self.fit_dict['area_G0_norm_er']    = areaG0_norm, 0.0
+              
+        return
+
+    def fit_single_line_BS(self, x, y, zero_lev, err_continuum, fitting_parameters, bootstrap_iterations = 1000):
+        
+        #Declare parameters and containers for the fit
+        params_dict     = fitting_parameters.valuesdict()
+        initial_values  = [params_dict['A0'], params_dict['mu0'], params_dict['sigma0']]
+        area_array      = empty(bootstrap_iterations)
+        params_array    = empty([3, bootstrap_iterations])
+        n_points        = len(x)
+                            
+        #Perform the fit using kapteyn
+        for i in range(bootstrap_iterations):
+            y_new               = y + np_normal_dist(0, err_continuum, n_points)
+            fitobj              = kmpfit.Fitter(residuals=residual_gauss_kmpfit, data=(x, y_new, zero_lev, err_continuum))
+            area_array[i]       = simps(y_new, x) - simps(zero_lev, x)
+            fitobj.fit(params0  = initial_values)
+            params_array[:,i]   = fitobj.params
+            
+        #Compute Bootstrap output
+        mean_area, std_area = mean(area_array), std(area_array)
+        mean_params_array, stdev_params_array = params_array.mean(1), params_array.std(1)
+        
+        A                       = ufloat(mean_params_array[0], stdev_params_array[0]) 
+        sigma                   = ufloat(mean_params_array[2], stdev_params_array[2])         
+        fwhm0_norm              = 2.354820045 * sigma
+        areaG0_norm             = A * sigma * self.sqrt2pi
+
+        #Store the data
+        self.fit_dict['area_intg'],     self.fit_dict['area_intg_er']       = mean_area, std_area
+        self.fit_dict['A0_norm'],       self.fit_dict['A0_norm_er']         = mean_params_array[0], stdev_params_array[0]
+        self.fit_dict['mu0_norm'],      self.fit_dict['mu0_norm_er']        = mean_params_array[1], stdev_params_array[1]  
+        self.fit_dict['sigma0_norm'],   self.fit_dict['sigma0_norm_er']     = mean_params_array[2], stdev_params_array[2]  
+        self.fit_dict['fwhm0_norm'],    self.fit_dict['fwhm0_norm_er']      = fwhm0_norm.nominal_value, fwhm0_norm.std_dev
+        self.fit_dict['area_G0_norm'],  self.fit_dict['area_G0_norm_er']    = areaG0_norm.nominal_value, areaG0_norm.std_dev
+                           
+        return
+      
+    def fit_blended_line_BS(self, x, y, zero_lev, err_continuum, Ncomps, fitting_parameters, add_wide_component, fitting_parameters_wide, bootstrap_iterations = 1000, MC_iterations = 200):
+
+        #Declare parameters and containers for the fit
+        params_dict     = fitting_parameters.valuesdict()
+        n_points        = len(x)
+        list_parameters = []
+        initial_val     = empty(3 * Ncomps)
+        area_array      = empty(bootstrap_iterations)
+        params_array    = empty([3 * Ncomps, bootstrap_iterations])
+        
+#         if add_wide_component:
+#             x_scaler        = self.fit_dict['x_scaler']
+#             need_to_extract = coso
+            
+        #Reshape parameters from dict to array (A0, mu0, sigma0, A1, mu1, sigma1...)
+        for i in range(Ncomps):
+            comp = str(i)
+            line_param                  = [param.format(str(comp)) for param in ['A{}', 'mu{}', 'sigma{}']] 
+            initial_val[i*3:(i+1)*3]    = params_dict[line_param[0]], params_dict[line_param[1]], params_dict[line_param[2]]
+            list_parameters             += line_param
+        
+        #Perform the fit
+        for j in range(bootstrap_iterations):
+            y_new               = y + np_normal_dist(0, err_continuum, n_points)
+            area_array[j]       = simps(y_new, x) - simps(zero_lev, x)
+            best_vals, covar    = curve_fit(gaussian_MixBS, (x, zero_lev, Ncomps), y_new, p0=initial_val) # Need to poot here the new function
+            params_array[:,j]   = best_vals
+            
+#             if add_wide_component:
+#                 sigma_limit = best_vals[5]
+#                 limit_0, limit_1 = 6548.05 - x_scaler - sigma_limit * 1.5,     6548.05 - x_scaler + sigma_limit * 1.5
+#                 limit_2, limit_3 = 0 - sigma_limit * 4,                                         0 + sigma_limit * 4 
+#                 limit_4, limit_5 = 6583.46 - x_scaler - sigma_limit * 3,       6583.46 - x_scaler + sigma_limit * 3            
+#       
+#                 indeces = ((x >= limit_0) & (x <= limit_1)) + ((x >= limit_2) & (x <= limit_3)) + ((x >= limit_4) & (x <= limit_5))
+#                 mask = invert(indeces) 
+#                 x_wide, y_wide, zero_wide = x[mask], y_new[mask], zero_lev[mask]
+#                 
+#                 best_vals_wide, covar = curve_fit(gaussian_curveBS, (x_wide, zero_wide), y_wide, p0=initial_wide_values)
+#                 
+#                 #Calculate wide component curve            
+#                 y_wide_fit = gaussian_curveBS((x, zero_lev), *best_vals_wide) 
+#                 
+#                 #Calculate emission line region again
+#                 y_pure_narrow = y_new - y_wide_fit + zero_lev 
+#                 
+#                 #Recalculate the narrow components
+#                 best_vals = curve_fit(gaussian_MixBS, (x, zero_lev, Ncomps), y_pure_narrow, p0=initial_val)        
+# 
+#         if add_wide_component:
+#             self.fit_dict.line_number = self.fit_dict.line_number + 1
+#             concantenate Matrix
+            
+        #Compute Bootstrap output
+        mean_area, std_area = mean(area_array), std(area_array)
+        mean_params_array, stdev_params_array = params_array.mean(1), params_array.std(1)
+
+        #Store the data
+        self.fit_dict[['area_intg', 'area_intg_er']] = mean_area, std_area
+        
+        #Return to a dictionary format
+        for m in range(Ncomps):
+            comp            = str(m)
+            line_param      = [param.format(str(comp)) for param in ['A{}_norm', 'mu{}_norm', 'sigma{}_norm']]
+            line_param_er   = [param.format(str(comp)) for param in ['A{}_norm_er', 'mu{}_norm_er', 'sigma{}_norm_er']]
+            for n in range(len(line_param)):
+                self.fit_dict[line_param[n]] = mean_params_array[m*3:(m+1)*3][n]
+                self.fit_dict[line_param_er[n]] = stdev_params_array[m*3:(m+1)*3][n]
+                
+        #Calculate the gaussian area
+        A_keys, Aerr_keys = ['A{}_norm'.format(str(i)) for i in range(Ncomps)], ['A{}_norm_er'.format(str(i)) for i in range(Ncomps)]
+        sigma_keys, sigmaerr_keys = ['sigma{}_norm'.format(str(i)) for i in range(Ncomps)], ['sigma{}_norm_er'.format(str(i)) for i in range(Ncomps)]   
+        A_vector = unumpy.uarray(self.fit_dict[A_keys].values, self.fit_dict[Aerr_keys].values) 
+        sigma_vector = unumpy.uarray(self.fit_dict[sigma_keys].values, self.fit_dict[sigmaerr_keys].values) 
+
+        fwhm_vector = 2.354820045 * sigma_vector
+        areaG_vector = A_vector * sigma_vector * self.sqrt2pi 
+    
+        #Add areas to dict
+        fwhm_keys, fwhmerr_keys = ['fwhm{}'.format(str(i)) for i in range(Ncomps)], ['fwhm{}_er'.format(str(i)) for i in range(Ncomps)]           
+        AreaG_keys, AreaGerr_keys = ['area_G{}_norm'.format(str(i)) for i in range(Ncomps)], ['area_G{}_norm_er'.format(str(i)) for i in range(Ncomps)]
+        fwhm_nominal, fwhm_std_dev = unumpy.nominal_values(fwhm_vector), unumpy.std_devs(fwhm_vector)
+        AreaG_nominal, AreaG_std_dev = unumpy.nominal_values(areaG_vector), unumpy.std_devs(areaG_vector)
+        
+        for m in range(len(AreaG_keys)):
+            self.fit_dict[fwhm_keys[m]]     = fwhm_nominal[m]
+            self.fit_dict[fwhmerr_keys[m]]  = fwhm_std_dev[m]
+            self.fit_dict[AreaG_keys[m]]    = AreaG_nominal[m]
+            self.fit_dict[AreaGerr_keys[m]] = AreaG_std_dev[m]      
+                            
+        return
+
+    def fit_blended_line_BS_lmfit(self, x, y, zero_lev, err_continuum, Ncomps, fitting_parameters, add_wide_component, fitting_parameters_wide, bootstrap_iterations = 500, MC_iterations = 200):
+                        
+        #Prepare some data in advance
+        n_points        = len(x)
+        n_parameters    = len(self.fit_dict['parameters_list'])
+        params_list     = self.fit_dict['parameters_list']
+        range_param     = range(n_parameters)
+        range_boots     = range(bootstrap_iterations)
+        area_array      = empty(bootstrap_iterations)
+        idcs_components = map(str, range(Ncomps))
+        params_matrix   = empty((n_parameters, bootstrap_iterations))
+        errors_matrix   = empty((n_parameters, bootstrap_iterations))
+        Ncomps_wide     = ['3']
+        
+        #Loop through the iterations:
+        for i in range_boots:
+            
+            y_new           = y + np_normal_dist(0.0, err_continuum, n_points)
+            area_array[i]   = simps(y_new, x) - simps(zero_lev, x)
+            fit_Output      = lmfit_minimize(residual_gaussMix, fitting_parameters, args=(x, y_new, zero_lev, err_continuum, idcs_components))
+            output_params   = fit_Output.params
+            
+            #Case with a wide component
+            if add_wide_component:
+                
+                #Only works for Halpha
+                sigma_limit = output_params['sigma1'].value
+                limit_0, limit_1 = 6548.05 - self.fit_dict['x_scaler'] - sigma_limit * 1.5, 6548.05 - self.fit_dict['x_scaler'] + sigma_limit * 1.5
+                limit_2, limit_3 = 0 - sigma_limit * 4,                                     0 + sigma_limit * 4 
+                limit_4, limit_5 = 6583.46 - self.fit_dict['x_scaler'] - sigma_limit * 3,   6583.46 - self.fit_dict['x_scaler'] + sigma_limit * 3
+                
+                indeces = ((x >= limit_0) & (x <= limit_1)) + ((x >= limit_2) & (x <= limit_3)) + ((x >= limit_4) & (x <= limit_5))
+                mask = invert(indeces) 
+                x_wide, y_wide, zero_wide = x[mask], y[mask], zero_lev[mask]
+
+                #Fit the wide component without narrow component
+                fit_output_wide     = lmfit_minimize(residual_gaussMix, fitting_parameters_wide, args=(x_wide, y_wide, zero_wide, err_continuum, Ncomps_wide))
+                output_params_wide  = fit_output_wide.params
+                
+                #Get wide curve
+                y_wide = gaussian_mixture(output_params_wide.valuesdict(), x, zero_lev, Ncomps_wide)
+
+                #Calculate emission line region again
+                y_pure_narrow       = y - y_wide + zero_lev 
+                
+                #Fit narrow components again
+                fit_Output          = lmfit_minimize(residual_gaussMix, fitting_parameters, args=(x, y_pure_narrow, zero_lev, err_continuum, idcs_components))
+                out_params_narrow   = fit_Output.params           
+
+                #Combine the results from both fits
+                output_params       = out_params_narrow + output_params_wide
+                
+            #save parameters to array
+            for j in range_param:
+                params_matrix[j,i] = output_params[params_list[j]].value
+                errors_matrix[j,i] = output_params[params_list[j]].stderr
+
+        #Calculate mean and std deviation values
+        mean_area, std_area = mean(area_array), std(area_array)
+        mean_params_array, stdev_params_array = params_matrix.mean(1), params_matrix.std(1)
+        errorsmean_array = errors_matrix.mean(1)
+                
+        #Return the data to a dictionary format
+        self.fit_dict['area_intg'], self.fit_dict['area_intg_er'] = mean_area, std_area
+        
+        for j in range(len(self.fit_dict['parameters_list'])):
+            param = self.fit_dict['parameters_list'][j]
+            self.fit_dict[param+'_norm'] = mean_params_array[j]
+            self.fit_dict[param+'_norm_er'] = errorsmean_array[j]
+
+        #Increase the number of components if wide observed
+        self.fit_dict.line_number = self.fit_dict.line_number + 1 if add_wide_component else self.fit_dict.line_number
+
+        return
+        
+    def rescale_lmfit_params(self, line_wave, line_flux, Ncomps, x_scale, y_scale, fitting_method):
+                
+        #Scale integrated area
+        self.fit_dict['flux_intg'], self.fit_dict['flux_intg_er'] = self.fit_dict['area_intg']* y_scale, self.fit_dict['area_intg_er'] * y_scale
+                
+        for i in range(Ncomps): #WARNING: We have two loops which almost do the same we could forget the previous
+            index = str(i)
+            self.fit_dict['A'+index]                = self.fit_dict['A'+index+'_norm'] * y_scale
+            self.fit_dict['A'+index+'_er']          = self.fit_dict['A'+index+'_norm_er'] * y_scale
+            self.fit_dict['mu'+index]               = self.fit_dict['mu'+index+'_norm'] + x_scale
+            self.fit_dict['mu'+index+'_er']         = self.fit_dict['mu'+index+'_norm_er']
+            self.fit_dict['sigma'+index]            = self.fit_dict['sigma' + index + '_norm']
+            self.fit_dict['sigma'+index+'_er']      = self.fit_dict['sigma' + index + '_norm_er']            
+            self.fit_dict['flux_gauss'+index]       = self.fit_dict['area_G' + index + '_norm'] * y_scale
+            self.fit_dict['flux_gauss'+index+'_er'] = self.fit_dict['area_G' + index + '_norm_er'] * y_scale        
+            
+        #Calculate the gaussian curves for plotting
+        self.fit_dict['x_resample']         = linspace(line_wave[0], line_wave[-1], 50 * Ncomps)
+        self.fit_dict['zerolev_resample']   = self.fit_dict['m_zerolev'] * self.fit_dict['x_resample'] + self.fit_dict['n_zerolev']
+        
+        if self.fit_dict.blended_check == False:
+            self.fit_dict['y_resample'] = gaussian_curve(self.fit_dict['A0'], self.fit_dict['mu0'], self.fit_dict['sigma0'], self.fit_dict['x_resample'], self.fit_dict['zerolev_resample'])
+        else:
+            self.fit_dict['y_resample'] = gaussian_mixture(self.fit_dict, self.fit_dict['x_resample'], self.fit_dict['zerolev_resample'], map(str, range(Ncomps)))
+            self.fit_dict['y_comps']    = gaussian_components(self.fit_dict, self.fit_dict['x_resample'], self.fit_dict['zerolev_resample'], Ncomps)
+    
+        return
+
 class Bayesian_regressions():    
     
     def __init__(self):

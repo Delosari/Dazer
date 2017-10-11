@@ -673,6 +673,30 @@ class Inference_AbundanceModel(Import_model_data, Collisional_FluxCalibration, R
          
             return theo_continuum        
         
+        @pymc2.deterministic
+        def ssp_coefficients(z_star=self.obj_data['z_star'], Av_star=Av_star, sigma_star=sigma_star, nebular_flux=nebular_continua):
+            
+            self.nebular_flux_masked = nebular_flux * self.obj_data['int_mask']
+            
+            obsFlux_non_neb = self.obj_data['obs_flux_norm_masked'] - self.nebular_flux_masked            
+            
+            ssp_grid_i = self.physical_SED_model(self.obj_data['basesWave_resam'], self.obj_data['obs_wave_resam'], self.obj_data['bases_flux_norm'], Av_star, z_star, sigma_star, 3.4)
+            
+            self.ssp_grid_i_masked = (self.obj_data['int_mask'] * ssp_grid_i.T).T
+            
+            ssp_coeffs_norm = self.ssp_fitting(self.ssp_grid_i_masked, obsFlux_non_neb)
+            
+            return ssp_coeffs_norm        
+
+        @pymc2.deterministic
+        def stellar_continua_calculation(ssp_coeffs = ssp_coefficients):
+            
+            flux_sspFit_norm = np_sum(ssp_coeffs.T * self.ssp_grid_i_masked, axis=1)
+            
+            theo_continuum = flux_sspFit_norm + self.nebular_flux_masked
+            
+            return theo_continuum
+               
         @pymc2.deterministic #Calculate Hydrogen theoretical flux
         def H_model(Te=self.obj_data['T_low'], ne=ne, xi=xi, cHbeta=cHbeta):
             return self.H_theoFlux(Te=Te, ne=ne, xi=xi, cHbeta=cHbeta)
@@ -719,8 +743,7 @@ class Inference_AbundanceModel(Import_model_data, Collisional_FluxCalibration, R
             return O2_O3_TheoFlux 
 
         @pymc2.stochastic(observed=True) #Likelihood
-        def likelihood_ssp(value = self.obj_data['obs_flux_norm_masked'], StellarCont_TheoFlux=ssp_Synthesis, sigmaContinuum=self.obj_data['obs_fluxEr_norm']):
-
+        def likelihood_ssp(value = self.obj_data['obs_flux_norm_masked'], StellarCont_TheoFlux=stellar_continua_calculation, sigmaContinuum=self.obj_data['obs_fluxEr_norm']):
             chi_F = sum(square(StellarCont_TheoFlux - value) / square(sigmaContinuum))
             return - chi_F / 2
  
@@ -740,7 +763,7 @@ class Inference_AbundanceModel(Import_model_data, Collisional_FluxCalibration, R
             return - chi_F / 2
         
         @pymc2.deterministic() #Deterministic method to track the evolution of the chi:
-        def chiSq_ssp(obs = self.obj_data['obs_flux_norm_masked'], StellarCont_TheoFlux=ssp_Synthesis, sigmaContinuum=self.obj_data['obs_fluxEr_norm']):
+        def chiSq_ssp(obs = self.obj_data['obs_flux_norm_masked'], StellarCont_TheoFlux=stellar_continua_calculation, sigmaContinuum=self.obj_data['obs_fluxEr_norm']):
             chi_F = sum(square(StellarCont_TheoFlux - obs) / square(sigmaContinuum))
             return - chi_F / 2  
 
@@ -931,7 +954,6 @@ class Inference_AbundanceModel(Import_model_data, Collisional_FluxCalibration, R
             return - chi_F / 2        
         
         return locals()
-
   
 class Run_MCMC(Inference_AbundanceModel, ssp_fitter):
 
@@ -949,7 +971,7 @@ class Run_MCMC(Inference_AbundanceModel, ssp_fitter):
         elif model == '_neb_stellar':
             self.inf_dict = self.nebular_stellar_continua_fitting()
         
-        elif model == '_He_S_O_neb_stellar_v1':
+        elif model == '_He_S_O_neb_stellar':
             self.inf_dict = self.He_O_S_nebStellar_model()
         
         elif model == 'ssp_synthesis_pymc3':
@@ -1028,13 +1050,15 @@ class Run_MCMC(Inference_AbundanceModel, ssp_fitter):
                 
         #Load the pymc output textfile database
         pymc_database = pymc2.database.pickle.load(db_address)
-        
+                
         #Create a dictionaries with the traces and statistics
         traces_dic = {}
         stats_dic = OrderedDict()
         
         #This variable contains all the traces from the MCMC (stochastic and deterministic)
-        traces_list = pymc_database.trace_names[0] 
+        traces_list = pymc_database.trace_names[0]
+        print 'Estas variables', traces_list
+        print pymc_database.trace('stellar_continua_calculation').stats()['quantiles'][2.5] 
     
         #Get statistics from the run    
         for trace in traces_list:
@@ -1051,5 +1075,20 @@ class Run_MCMC(Inference_AbundanceModel, ssp_fitter):
         #Generate a MCMC object to recover all the data from the run
         dbMCMC = pymc2.MCMC(traces_dic, pymc_database)
         
-        return dbMCMC, stats_dic                                                                                                  
+        return dbMCMC, stats_dic                                                                                                 
 
+    def load_pymc_pickle(self, db_address):
+        
+        #Load the pymc output textfile database
+        pymc_database = pymc2.database.pickle.load(db_address)
+        
+        print pymc_database.trace_names[0]
+        
+        #You can recover the data using these commands
+        #pymc_database.trace('stellar_continua_calculation').stats()['mean']
+        #pymc_database.trace('stellar_continua_calculation').stats()['quantiles'][2.5] 
+        
+        return pymc_database
+        
+        
+        

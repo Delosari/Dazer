@@ -1,7 +1,7 @@
 import pickle
 import corner
 from uncertainties          import UFloat
-from numpy                  import array, arange, log10, ndarray, percentile, median, string_, where, argsort, sort, unique, sum as np_sum,reshape    
+from numpy                  import array, arange, log10, ndarray, percentile, median, string_, where, argsort, sort, unique, sum as np_sum,reshape, empty    
 from collections            import OrderedDict, Sequence
 from matplotlib             import image, colors, cm, rcParams, pyplot as plt
 from matplotlib._png        import read_png
@@ -376,6 +376,7 @@ class Plot_Conf(Fig_Conf):
                             'Te':r'$T_{e}$',
                             'T_low':r'$T_{low}$',
                             'T_high':r'$T_{high}$',
+                            'T_He':r'$T_{He}$',
                             'ne':r'$n_{e}$',
                             'cHbeta':r'$c(H\beta)$',
                             'tau':r'$\tau$',
@@ -391,7 +392,10 @@ class Plot_Conf(Fig_Conf):
                             'O3_abund':r'$O^{2+}$',     
                             'S3_abund':r'$S^{2+}$',
                             'O2_abund':r'$O^{+}$',
-                            'O3_abund':r'$O^{2+}$',        
+                            'O3_abund':r'$O^{2+}$',
+                            'N2_abund':r'$N^{+}$',        
+                            'Ar3_abund':r'$Ar^{2+}$',        
+                            'Ar4_abund':r'$Ar^{3+}$',        
                             'z_star':r'$z_{\star}$',
                             'sigma_star':r'$\sigma_{\star}$',
                             'Av_star':r'$Av_{\star}$',
@@ -581,7 +585,7 @@ class Plot_Conf(Fig_Conf):
         n_traces = len(traces)
 
         #Declare figure format
-        size_dict = {'figure.figsize':(14,14), 'axes.labelsize':12, 'legend.fontsize':14}            
+        size_dict = {'figure.figsize':(14,20), 'axes.labelsize':12, 'legend.fontsize':14}            
         self.FigConf(plotSize = size_dict, Figtype = 'Grid', n_columns = 1, n_rows = n_traces)
         
         #Generate the color map
@@ -592,17 +596,21 @@ class Plot_Conf(Fig_Conf):
             
             #Current trace
             trace_code = traces[i]
+            trace_array = stats_dic[trace_code]['trace']
             
             #Label for the plot
-            mean_value  = stats_dic[trace_code]['mean']
-            std_dev     = stats_dic[trace_code]['standard deviation']
-            label       = r'{} = ${}$ $\pm${}'.format(self.labels_latex_dic[trace_code], round_sig(mean_value, 3), round_sig(std_dev, 3))
-
+            mean_value = stats_dic[trace_code]['mean']
+            std_dev    = stats_dic[trace_code]['standard deviation']
+            if mean_value > 0.001:
+                label = r'{} = ${}$ $\pm${}'.format(self.labels_latex_dic[trace_code], round_sig(mean_value, 4), round_sig(std_dev, 4))
+            else:
+                label = r'{} = ${:.3e}$ $\pm$ {:.3e}'.format(self.labels_latex_dic[trace_code], mean_value, std_dev)
+                    
             #Plot the data
-            self.Axis[i].plot(database.trace(trace_code)[:], label=label, color = self.get_color(i))            
+            self.Axis[i].plot(trace_array, label=label, color = self.get_color(i))            
             self.Axis[i].axhline(y = mean_value,  color=self.get_color(i), linestyle = '--' )
             self.Axis[i].set_ylabel(self.labels_latex_dic[trace_code])
-
+            
             if i < n_traces - 1:
                 self.Axis[i].set_xticklabels([])
            
@@ -617,7 +625,7 @@ class Plot_Conf(Fig_Conf):
         n_traces = len(traces)
 
         #Declare figure format
-        size_dict = {'figure.figsize':(14,14), 'axes.labelsize':20, 'legend.fontsize':10}            
+        size_dict = {'figure.figsize':(14,20), 'axes.labelsize':20, 'legend.fontsize':10}            
         self.FigConf(plotSize = size_dict, Figtype = 'Grid', n_columns = 1, n_rows = n_traces)        
 
         #Generate the color map
@@ -627,18 +635,26 @@ class Plot_Conf(Fig_Conf):
         for i in range(len(traces)):
             
             #Current trace
-            trace_code = traces[i]   
+            trace_code  = traces[i]
+            mean_value  = stats_dic[trace_code]['mean']
+            trace_array = stats_dic[trace_code]['trace']
+             
             
             #Plot HDP limits
             HDP_coords = stats_dic[trace_code]['95% HPD interval']
             for HDP in HDP_coords:
-                label = 'HPD interval: {} - {}'.format(round_sig(HDP_coords[0], 4), round_sig(HDP_coords[1], 4))
-                self.Axis[i].axvline(x = HDP, label = label, color='grey', linestyle = 'dashed')
+                
+                if mean_value > 0.001:
+                   label_limits = 'HPD interval: {} - {}'.format(round_sig(HDP_coords[0], 4), round_sig(HDP_coords[1], 4))
+                   label_mean   = 'Mean value: {}'.format(round_sig(mean_value, 4))
+                else:
+                   label_limits = 'HPD interval: {:.3e} - {:.3e}'.format(HDP_coords[0], HDP_coords[1])
+                   label_mean   = 'Mean value: {:.3e}'.format(mean_value)
+                   
+                self.Axis[i].axvline(x = HDP, label = label_limits, color='grey', linestyle = 'dashed')
             
-            mean_value = stats_dic[trace_code]['mean']
-                                             
-            self.Axis[i].axvline(x = mean_value, label = 'Mean value: ' + round_sig(mean_value, 4), color='grey', linestyle = 'solid')
-            self.Axis[i].hist(database.trace(trace_code)[:], histtype='stepfilled', bins=35, alpha=.7, color=self.get_color(i), normed=False)
+            self.Axis[i].axvline(x = mean_value, label = label_mean, color='grey', linestyle = 'solid')
+            self.Axis[i].hist(trace_array, histtype='stepfilled', bins=35, alpha=.7, color=self.get_color(i), normed=False)
             self.Axis[i].set_ylabel(self.labels_latex_dic[trace_code])
 
             #Add legend
@@ -650,7 +666,7 @@ class Plot_Conf(Fig_Conf):
         n_traces = len(traces)        
 
         #Declare figure format
-        size_dict = {'figure.figsize':(14,7), 'axes.titlesize':14, 'legend.fontsize':10}            
+        size_dict = {'figure.figsize':(14,14), 'axes.titlesize':14, 'legend.fontsize':10}            
         self.FigConf(plotSize = size_dict, Figtype = 'Grid', n_columns = n_columns, n_rows = n_rows)          
 
         #Generate the color map
@@ -664,13 +680,15 @@ class Plot_Conf(Fig_Conf):
             
             label = self.labels_latex_dic[trace_code]
             
+            trace_array = stats_dic[trace_code]['trace']
+            
             if trace_code != 'ChiSq':
-                maxlags = min(len(database.trace(trace_code)[:]) - 1, 100)
-                self.Axis[i].acorr(x = database.trace(trace_code)[:], color=self.get_color(i), detrend= detrend_mean, maxlags=maxlags)
+                maxlags = min(len(trace_array) - 1, 100)
+                self.Axis[i].acorr(x = trace_array, color=self.get_color(i), detrend= detrend_mean, maxlags=maxlags)
                 
             else:
                 #Apano momentaneo
-                chisq_adapted   = reshape(database.trace(trace_code)[:], len(database.trace(trace_code)[:]))
+                chisq_adapted   = reshape(trace_array, len(trace_array))
                 maxlags         = min(len(chisq_adapted) - 1, 100)
                 self.Axis[i].acorr(x = chisq_adapted, color=self.get_color(i), detrend= detrend_mean, maxlags=maxlags)
             
@@ -679,7 +697,7 @@ class Plot_Conf(Fig_Conf):
                 
         return
 
-    def corner_plot(self, traces, database, stats_dic, true_values = None):
+    def corner_plot(self, traces, database, stats_dic, plot_true_values = False):
         
         #Set figure conf
         sizing_dict = {}
@@ -696,12 +714,18 @@ class Plot_Conf(Fig_Conf):
         list_arrays = []
         labels_list = []
         for trace_code in traces:
-            list_arrays.append(database.trace(trace_code)[:])
+            trace_array = stats_dic[trace_code]['trace']
+            list_arrays.append(trace_array)
             labels_list.append(self.labels_latex_dic[trace_code])
         traces_array = array(list_arrays).T
                     
         #Make 
-        if true_values != None:
+        if plot_true_values:
+            
+            true_values = empty(len(traces))
+            for i in range(len(traces)):
+                true_values[i] = stats_dic[traces[i]]['true_value']
+            
             self.Fig = corner.corner(traces_array[:,:], fontsize=30, labels=labels_list, quantiles=[0.16, 0.5, 0.84], show_titles=True, title_args={"fontsize": 200}, truths = true_values, title_fmt='0.3f')
         else:
             self.Fig = corner.corner(traces_array[:,:], fontsize=30, labels=labels_list, quantiles=[0.16, 0.5, 0.84], show_titles=True, title_args={"fontsize": 200}, title_fmt='0.3f')

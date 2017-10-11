@@ -496,7 +496,7 @@ class ssp_fitter(ssp_synthesis_importer):
         return sspLib_dict
 
     def calculate_synthStellarSED(self, Av_star, z_star, sigma_star, coeff_file, sspLib_starlight, resample_range=(4000, 6900), resample_int = 1, norm_factor = 100):
-     
+
         #Dictionary to store the data   
         synth_dict = {}
         
@@ -510,7 +510,7 @@ class ssp_fitter(ssp_synthesis_importer):
         #Synth spectrum including physical parameters
         obs_wave_rest                   = arange(int(resample_range[0]), int(resample_range[-1]), resample_int, dtype=float)
         obs_wave_resam                  = obs_wave_rest * (1.0 + z_star)
-        ssp_grid                        = self.physical_SED_model(sspLib_starlight['basesWave_resam'], obs_wave_resam, sspLib_starlight['bases_flux_norm'], Av_star, z_star, sigma_star, Rv_coeff = 3.1)
+        ssp_grid                        = self.physical_SED_model(sspLib_starlight['basesWave_resam'], obs_wave_resam, sspLib_starlight['bases_flux_norm'], Av_star, z_star, sigma_star, Rv_coeff = 3.4)
         obs_flux_norm                   = np_sum(bases_coeff.T * ssp_grid, axis=1)
         obs_flux_resam                  = obs_flux_norm * norm_factor
         nBases                          = ssp_grid.shape[1]
@@ -524,10 +524,16 @@ class ssp_fitter(ssp_synthesis_importer):
                               
         #Synthetic masks
         masks_default = OrderedDict()
-        masks_default['HI_delta']       = (4062,4130)
-        masks_default['HI_gamma']       = (4310,4365)
-        masks_default['HI_beta']        = (4830,4900)
-        masks_default['HI_alpha']       = (6540,6580)
+        
+        masks_default['He1_4026A']      = (4019, 4033)
+        masks_default['He1_4471A']      = (4463, 4480)
+        masks_default['He1_5876A']      = (5867, 5885)
+        masks_default['He1_6678A']      = (6667, 6687)
+        
+        masks_default['HI_delta']       = (4090,4114)
+        masks_default['HI_gamma']       = (4329,4353)
+        masks_default['HI_beta']        = (4840,4880)
+        masks_default['HI_alpha']       = (6551,6575)
         
         #Pixels within the spectrum mask
         redshift = 1 + z_star
@@ -628,7 +634,7 @@ class ssp_fitter(ssp_synthesis_importer):
         synth_wave                  = bases_wave_resam * (1 + z_star)
         
         Av_vector                   = Av_star * ones(nbases)
-        Xx_redd                     = CCM89_Bal07(3.1, bases_wave_resam)   
+        Xx_redd                     = CCM89_Bal07(3.4, bases_wave_resam)   
         r_sigma                     = sigma_star/(synth_wave[1] - synth_wave[0])
 
         #Defining empty kernel
@@ -657,10 +663,8 @@ class ssp_fitter(ssp_synthesis_importer):
                                       
         return synth_wave, synth_flux
 
-    def ssp_fitting(self, ssp_grid, obs_flux_masked, int_mask):
-        
-        ssp_grid_masked     = (int_mask * ssp_grid.T).T
-        
+    def ssp_fitting(self, ssp_grid_masked, obs_flux_masked):
+                
         optimize_result     = nnls(ssp_grid_masked, obs_flux_masked)
         
         coeffs_bases_norm   = optimize_result[0]

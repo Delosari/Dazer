@@ -1,13 +1,10 @@
+import pymc
+import pyneb                        as pn
 from collections                    import OrderedDict
-
 from numpy                          import array, arange, loadtxt, genfromtxt, sum, exp, power, zeros, ones, dot, isnan, square, concatenate, where
 from numpy.random                   import normal
-import pymc
 from uncertainties                  import ufloat
-
 from CodeTools.File_Managing_Tools  import Txt_Files_Manager
-import pyneb                        as pn
-
 
 class HeAbundance_InferenceMethods(Txt_Files_Manager):
     

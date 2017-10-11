@@ -31,7 +31,7 @@ class NebularContinuumCalculator():
         
         self.Data_grid          = None
 
-    def load_neb_constants(self, data_folder = '/home/vital/Dropbox/Astrophysics/Lore/NebularContinuum/'):
+    def load_neb_constants(self, data_folder):
         
         #Dictionary with the calculation constants
         self.const = {}

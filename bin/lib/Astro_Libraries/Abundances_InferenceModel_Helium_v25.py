@@ -1,12 +1,15 @@
-from pyneb                  import atomicData, RecAtom, Atom
-from collections            import OrderedDict
-from uncertainties.unumpy   import nominal_values, std_devs
-from Reddening_Corrections  import ReddeningLaws
+from os                                     import path, name
+from sys                                    import argv
+from pyneb                                  import atomicData, RecAtom, Atom
+from collections                            import OrderedDict
+from uncertainties.unumpy                   import nominal_values, std_devs
+from Reddening_Corrections                  import ReddeningLaws
 from lib.Astro_Libraries.Nebular_Continuum  import NebularContinuumCalculator
-from lib.ssp_functions.ssp_synthesis_tools import ssp_fitter
-from numpy                  import array, loadtxt, genfromtxt, isnan, arange, insert, concatenate, power, exp, zeros, square, empty, percentile, random, mean, median, std, ones, isnan, sum as np_sum
+from lib.ssp_functions.ssp_synthesis_tools  import ssp_fitter
+from numpy                                  import array, loadtxt, genfromtxt, copy, isnan, arange, insert, concatenate, mean, std, power, exp, zeros, square, empty, percentile, random, median, ones, isnan, sum as np_sum
 import pymc as pymc2
 import pymc3 
+from timeit                                 import default_timer as timer
 
 class Import_model_data(ReddeningLaws):
 
@@ -15,16 +18,28 @@ class Import_model_data(ReddeningLaws):
         #Import sub classes
         ReddeningLaws.__init__(self)
 
-        self.Hydrogen_CollCoeff_TableAddress    = '/home/vital/workspace/dazer/bin/lib/Astro_Libraries/Neutral_Hydrogen_Collisional_Correction_coef.txt'
-        self.Helium_CollCoeff_TableAddress      = '/home/vital/workspace/dazer/bin/lib/Astro_Libraries/Neutral_Helium_Collisional_Correction_coef.txt'
-        self.Helium_OpticalDepth_TableAddress   = '/home/vital/workspace/dazer/bin/lib/Astro_Libraries/Helium_OpticalDepthFunction_Coefficients.txt'
+        self.paths_dict = {}
+        
+        #Paths for linux:
+        if name == 'posix':
+            self.paths_dict['inference_folder']     = '/home/vital/Astrodata/Inference_output/'
+            self.paths_dict['nebular_data_folder']  = '/home/vital/Dropbox/Astrophysics/Lore/NebularContinuum/'
+            self.paths_dict['Hydrogen_CollCoeff']   = '/home/vital/workspace/dazer/bin/lib/Astro_Libraries/Neutral_Hydrogen_Collisional_Correction_coef.txt'
+            self.paths_dict['Helium_CollCoeff']     = '/home/vital/workspace/dazer/bin/lib/Astro_Libraries/Neutral_Helium_Collisional_Correction_coef.txt'
+            self.paths_dict['Helium_OpticalDepth']  = '/home/vital/workspace/dazer/bin/lib/Astro_Libraries/Helium_OpticalDepthFunction_Coefficients.txt'
+            self.paths_dict['stellar_data_folder']  = '/home/vital/Starlight/'    
+        
+        #Paths for windows:
+        elif name == 'nt':
+            self.paths_dict['inference_folder']     = '/home/vital/Astrodata/Inference_output/'
+            self.paths_dict['nebular_data_folder']  = '/home/vital/Dropbox/Astrophysics/Lore/NebularContinuum/'
         
         #Declare Hydrogen and Helium lines for the analysis
-        self.posHydrogen_Lines      = ['H1_4102A',      'H1_4340A', 'H1_6563A']
-        self.Hydrogen_Wavelengths   = array([4101.742,  4340.471,   6562.819])
+        self.posHydrogen_Lines      = ['H1_4102A',  'H1_4340A', 'H1_6563A']
+        self.Hydrogen_Wavelengths   = array([4101.742,  4340.471,  6562.819])
         
-        self.posHelium_Lines        = ['He1_3889A',  'He1_4026A',    'He1_4387A',    'He1_4471A',    'He1_4686A',    'He1_4714A',    'He1_4922A',   'He1_5876A',    'He1_6678A',   'He1_7065A',    'He1_7281A',    'He1_10830A']
-        self.Helium_Wavelengths     = array([3889.0,  4026.0,         4387.0,         4471.0,         4686.0,         4714.0,         4922.0,         5876.0,         6678.0,       7065.0,         7281.0,        10830.0])
+        self.posHelium_Lines        = ['He1_3889A',  'He1_4026A',  'He1_4387A',    'He1_4471A',    'He1_4686A',    'He1_4714A',    'He1_4922A',   'He1_5876A',    'He1_6678A',   'He1_7065A',    'He1_7281A',    'He1_10830A']
+        self.Helium_Wavelengths     = array([3889.0,  4026.0,       4387.0,         4471.0,         4686.0,         4714.0,         4922.0,         5876.0,         6678.0,       7065.0,         7281.0,        10830.0])
 
         self.posSII_Lines           = ['S2_6716A', 'S2_6731A'] 
         self.SII_Wavelenths         = array([6716.44, 6730.81])
@@ -47,7 +62,7 @@ class Import_model_data(ReddeningLaws):
             
             Line            = HydrogenLines[i]
             Data_Columns    = [0 + 3*i, 1 + 3*i, 2 + 3*i]
-            Data_dict[Line] = self.import_table_data(self.Hydrogen_CollCoeff_TableAddress, Data_Columns)
+            Data_dict[Line] = self.import_table_data(self.paths_dict['Hydrogen_CollCoeff'], Data_Columns)
                     
         return Data_dict
      
@@ -60,10 +75,10 @@ class Import_model_data(ReddeningLaws):
             Line = HeliumLines[i]
             
             if Line != self.H13889A_label:
-                Data_dict[Line] = loadtxt(self.Helium_OpticalDepth_TableAddress, dtype = float, skiprows = 2, usecols = (i,))
+                Data_dict[Line] = loadtxt(self.paths_dict['Helium_OpticalDepth'], dtype = float, skiprows = 2, usecols = (i,))
                 
             else:
-                Data_dict[self.He3889_label] = loadtxt(self.Helium_OpticalDepth_TableAddress, dtype = float, skiprows = 2, usecols = (i,))
+                Data_dict[self.He3889_label] = loadtxt(self.paths_dict['Helium_OpticalDepth'], dtype = float, skiprows = 2, usecols = (i,))
             
         return Data_dict
 
@@ -77,10 +92,6 @@ class Import_model_data(ReddeningLaws):
         self.obj_data['sigma_star']     = 1.254
         self.obj_data['Av_star']        = 0.754            
 
-        self.Hbeta_Eqw                  = 250.0
-        self.Hbeta_EqwErr               = 12.5
-        self.Hbeta_hlambda              = 1.0
-
         self.obj_data['y_plusplus']     = 0.0
         self.obj_data['y_plus']         = 0.085
         self.obj_data['n_e']            = 120.0
@@ -90,9 +101,24 @@ class Import_model_data(ReddeningLaws):
         self.obj_data['cHbeta']         = 0.1
         self.obj_data['xi']             = 1.0  
         self.obj_data['TSIII']          = 15000.0
-        self.obj_data['TSIII_error']    = self.obj_data['TSIII'] * 0.2
+        self.obj_data['TSIII_error']    = 700
         self.obj_data['nSII']           = 150.0
         self.obj_data['nSII_error']     = 50.0
+
+        self.obj_data['O2_abund']       = 0.00025
+        self.obj_data['O3_abund']       = 0.00075
+
+        self.obj_data['N2_abund']       = 0.00035
+
+        self.obj_data['S2_abund']       = 0.000015
+        self.obj_data['S3_abund']       = 0.000055
+        
+        self.obj_data['Ar3_abund']      = 0.00065
+        self.obj_data['Ar4_abund']      = 0.00012
+
+        self.Hbeta_Eqw                  = 250.0
+        self.Hbeta_EqwErr               = 12.5
+        self.Hbeta_hlambda              = 1.0
 
         #Lines available from the object WARNING: It would be good to load these details from a text/pandas format
         self.obj_data['H_labels']       = ['H1_4102A',          'H1_4340A',         'H1_6563A']
@@ -115,8 +141,6 @@ class Import_model_data(ReddeningLaws):
         self.obj_data['S3_labels']      = ['S3_6312A', 'S3_9069A', 'S3_9531A']
         self.obj_data['S3_wave']        = array([6312.06, 9068.6, 9531.1])
         self.obj_data['S3_pyneb_code']  = array([6312, 9069, 9531])
-        self.obj_data['S2_abund']       = 0.000015
-        self.obj_data['S3_abund']       = 0.000055
 
         self.obj_data['O2_labels']      = ['O2_3726A', 'O2_3729A']
         self.obj_data['O2_wave']        = array([3726.032, 3728.815])
@@ -124,9 +148,19 @@ class Import_model_data(ReddeningLaws):
         self.obj_data['O3_labels']      = ['O3_4363A', 'O3_4959A', 'O3_5007A']
         self.obj_data['O3_wave']        = array([4363.21, 4958.911, 5006.843])
         self.obj_data['O3_pyneb_code']  = array([4363, 4959, 5007])
-        self.obj_data['O2_abund']       = 0.00025
-        self.obj_data['O3_abund']       = 0.00075
-       
+
+        self.obj_data['N2_labels']      = ['N2_6548A', 'N2_6584A']
+        self.obj_data['N2_wave']        = array([6548.05, 6583.46])
+        self.obj_data['N2_pyneb_code']  = array([6548, 6584])
+
+        self.obj_data['Ar3_labels']     = ['Ar3_7136A']
+        self.obj_data['Ar3_wave']       = array([7135.79])
+        self.obj_data['Ar3_pyneb_code'] = array([7136])
+        self.obj_data['Ar4_labels']     = ['Ar4_4740A']
+        self.obj_data['Ar4_wave']       = array([4740])
+        self.obj_data['Ar4_pyneb_code'] = array([4740])
+
+
         return
 
     def load_obs_data(self, lines_df, obj_series, extension_treat = '', Deblend_Check = True):
@@ -214,6 +248,16 @@ class Import_model_data(ReddeningLaws):
         self.obj_data['nO3']        = len(self.obj_data['O3_labels'])
         self.obj_data['nO3_range']  = arange(self.obj_data['nO3'])
 
+        self.obj_data['nN2']        = len(self.obj_data['N2_labels'])
+        self.obj_data['nN2_range']  = arange(self.obj_data['nN2'])
+
+        self.obj_data['nAr3']       = len(self.obj_data['Ar3_labels'])
+        self.obj_data['nAr3_range'] = arange(self.obj_data['nAr3'])
+
+        self.obj_data['nAr4']       = len(self.obj_data['Ar4_labels'])
+        self.obj_data['nAr4_range'] = arange(self.obj_data['nAr4'])
+
+
         self.nTotal = self.nHydrogen + self.nHelium
        
         #Load the reddening parameters
@@ -223,23 +267,34 @@ class Import_model_data(ReddeningLaws):
         S3_xX       = self.reddening_Xx(self.obj_data['S3_wave'], red_curve, Rv)
         O2_xX       = self.reddening_Xx(self.obj_data['O2_wave'], red_curve, Rv)
         O3_xX       = self.reddening_Xx(self.obj_data['O3_wave'], red_curve, Rv)
+        
+        N2_xX       = self.reddening_Xx(self.obj_data['N2_wave'], red_curve, Rv)
+        Ar3_xX      = self.reddening_Xx(self.obj_data['Ar3_wave'], red_curve, Rv)
+        Ar4_xX      = self.reddening_Xx(self.obj_data['Ar4_wave'], red_curve, Rv)
+        
         self.Hbeta_xX = self.reddening_Xx(array([self.Hbeta_wave]), red_curve, Rv)[0]
         
         #Dictionary with the vectors
-        self.data_dic = {'Emissivity_H_vector'  : zeros(self.nHydrogen),
-                         'Emissivity_He_vector' : zeros(self.nHelium),
-                         'Emissivity_S2_vector' : zeros(self.obj_data['nS2']),
-                         'Emissivity_S3_vector' : zeros(self.obj_data['nS3']),
-                         'Emissivity_O2_vector' : zeros(self.obj_data['nO2']),
-                         'Emissivity_O3_vector' : zeros(self.obj_data['nO3']),                         
-                         'Kalpha_vector'        : zeros(self.nHydrogen),
-                         'ftau_He_vector'       : zeros(self.nHelium),
-                         'flambda_H_vector'     : H_xX/self.Hbeta_xX - 1.0,
-                         'flambda_He_vector'    : He_xX/self.Hbeta_xX - 1.0,    
-                         'flambda_S2_vector'    : S2_xX/self.Hbeta_xX - 1.0,
-                         'flambda_S3_vector'    : S3_xX/self.Hbeta_xX - 1.0,    
-                         'flambda_O2_vector'    : O2_xX/self.Hbeta_xX - 1.0,
-                         'flambda_O3_vector'    : O3_xX/self.Hbeta_xX - 1.0}    
+        self.data_dic = {'Emissivity_H_vector'      : zeros(self.nHydrogen),
+                         'Emissivity_He_vector'     : zeros(self.nHelium),
+                         'Emissivity_S2_vector'     : zeros(self.obj_data['nS2']),
+                         'Emissivity_S3_vector'     : zeros(self.obj_data['nS3']),
+                         'Emissivity_O2_vector'     : zeros(self.obj_data['nO2']),
+                         'Emissivity_O3_vector'     : zeros(self.obj_data['nO3']),         
+                         'Emissivity_N2_vector'     : zeros(self.obj_data['nN2']),
+                         'Emissivity_Ar3_vector'    : zeros(self.obj_data['nAr3']),
+                         'Emissivity_Ar4_vector'    : zeros(self.obj_data['nAr4']),                          
+                         'Kalpha_vector'            : zeros(self.nHydrogen),
+                         'ftau_He_vector'           : zeros(self.nHelium),
+                         'flambda_H_vector'         : H_xX/self.Hbeta_xX - 1.0,
+                         'flambda_He_vector'        : He_xX/self.Hbeta_xX - 1.0,
+                         'flambda_N2_vector'        : N2_xX/self.Hbeta_xX - 1.0,
+                         'flambda_S2_vector'        : S2_xX/self.Hbeta_xX - 1.0,
+                         'flambda_Ar3_vector'       : Ar3_xX/self.Hbeta_xX - 1.0,
+                         'flambda_Ar4_vector'       : Ar4_xX/self.Hbeta_xX - 1.0,                         
+                         'flambda_S3_vector'        : S3_xX/self.Hbeta_xX - 1.0,    
+                         'flambda_O2_vector'        : O2_xX/self.Hbeta_xX - 1.0,
+                         'flambda_O3_vector'        : O3_xX/self.Hbeta_xX - 1.0}    
 
         #Normalize the fluxes by Hbeta if necessary
         if norm_by_Hbeta: 
@@ -257,7 +312,15 @@ class Import_model_data(ReddeningLaws):
             self.obj_data['O3_Flux']  = self.obj_data['O3_Flux']    / self.Hbeta_Flux
             self.obj_data['O2_error'] = self.obj_data['O2_error']   / self.Hbeta_Flux
             self.obj_data['O3_error'] = self.obj_data['O3_error']   / self.Hbeta_Flux
-       
+ 
+            self.obj_data['Ar3_Flux'] = self.obj_data['Ar3_Flux']   / self.Hbeta_Flux
+            self.obj_data['Ar4_Flux'] = self.obj_data['Ar4_Flux']   / self.Hbeta_Flux
+            self.obj_data['Ar3_error'] = self.obj_data['Ar3_error'] / self.Hbeta_Flux
+            self.obj_data['Ar4_error'] = self.obj_data['Ar4_error'] / self.Hbeta_Flux 
+            
+            self.obj_data['N2_Flux']  = self.obj_data['N2_Flux']    / self.Hbeta_Flux
+            self.obj_data['N2_error'] = self.obj_data['N2_error']   / self.Hbeta_Flux
+            
         return
 
 class Continua_FluxCalculation(ssp_fitter):
@@ -459,6 +522,7 @@ class Collisional_FluxCalibration(Import_model_data):
         self.ionDict['Ar4'] = Atom('Ar', 4) 
         self.ionDict['O2']  = Atom('O', 2)
         self.ionDict['O3']  = Atom('O', 3)
+        self.ionDict['N2']  = Atom('N', 2)
         
     def coll_Flux(self, ion, Te, ne, cHbeta, ionic_abund):
         
@@ -477,7 +541,7 @@ class Collisional_FluxCalibration(Import_model_data):
         return metal_flux
     
     def metal_emis(self, ion, Te, ne):
-        
+                
         ion_emis    = self.ionDict[ion]
         pyneb_code  = '{}_pyneb_code'.format(ion)
         vector_emis =  self.data_dic['Emissivity_{}_vector'.format(ion)]
@@ -504,7 +568,7 @@ class Inference_AbundanceModel(Import_model_data, Collisional_FluxCalibration, R
         self.load_synthetic_data(model = model)
         
         #Physical parameters for the nebular continua calculation
-        self.load_neb_constants()
+        self.load_neb_constants(self.paths_dict['nebular_data_folder'])
 
         #-------Prepare emission lines data
         self.prepare_run_data(norm_by_Hbeta = False, deblend_Check=False)
@@ -520,10 +584,22 @@ class Inference_AbundanceModel(Import_model_data, Collisional_FluxCalibration, R
         self.obj_data['S3_Flux']    = self.coll_Flux('S3', self.obj_data['T_low'], self.obj_data['n_e'], self.obj_data['cHbeta'], self.obj_data['S3_abund'])
         self.obj_data['O2_Flux']    = self.coll_Flux('O2', self.obj_data['T_low'], self.obj_data['n_e'], self.obj_data['cHbeta'], self.obj_data['O2_abund'])
         self.obj_data['O3_Flux']    = self.coll_Flux('O3', self.obj_data['T_high'], self.obj_data['n_e'], self.obj_data['cHbeta'], self.obj_data['O3_abund'])
+
+        self.obj_data['N2_Flux']    = self.coll_Flux('N2', self.obj_data['T_low'], self.obj_data['n_e'], self.obj_data['cHbeta'], self.obj_data['N2_abund'])
+
+        self.obj_data['Ar3_Flux']    = self.coll_Flux('Ar3', self.obj_data['T_low'], self.obj_data['n_e'], self.obj_data['cHbeta'], self.obj_data['Ar3_abund'])
+        self.obj_data['Ar4_Flux']    = self.coll_Flux('Ar4', self.obj_data['T_high'], self.obj_data['n_e'], self.obj_data['cHbeta'], self.obj_data['Ar4_abund'])
+        
+        
         self.obj_data['S2_error']   = self.obj_data['S2_Flux'] * 0.02
         self.obj_data['S3_error']   = self.obj_data['S3_Flux'] * 0.02
         self.obj_data['O2_error']   = self.obj_data['O2_Flux'] * 0.02
         self.obj_data['O3_error']   = self.obj_data['O3_Flux'] * 0.02
+
+        self.obj_data['N2_error']   = self.obj_data['N2_Flux'] * 0.02
+        
+        self.obj_data['Ar3_error']  = self.obj_data['Ar3_Flux'] * 0.02
+        self.obj_data['Ar4_error']  = self.obj_data['Ar4_Flux'] * 0.02
 
         #Combined fluxes to speed up the process
         self.H_He_Obs_Flux          = concatenate([self.obj_data['H_Flux'], self.obj_data['He_Flux']])                        
@@ -533,12 +609,16 @@ class Inference_AbundanceModel(Import_model_data, Collisional_FluxCalibration, R
         self.O2_O3_Obs_Flux         = concatenate([self.obj_data['O2_Flux'], self.obj_data['O3_Flux']])                        
         self.O2_O3_Obs_Error        = concatenate([self.obj_data['O2_error'], self.obj_data['O3_error']]) 
 
+        self.N2_Obs_Flux            = copy(self.obj_data['N2_Flux'])          
+        self.N2_Obs_Error           = copy(self.obj_data['N2_error'])                        
+        self.Ar3_Ar4_Obs_Flux       = concatenate([self.obj_data['Ar3_Flux'], self.obj_data['Ar4_Flux']])                        
+        self.Ar3_Ar4_Obs_Error      = concatenate([self.obj_data['Ar3_error'], self.obj_data['Ar4_error']])   
+                     
         #-------Prepare stellar continua
-
         #Load stellar libraries
-        default_Starlight_file      = '/home/vital/Starlight/Dani_Bases_Extra.txt'
-        default_Starlight_folder    = '/home/vital/Starlight/Bases/'
-        default_Starlight_coeffs    = '/home/vital/Starlight/Bases/coeffs_sync.txt'  
+        default_Starlight_file      = self.paths_dict['stellar_data_folder'] + 'Dani_Bases_Extra.txt'
+        default_Starlight_folder    = self.paths_dict['stellar_data_folder'] + 'Bases/'
+        default_Starlight_coeffs    = self.paths_dict['stellar_data_folder'] + 'Bases/coeffs_sync.txt'  
         
         ssp_lib_dict                = self.load_stellar_bases('starlight', default_Starlight_folder, default_Starlight_file, resample_int=1, resample_range = (3600, 6900), norm_interval = (5100,5150))
         
@@ -590,7 +670,11 @@ class Inference_AbundanceModel(Import_model_data, Collisional_FluxCalibration, R
             print '-S3_abund',  self.obj_data['S3_abund']
             print '-O2_abund',  self.obj_data['O2_abund']
             print '-O3_abund',  self.obj_data['O3_abund']
-    
+            
+            print '-N2_abund',  self.obj_data['N2_abund']
+            print '-Ar3_abund',  self.obj_data['Ar3_abund']
+            print '-Ar4_abund',  self.obj_data['Ar4_abund']
+            
             print '\n-z_star',  self.obj_data['z_star']
             print '-sigma_star',self.obj_data['sigma_star']
             print '-Av_star',   self.obj_data['Av_star']
@@ -625,76 +709,98 @@ class Inference_AbundanceModel(Import_model_data, Collisional_FluxCalibration, R
             print '\nO3 emissivities'
             for i in self.obj_data['nO3_range']:
                 print '-{} {}'.format(self.obj_data['O3_labels'][i], self.obj_data['O3_Flux'][i])
-                 
+            
+            print
+              
         return
 
     def He_O_S_nebStellar_model(self):
         
         y_plus      =   pymc2.Uniform(          'y_plus',       0.050,                      0.15)
-        S2_abund    =   pymc2.Uniform(          'S2_abund',     0.000001,                   0.15)
-        S3_abund    =   pymc2.Uniform(          'S3_abund',     0.000001,                   0.15)
-        O2_abund    =   pymc2.Uniform(          'O2_abund',     0.000001,                   0.15)
-        O3_abund    =   pymc2.Uniform(          'O3_abund',     0.000001,                   0.15)                        
-        ne          =   pymc2.TruncatedNormal(  'ne',           self.obj_data['nSII'],      self.obj_data['nSII_error']**-2,    a = 0.0 ,   b = 1000.0)
+        S2_abund    =   pymc2.Uniform(          'S2_abund',     0.000001,                   0.001, value=1e-5)
+        S3_abund    =   pymc2.Uniform(          'S3_abund',     0.000001,                   0.001, value=1e-5)
+        O2_abund    =   pymc2.Uniform(          'O2_abund',     0.000001,                   0.001, value=0.0001)
+        O3_abund    =   pymc2.Uniform(          'O3_abund',     0.000001,                   0.001, value=0.0001)                        
+        N2_abund    =   pymc2.Uniform(          'N2_abund',     0.000001,                   0.001, value=0.0001)
+        Ar3_abund   =   pymc2.Uniform(          'Ar3_abund',    0.000001,                   0.001, value=0.0001)                        
+        Ar4_abund   =   pymc2.Uniform(          'Ar4_abund',    0.000001,                   0.001, value=0.0001)                        
+        
+        ne          =   pymc2.TruncatedNormal(  'ne',           self.obj_data['nSII'],      self.obj_data['nSII_error']**-2,    a = 0.0 ,   b = 1000.0, value=100.0)
         tau         =   pymc2.TruncatedNormal(  'tau',          0.75,                       0.5**-2,    a = 0.0,    b = 7.0)
         cHbeta      =   pymc2.TruncatedNormal(  'cHbeta',       0.15,                       0.05**-2,   a = 0.0,    b = 3.0)
         xi          =   pymc2.TruncatedNormal(  'xi',           1,                          200**-2,    a = 0.0,    b = 1000.0)
-        T_low       =   pymc2.TruncatedNormal('T_low',        self.obj_data['TSIII'],     self.obj_data['TSIII_error']**-2,    a = 0.0 ,   b = 50000.0)
+        T_He        =   pymc2.TruncatedNormal(  'T_He',         self.obj_data['TSIII'],      self.obj_data['TSIII_error']**-2,    a = 7000.0 ,   b = 20000.0, value=14500.0)
+        T_low       =   pymc2.TruncatedNormal(  'T_low',        self.obj_data['TSIII'],     self.obj_data['TSIII_error']**-2,    a = 7000.0 ,   b = 20000.0, value=14500.0)
         #z_star     =   pymc2.Uniform('z_star',    self.z_min_ssp_limit, self.z_max_ssp_limit)
         Av_star     =   pymc2.Uniform('Av_star',   0.0, 5.00)
         sigma_star  =   pymc2.Uniform('sigma_star',0.0, 5.00)
-
-        @pymc2.deterministic #Calculate Hydrogen theoretical flux
-        def T_high(T_low=self.obj_data['T_low']): 
-            return 1.0807 * T_low - 0.0846
-               
+                       
         @pymc2.deterministic
-        def H_alpha_model(Te=self.obj_data['T_low'], ne=ne, xi=xi, cHbeta=cHbeta):
-            return self.H_alphaCalc(Te, ne, xi, cHbeta, idx_Halpha=2)
-        
-        @pymc2.deterministic
-        def nebular_continua(z_star=self.obj_data['z_star'], cHbeta=cHbeta, Te=self.obj_data['T_low'], y_plus=y_plus, y_plusplus=0.0, Halpha_Flux=self.Halpha_norm):
+        def nebular_continua(z_star=self.obj_data['z_star'], cHbeta=self.obj_data['cHbeta'], Te=self.obj_data['T_low'], y_plus=y_plus, y_plusplus=0.0, Halpha_Flux=self.Halpha_norm):
                    
             neb_flux_norm = self.nebular_Cont(self.obj_data['obs_wave_resam'], z_star, cHbeta, Te, y_plus, y_plusplus, Halpha_Flux)
 
             return neb_flux_norm
-
-        @pymc2.deterministic #Combine theoretical fluxes into a single array
-        def ssp_Synthesis(z_star=self.obj_data['z_star'], Av_star=Av_star, sigma_star=sigma_star, nebular_flux=nebular_continua):
-            
-            nebular_flux_masked = nebular_flux * self.obj_data['int_mask']
-            
-            obsFlux_non_neb = self.obj_data['obs_flux_norm_masked'] - nebular_flux_masked            
-            
-            ssp_fit = self.ssp_fit(z_star, sigma_star, Av_star, self.obj_data['obs_wave_resam'], obsFlux_non_neb, self.obj_data)
-            
-            theo_continuum = ssp_fit['flux_sspFit_norm'] + nebular_flux_masked
-         
-            return theo_continuum        
         
+        @pymc2.deterministic
+        def ssp_coefficients(z_star=self.obj_data['z_star'], Av_star=Av_star, sigma_star=sigma_star, nebular_flux=nebular_continua):
+            
+            self.nebular_flux_masked = nebular_flux * self.obj_data['int_mask']
+            
+            obsFlux_non_neb = self.obj_data['obs_flux_norm_masked'] - self.nebular_flux_masked            
+            
+            ssp_grid_i = self.physical_SED_model(self.obj_data['basesWave_resam'], self.obj_data['obs_wave_resam'], self.obj_data['bases_flux_norm'], Av_star, z_star, sigma_star, 3.4)
+            
+            self.ssp_grid_i_masked = (self.obj_data['int_mask'] * ssp_grid_i.T).T
+            
+            ssp_coeffs_norm = self.ssp_fitting(self.ssp_grid_i_masked, obsFlux_non_neb)
+            
+            return ssp_coeffs_norm        
+
+        @pymc2.deterministic
+        def stellar_continua_calculation(ssp_coeffs = ssp_coefficients):
+            
+            flux_sspFit_norm = np_sum(ssp_coeffs.T * self.ssp_grid_i_masked, axis=1)
+            
+            theo_continuum = flux_sspFit_norm + self.nebular_flux_masked
+            
+            return theo_continuum
+               
         @pymc2.deterministic #Calculate Hydrogen theoretical flux
-        def H_model(Te=self.obj_data['T_low'], ne=ne, xi=xi, cHbeta=cHbeta):
+        def H_model(Te=T_He, ne=ne, xi=xi, cHbeta=cHbeta):
             return self.H_theoFlux(Te=Te, ne=ne, xi=xi, cHbeta=cHbeta)
            
         @pymc2.deterministic #Calculate Helium theoretical flux 
-        def He_model(Te=T_high, ne=ne, tau=tau, xi=xi, cHbeta=cHbeta, y_plus=y_plus):
+        def He_model(Te=T_He, ne=ne, tau=tau, xi=xi, cHbeta=cHbeta, y_plus=y_plus):
             return self.He_theoFlux(Te=Te, ne=ne,  tau=tau, xi=xi, cHbeta=cHbeta, y_plus = y_plus)
 
         @pymc2.deterministic #Calculate S2 theoretical flux 
-        def S2_model(ion='S2', Te=self.obj_data['T_low'], ne=ne, cHbeta=cHbeta, ionic_abund=S2_abund):
+        def S2_model(ion='S2', Te=T_low, ne=ne, cHbeta=cHbeta, ionic_abund=S2_abund):
             return self.coll_Flux('S2',Te,ne,cHbeta,ionic_abund)
 
         @pymc2.deterministic #Calculate S3 theoretical flux 
-        def S3_model(ion='S3', Te=self.obj_data['T_low'], ne=ne, cHbeta=cHbeta, ionic_abund=S3_abund):
+        def S3_model(ion='S3', Te=T_low, ne=ne, cHbeta=cHbeta, ionic_abund=S3_abund):
             return self.coll_Flux('S3',Te,ne,cHbeta,ionic_abund)
 
         @pymc2.deterministic #Calculate O2 theoretical flux 
-        def O2_model(ion='O2', Te=self.obj_data['T_low'], ne=ne, cHbeta=cHbeta, ionic_abund=O2_abund):
+        def O2_model(ion='O2', Te=T_low, ne=ne, cHbeta=cHbeta, ionic_abund=O2_abund):
             return self.coll_Flux('O2',Te,ne,cHbeta,ionic_abund)
 
         @pymc2.deterministic #Calculate O3 theoretical flux 
-        def O3_model(ion='O3', Te=T_high, ne=ne, cHbeta=cHbeta, ionic_abund=O3_abund):
-            return self.coll_Flux('O3',Te,ne,cHbeta,ionic_abund)
+        def O3_model(ion='O3', Te=T_low, ne=ne, cHbeta=cHbeta, ionic_abund=O3_abund):
+            return self.coll_Flux('O3',1.0807 * Te - 0.0846,ne,cHbeta,ionic_abund)
+
+        @pymc2.deterministic #Calculate O2 theoretical flux 
+        def N2_model(ion='N2', Te=T_low, ne=ne, cHbeta=cHbeta, ionic_abund=N2_abund):
+            return self.coll_Flux(ion,Te,ne,cHbeta,ionic_abund)
+
+        @pymc2.deterministic #Calculate O2 theoretical flux 
+        def Ar3_model(ion='Ar3', Te=T_low, ne=ne, cHbeta=cHbeta, ionic_abund=Ar3_abund):
+            return self.coll_Flux(ion,Te,ne,cHbeta,ionic_abund)
+
+        @pymc2.deterministic #Calculate O3 theoretical flux 
+        def Ar4_model(ion='Ar4', Te=T_low, ne=ne, cHbeta=cHbeta, ionic_abund=Ar4_abund):
+            return self.coll_Flux(ion,1.0807 * Te - 0.0846,ne,cHbeta,ionic_abund)
 
         @pymc2.deterministic #Combine theoretical fluxes into a single array
         def H_He_TheoFlux(H_Ftheo=H_model, He_Ftheo=He_model):
@@ -715,11 +821,17 @@ class Inference_AbundanceModel(Import_model_data, Collisional_FluxCalibration, R
             O2_O3_TheoFlux = empty(5)
             O2_O3_TheoFlux[:2] = O2_Ftheo[:]
             O2_O3_TheoFlux[2:] = O3_Ftheo[:]
-            return O2_O3_TheoFlux 
-
+            return O2_O3_TheoFlux
+        
+        @pymc2.deterministic #Combine theoretical fluxes into a single array
+        def Ar3_Ar4_TheoFlux(Ar3_Ftheo=Ar3_model, Ar4_Ftheo=Ar4_model):
+            Ar3_Ar4_TheoFlux = empty(2)
+            Ar3_Ar4_TheoFlux[0] = Ar3_Ftheo
+            Ar3_Ar4_TheoFlux[1] = Ar4_Ftheo
+            return Ar3_Ar4_TheoFlux 
+        
         @pymc2.stochastic(observed=True) #Likelihood
-        def likelihood_ssp(value = self.obj_data['obs_flux_norm_masked'], StellarCont_TheoFlux=ssp_Synthesis, sigmaContinuum=self.obj_data['obs_fluxEr_norm']):
-
+        def likelihood_ssp(value = self.obj_data['obs_flux_norm_masked'], StellarCont_TheoFlux=stellar_continua_calculation, sigmaContinuum=self.obj_data['obs_fluxEr_norm']):
             chi_F = sum(square(StellarCont_TheoFlux - value) / square(sigmaContinuum))
             return - chi_F / 2
  
@@ -737,9 +849,19 @@ class Inference_AbundanceModel(Import_model_data, Collisional_FluxCalibration, R
         def Likelihood_model_O(value = self.O2_O3_Obs_Flux, O2_O3_TheoFlux = O2_O3_TheoFlux, sigmaLines = self.O2_O3_Obs_Error):
             chi_F = sum(square(O2_O3_TheoFlux - value) / square(sigmaLines))
             return - chi_F / 2
-        
+
+        @pymc2.stochastic(observed=True) #Likelihood
+        def Likelihood_model_Ar(value = self.Ar3_Ar4_Obs_Flux, Ar3_Ar4_TheoFlux = Ar3_Ar4_TheoFlux, sigmaLines = self.Ar3_Ar4_Obs_Error):
+            chi_F = sum(square(Ar3_Ar4_TheoFlux - value) / square(sigmaLines))
+            return - chi_F / 2
+
+        @pymc2.stochastic(observed=True) #Likelihood
+        def Likelihood_model_N(value = self.N2_Obs_Flux, N2_TheoFlux = N2_model, sigmaLines = self.N2_Obs_Error):
+            chi_F = sum(square(N2_TheoFlux - value) / square(sigmaLines))
+            return - chi_F / 2
+    
         @pymc2.deterministic() #Deterministic method to track the evolution of the chi:
-        def chiSq_ssp(obs = self.obj_data['obs_flux_norm_masked'], StellarCont_TheoFlux=ssp_Synthesis, sigmaContinuum=self.obj_data['obs_fluxEr_norm']):
+        def chiSq_ssp(obs = self.obj_data['obs_flux_norm_masked'], StellarCont_TheoFlux=stellar_continua_calculation, sigmaContinuum=self.obj_data['obs_fluxEr_norm']):
             chi_F = sum(square(StellarCont_TheoFlux - obs) / square(sigmaContinuum))
             return - chi_F / 2  
 
@@ -758,177 +880,27 @@ class Inference_AbundanceModel(Import_model_data, Collisional_FluxCalibration, R
             chi_F = sum(square(O2_O3_TheoFlux - O2_O3_Obs_Flux) / square(sigmaLines))
             return - chi_F / 2
 
-        return locals()
-
-    def He_O_S_abundance_model(self):
-        
-        y_plus      =   pymc2.Uniform(           'y_plus',    0.050,                       0.15)
-        S2_abund    =   pymc2.Uniform(           'S2_abund',  0.000001,                    0.15)
-        S3_abund    =   pymc2.Uniform(           'S3_abund',  0.000001,                    0.15)
-        O2_abund    =   pymc2.Uniform(           'O2_abund',  0.000001,                    0.15)
-        O3_abund    =   pymc2.Uniform(           'O3_abund',  0.000001,                    0.15)                        
-        ne          =   pymc2.TruncatedNormal(   'ne',        self.obj_data['nSII'],       self.obj_data['nSII_error']**-2,    a = 0.0 ,   b = 1000.0)
-        T_low       =   pymc2.Normal(            'T_low',     self.obj_data['TOIII']-500,  self.obj_data['TOIII_error']**-2)
-        T_high      =   pymc2.Normal(            'T_high',    self.obj_data['TOIII'],      self.obj_data['TOIII_error']**-2)
-        tau         =   pymc2.TruncatedNormal(   'tau',       0.75,                        0.5**-2,    a = 0.0,    b = 7.0)
-        cHbeta      =   pymc2.TruncatedNormal(   'cHbeta',    0.15,                        0.05**-2,   a = 0.0,    b = 3.0)
-        xi          =   pymc2.TruncatedNormal(   'xi',        1,                           200**-2,    a = 0.0,    b = 1000.0)
-
-        @pymc2.deterministic #Calculate Hydrogen theoretical flux
-        def H_model(Te=T_high, ne=ne, xi=xi, cHbeta=cHbeta):
-            return self.H_theoFlux(Te=Te, ne=ne, xi=xi, cHbeta=cHbeta)
-           
-        @pymc2.deterministic #Calculate Helium theoretical flux 
-        def He_model(Te=T_high, ne=ne, tau=tau, xi=xi, cHbeta=cHbeta, y_plus=y_plus):
-            return self.He_theoFlux(Te=Te, ne=ne,  tau=tau, xi=xi, cHbeta=cHbeta, y_plus = y_plus)
-
-        @pymc2.deterministic #Calculate S2 theoretical flux 
-        def S2_model(ion='S2', Te=T_low, ne=ne, cHbeta=cHbeta, ionic_abund=S2_abund):
-            return self.coll_Flux('S2',Te,ne,cHbeta,ionic_abund)
-
-        @pymc2.deterministic #Calculate S3 theoretical flux 
-        def S3_model(ion='S3', Te=T_low, ne=ne, cHbeta=cHbeta, ionic_abund=S3_abund):
-            return self.coll_Flux('S3',Te,ne,cHbeta,ionic_abund)
-
-        @pymc2.deterministic #Calculate O2 theoretical flux 
-        def O2_model(ion='O2', Te=T_low, ne=ne, cHbeta=cHbeta, ionic_abund=O2_abund):
-            return self.coll_Flux('O2',Te,ne,cHbeta,ionic_abund)
-
-        @pymc2.deterministic #Calculate O3 theoretical flux 
-        def O3_model(ion='O3', Te=T_high, ne=ne, cHbeta=cHbeta, ionic_abund=O3_abund):
-            return self.coll_Flux('O3',Te,ne,cHbeta,ionic_abund)
-
-        @pymc2.deterministic #Combine theoretical fluxes into a single array
-        def H_He_TheoFlux(H_Ftheo=H_model, He_Ftheo=He_model):
-            H_He_Theo_Flux = empty(self.nTotal)
-            H_He_Theo_Flux[:self.nHydrogen] = H_Ftheo[:]
-            H_He_Theo_Flux[self.nHydrogen:] = He_Ftheo[:]
-            return H_He_Theo_Flux
-
-        @pymc2.deterministic #Combine theoretical fluxes into a single array
-        def S2_S3_TheoFlux(S2_Ftheo=S2_model, S3_Ftheo=S3_model):
-            S2_S3_Theo_Flux = empty(5)
-            S2_S3_Theo_Flux[:2] = S2_Ftheo[:]
-            S2_S3_Theo_Flux[2:] = S3_Ftheo[:]
-            return S2_S3_Theo_Flux
- 
-        @pymc2.deterministic #Combine theoretical fluxes into a single array
-        def O2_O3_TheoFlux(O2_Ftheo=O2_model, O3_Ftheo=O3_model):
-            O2_O3_TheoFlux = empty(5)
-            O2_O3_TheoFlux[:2] = O2_Ftheo[:]
-            O2_O3_TheoFlux[2:] = O3_Ftheo[:]
-            return O2_O3_TheoFlux 
- 
-        @pymc2.stochastic(observed=True) #Likelihood
-        def Likelihood_model_Recomb(value = self.H_He_Obs_Flux, H_He_TheoFlux = H_He_TheoFlux, sigmaLines = self.H_He_Obs_Error):
-            chi_F = sum(square(H_He_TheoFlux - value) / square(sigmaLines))
+        @pymc2.deterministic()
+        def ChiSq_N(N2_Obs_Flux = self.N2_Obs_Flux, N2_TheoFlux = N2_model, sigmaLines = self.N2_Obs_Error):
+            chi_F = sum(square(N2_TheoFlux - N2_Obs_Flux) / square(sigmaLines))
             return - chi_F / 2
 
-        @pymc2.stochastic(observed=True) #Likelihood
-        def Likelihood_model_S(value = self.S2_S3_Obs_Flux, S2_S3_TheoFlux = S2_S3_TheoFlux, sigmaLines = self.S2_S3_Obs_Error):
-            chi_F = sum(square(S2_S3_TheoFlux - value) / square(sigmaLines))
-            return - chi_F / 2
-
-        @pymc2.stochastic(observed=True) #Likelihood
-        def Likelihood_model_O(value = self.O2_O3_Obs_Flux, O2_O3_TheoFlux = O2_O3_TheoFlux, sigmaLines = self.O2_O3_Obs_Error):
-            chi_F = sum(square(O2_O3_TheoFlux - value) / square(sigmaLines))
-            return - chi_F / 2
-
-        @pymc2.deterministic() #Deterministic method to track the evolution of the chi:
-        def ChiSq_Recomb(H_He_ObsFlux = self.H_He_Obs_Flux, H_He_TheoFlux = H_He_TheoFlux, sigmaLines = self.H_He_Obs_Error):
-            chi_F = sum(square(H_He_TheoFlux - H_He_ObsFlux) / square(sigmaLines))
-            return - chi_F / 2
- 
-        @pymc2.deterministic() #Deterministic method to track the evolution of the chi:
-        def ChiSq_S(S2_S3_Obs_Flux = self.S2_S3_Obs_Flux, S2_S3_TheoFlux = S2_S3_TheoFlux, sigmaLines = self.S2_S3_Obs_Error):
-            chi_F = sum(square(S2_S3_TheoFlux - S2_S3_Obs_Flux) / square(sigmaLines))
-            return - chi_F / 2
- 
-        @pymc2.deterministic() #Deterministic method to track the evolution of the chi:
-        def ChiSq_O(O2_O3_Obs_Flux = self.O2_O3_Obs_Flux, O2_O3_TheoFlux = O2_O3_TheoFlux, sigmaLines = self.O2_O3_Obs_Error):
-            chi_F = sum(square(O2_O3_TheoFlux - O2_O3_Obs_Flux) / square(sigmaLines))
+        @pymc2.deterministic()
+        def ChiSq_Ar(Ar3_Ar4_Obs_Flux = self.Ar3_Ar4_Obs_Flux, Ar3_Ar4_TheoFlux = Ar3_Ar4_TheoFlux, sigmaLines = self.Ar3_Ar4_Obs_Error):
+            chi_F = sum(square(Ar3_Ar4_TheoFlux - Ar3_Ar4_Obs_Flux) / square(sigmaLines))
             return - chi_F / 2
 
         return locals()
-
-    def stellar_continua_fitting(self):
-                
-        z_star     =   pymc2.Uniform('z_star',    self.z_min_ssp_limit, self.z_max_ssp_limit)
-        Av_star    =   pymc2.Uniform('Av_star',   0.0, 5.00)
-        sigma_star =   pymc2.Uniform('sigma_star',0.0, 5.00)
-        
-        @pymc2.deterministic #Combine theoretical fluxes into a single array
-        def ssp_Synthesis(z_star=z_star, Av_star=Av_star, sigma_star=sigma_star):
-            
-            ssp_fit = self.ssp_fit(z_star, sigma_star, Av_star, self.obj_data['obs_wave_resam'], self.obj_data['obs_flux_norm_masked'], self.obj_data)
-                        
-            return ssp_fit['flux_sspFit_norm']        
-        
-        @pymc2.stochastic(observed=True) #Likelihood
-        def likelihood_ssp(value = self.obj_data['obs_flux_norm_masked'], StellarCont_TheoFlux=ssp_Synthesis, sigmaContinuum=self.obj_data['obs_fluxEr_norm']):
-
-            chi_F = sum(square(StellarCont_TheoFlux - value) / square(sigmaContinuum))
-            return - chi_F / 2
-        
-        @pymc2.deterministic() #Deterministic method to track the evolution of the chi:
-        def chiSq_ssp(obs = self.obj_data['obs_flux_norm_masked'], StellarCont_TheoFlux=ssp_Synthesis, sigmaContinuum=self.obj_data['obs_fluxEr_norm']):
-            chi_F = sum(square(StellarCont_TheoFlux - obs) / square(sigmaContinuum))
-            return - chi_F / 2        
-        
-        return locals()
-
-    def nebular_stellar_continua_fitting(self):
-        
-        T_low      =   pymc2.TruncatedNormal('T_low',        self.obj_data['TSIII'],     self.obj_data['TSIII_error']**-2,    a = 0.0 ,   b = 50000.0)
-        #z_star     =   pymc2.Uniform('z_star',    self.z_min_ssp_limit, self.z_max_ssp_limit)
-        Av_star    =   pymc2.Uniform('Av_star',   0.0, 5.00)
-        sigma_star =   pymc2.Uniform('sigma_star',0.0, 5.00)
-
-        @pymc2.deterministic
-        def H_alpha_model():
-            return self.obj_data['H_Flux'][-1] * self.Hbeta_Flux / self.stellar_SED['normFlux_stellar']
-        
-        @pymc2.deterministic
-        def nebular_continua(z_star=self.obj_data['z_star'], cHbeta=self.obj_data['cHbeta'], Te=T_low, y_plus=self.obj_data['y_plus'], y_plusplus=0.0, Halpha_Flux=H_alpha_model):
-                   
-            neb_flux_norm = self.nebular_Cont(self.obj_data['obs_wave_resam'], z_star, cHbeta, Te, y_plus, y_plusplus, Halpha_Flux)
-
-            return neb_flux_norm
-        
-        @pymc2.deterministic #Combine theoretical fluxes into a single array
-        def ssp_Synthesis(z_star=self.obj_data['z_star'], Av_star=Av_star, sigma_star=sigma_star, nebular_flux=nebular_continua):
-            
-            nebular_flux_masked = nebular_flux * self.obj_data['int_mask']
-            
-            obsFlux_non_neb = self.obj_data['obs_flux_norm_masked'] - nebular_flux_masked            
-            
-            ssp_fit = self.ssp_fit(z_star, sigma_star, Av_star, self.obj_data['obs_wave_resam'], obsFlux_non_neb, self.obj_data)
-            
-            theo_continuum = ssp_fit['flux_sspFit_norm'] + nebular_flux_masked
-         
-            return theo_continuum     
-        
-        @pymc2.stochastic(observed=True) #Likelihood
-        def likelihood_ssp(value = self.obj_data['obs_flux_norm_masked'], StellarCont_TheoFlux=ssp_Synthesis, sigmaContinuum=self.obj_data['obs_fluxEr_norm']):
-
-            chi_F = sum(square(StellarCont_TheoFlux - value) / square(sigmaContinuum))
-            return - chi_F / 2
-        
-        @pymc2.deterministic() #Deterministic method to track the evolution of the chi:
-        def chiSq_ssp(obs = self.obj_data['obs_flux_norm_masked'], StellarCont_TheoFlux=ssp_Synthesis, sigmaContinuum=self.obj_data['obs_fluxEr_norm']):
-            chi_F = sum(square(StellarCont_TheoFlux - obs) / square(sigmaContinuum))
-            return - chi_F / 2        
-        
-        return locals()
-
+  
 class Run_MCMC(Inference_AbundanceModel, ssp_fitter):
 
     def __init__(self):
         
         #Import parent classes
         Inference_AbundanceModel.__init__(self)
+        
         self.pymc_stats_keys = ['mean','95% HPD interval','standard deviation','mc error','quantiles','n']
-  
+                    
     def select_inference_model(self, model):
 
         if model == '_stellar':
@@ -937,94 +909,92 @@ class Run_MCMC(Inference_AbundanceModel, ssp_fitter):
         elif model == '_neb_stellar':
             self.inf_dict = self.nebular_stellar_continua_fitting()
         
-        elif model == '_He_S_O_neb_stellar_v1':
+        elif model == '_He_S_O_neb_stellar':
             self.inf_dict = self.He_O_S_nebStellar_model()
-        
-        elif model == 'ssp_synthesis_pymc3':
-            self.inf_dict = self.stellar_continua_fitting_pymc3()
-                 
-    def run_pymc2(self, db_address, iterations = 10000, burn_phase = 1500, thining=2, variables_list = None):
-        
-        #Ideal cond1: iter=30000, burn=5000, thin=10
-        #Ideal cond2: iter=10000, burn=1500, thin=2
+                         
+    def run_pymc2(self, db_address, iterations = 10000, variables_list = None, prefit = True):
+                
+        #Define MCMC model        
+        self.MAP_Model = pymc2.MAP(self.inf_dict)
 
         #Prefit:
-        print '\n--Starting Fmin_powell prefit'
-        self.MAP_Model  = pymc2.MAP(self.inf_dict)
-                        
+        if prefit is not False:
+            fit_method = prefit if prefit is str else 'fmin_powell'
+            print '\n--Starting {} prefit'.format(fit_method)
+            start = timer()
+            self.MAP_Model.fit(method = fit_method)
+            end = timer()
+            print 'prefit interval', (end - start) 
+
+        #Print prefit data
+        print 'Initial conditions:'
+        self.display_run_data(self.MAP_Model, variables_list)
+                 
         #Launch sample
-        self.pymc2_M    = pymc2.MCMC(self.MAP_Model.variables, db = 'pickle', dbname =  db_address)
-        self.pymc2_M.sample(iter=iterations, burn=burn_phase, thin=thining)
-        
+        print '\nInitiating fit:'
+        self.pymc2_M = pymc2.MCMC(self.MAP_Model.variables, db = 'pickle', dbname =  db_address)
+        self.pymc2_M.sample(iter=iterations)
+         
         #Save the output csv mean data
         if variables_list != None:
             print '--Saving results in csv'
             self.csv_address = db_address + '_Parameters'
             self.pymc2_M.write_csv(self.csv_address, variables=variables_list)
-            
-        #Print again the             
-        self.display_run_data(self.MAP_Model, variables_list)
-
-        #Close the database
-        self.pymc2_M.db.close()  
-
-
-#         #Prefit:
-#         print '\n--Starting Fmin_powell prefit'
-#         self.MAP_Model  = pymc2.MAP(self.inf_dict)
-#         self.MAP_Model.fit(method = 'fmin_powell')
-#         
-#         #Print prefit data
-#         self.display_run_data(self.MAP_Model, variables_list)
-#                 
-#         #Launch sample
-#         self.pymc2_M    = pymc2.MCMC(self.MAP_Model.variables, db = 'pickle', dbname =  db_address)
-#         self.pymc2_M.sample(iter=iterations, burn=burn_phase, thin=thining)
-#         
-#         #Save the output csv mean data
-#         if variables_list != None:
-#             print '--Saving results in csv'
-#             self.csv_address = db_address + '_Parameters'
-#             self.pymc2_M.write_csv(self.csv_address, variables=variables_list)
-#             
-#         #Print again the             
-#         self.display_run_data(self.MAP_Model, variables_list)
-# 
-#         #Close the database
-#         self.pymc2_M.db.close()    
-
-    def run_pymc3(self, iterations = 10000, burn_phase = 1500, thining=2,  db_address=None, variables_list = None, prefit_method = 'fmin_powell', start_conditions = None):
-        
-        #Import the inference model
-        pymc3_model = self.inf_dict
              
-        #Prefit:
-        if prefit_method != None:
-            #Check if initial conditions are provided
-            if start_conditions != None:
-                print '\n--Starting prefit'
-                start_conditions = pymc3.find_MAP(model = pymc3_model)
-            #Print prefit data
-            self.display_run_data(start_conditions, variables_list)
+        #Print again the output prediction for the entire trace           
+        self.display_run_data(self.MAP_Model, variables_list)
+ 
+        #Close the database
+        self.pymc2_M.db.close()       
+
+    def load_pymc_database_manual(self, db_address, burning = 0, params_list = None):
+                
+        #Load the pymc output textfile database
+        pymc_database = pymc2.database.pickle.load(db_address)
         
-        #Default saving path
-        if db_address != None:
-            db = pymc3.backends.Text(db_address)
-        else:
-            db = None
+        #Create a dictionaries with the traces and statistics
+        traces_dic = {}
+        stats_dic = OrderedDict()
+        stats_dic['true_values'] = empty(len(params_list))   
         
-        #Run the model
-        with pymc3_model:
-           
-            #Instantiate the sampler
-            step = pymc3.Slice()    
+        #This variable contains all the traces from the MCMC (stochastic and deterministic)
+        traces_list = pymc_database.trace_names[0] 
+    
+        #Get statistics from the run
+        for i in range(len(traces_list)):
             
-            #Run sampler
-            trace = pymc3.sample(iterations, step=step, start=start_conditions, trace=db)
+            trace               = traces_list[i]
+            stats_dic[trace]    = OrderedDict()
+            trace_array         = pymc_database.trace(trace)[burning:]
+            traces_dic[trace]   = trace_array
             
-        #Save the output data using a clasical approach    
-        with open(db_address + '.pkl', 'wb') as pickle_trace:
-            pickle.dump({'model': pymc3_model, 'trace': trace}, pickle_trace)
+            stats_dic[trace]['mean']                    = mean(trace_array)
+            stats_dic[trace]['median']                  = median(trace_array)
+            stats_dic[trace]['standard deviation']      = std(trace_array)
+            stats_dic[trace]['n']                       = trace_array.shape[0]
+            stats_dic[trace]['16th_p']                  = percentile(trace_array, 16)
+            stats_dic[trace]['84th_p']                  = percentile(trace_array, 84)
+            stats_dic[trace]['95% HPD interval']        = (stats_dic[trace]['16th_p'], stats_dic[trace]['84th_p'])
+            stats_dic[trace]['trace']                   = trace_array
+            
+            if trace in params_list:
+                #Get the right true value key
+                key_true = trace if trace != 'T_He' else 'T_low'
+                
+                #Special cases
+                if key_true == 'ne':
+                    key_true = 'n_e'
+                
+                stats_dic[trace]['true_value'] = self.obj_data[key_true]
+            
+            if params_list is not None:
+                if trace in params_list:
+                    print trace, stats_dic[trace]['mean']
+            
+        #Generate a MCMC object to recover all the data from the run
+        dbMCMC = pymc2.MCMC(traces_dic, pymc_database)
+        
+        return dbMCMC, stats_dic  
                             
     def display_run_data(self, database, variables_list):
         
@@ -1037,13 +1007,15 @@ class Run_MCMC(Inference_AbundanceModel, ssp_fitter):
                 
         #Load the pymc output textfile database
         pymc_database = pymc2.database.pickle.load(db_address)
-        
+                
         #Create a dictionaries with the traces and statistics
         traces_dic = {}
         stats_dic = OrderedDict()
         
         #This variable contains all the traces from the MCMC (stochastic and deterministic)
-        traces_list = pymc_database.trace_names[0] 
+        traces_list = pymc_database.trace_names[0]
+        print 'Estas variables', traces_list
+        print pymc_database.trace('stellar_continua_calculation').stats()['quantiles'][2.5] 
     
         #Get statistics from the run    
         for trace in traces_list:
@@ -1060,37 +1032,17 @@ class Run_MCMC(Inference_AbundanceModel, ssp_fitter):
         #Generate a MCMC object to recover all the data from the run
         dbMCMC = pymc2.MCMC(traces_dic, pymc_database)
         
-        return dbMCMC, stats_dic                                                                                                  
+        return dbMCMC, stats_dic                                                                                                 
 
-    def load_pymc_database_manual(self, db_address, burning = 0):
-                
+    def load_pymc_pickle(self, db_address):
+        
         #Load the pymc output textfile database
         pymc_database = pymc2.database.pickle.load(db_address)
         
-        #Create a dictionaries with the traces and statistics
-        traces_dic = {}
-        stats_dic = OrderedDict()
+        print pymc_database.trace_names[0]
         
-        #This variable contains all the traces from the MCMC (stochastic and deterministic)
-        traces_list = pymc_database.trace_names[0] 
-    
-        #Get statistics from the run    
-        for trace in traces_list:
-            stats_dic[trace]    = OrderedDict()
-            trace_array = pymc_database.trace(trace)[burning:]
-            traces_dic[trace]   = trace_array
-            print 'Length', trace_array.shape[0]
-            
-            stats_dic[trace]['mean']                    = mean(trace_array)
-            stats_dic[trace]['median']                  = median(trace_array)
-            stats_dic[trace]['standard deviation']      = std(trace_array)
-            stats_dic[trace]['n']                       = trace_array.shape[0]
-            stats_dic[trace]['16th_p']                  = percentile(trace_array, 16)
-            stats_dic[trace]['84th_p']                  = percentile(trace_array, 84)
-            stats_dic[trace]['95% HPD interval']        = (stats_dic[trace]['16th_p'], stats_dic[trace]['84th_p'])
-            stats_dic[trace]['trace']                   = trace_array
-            
-        #Generate a MCMC object to recover all the data from the run
-        dbMCMC = pymc2.MCMC(traces_dic, pymc_database)
+        #You can recover the data using these commands
+        #pymc_database.trace('stellar_continua_calculation').stats()['mean']
+        #pymc_database.trace('stellar_continua_calculation').stats()['quantiles'][2.5] 
         
-        return dbMCMC, stats_dic  
+        return pymc_database
