@@ -11,6 +11,7 @@ from uncertainties.unumpy           import uarray, exp as unum_exp, log10 as unu
 from uncertainties.umath            import pow as umath_pow, log10 as umath_log10, exp as umath_exp, isnan as un_isnan
 from pandas                         import read_csv
 from numpy                          import loadtxt, where, array, ndarray, ones, concatenate, power as np_power, dot, arange, empty, isnan
+from os                             import path, getcwd
 
 class ReddeningLaws():
 
@@ -31,6 +32,9 @@ class ReddeningLaws():
                                       'G03_average'     : self.X_x_Gordon2003_average,
                                       'G03_supershell'  : self.X_x_Gordon2003_supershell
                                       }
+        
+        __location__ = path.realpath(path.join(getcwd(), path.dirname(__file__)))
+        self.red_laws_folder  = __location__[0:__location__.find('dazer')] + 'dazer/'
     
     def checking_for_ufloat(self, x):
                 
@@ -332,9 +336,9 @@ class ReddeningLaws():
         #Default R_V is 3.4
         R_v = self.R_v if self.R_v != None else 3.4 #This is not very nice   
         x = 1.0 / (self.wavelength_rc / 10000.0)
-        
+                
         #This file format has 1/um in column 0 and A_x/A_V in column 1
-        file_data = loadtxt('/home/vital/workspace/dazer/bin/lib/Astro_Libraries/gordon_2003_LMC_average.txt')
+        file_data = loadtxt(self.red_laws_folder + '/bin/lib/Astro_Libraries/gordon_2003_LMC_average.txt')
 
         #This file has column        
         Xx_interpolator = interp1d(file_data[:, 0], file_data[:, 1])

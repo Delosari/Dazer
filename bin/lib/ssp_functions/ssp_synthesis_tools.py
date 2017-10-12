@@ -12,8 +12,6 @@ import pyneb as pn
 import ntpath
 from timeit import default_timer as timer
 import matplotlib.pyplot as plt
-import theano
-import theano.tensor as t
 
 #Function to delete files
 def silent_remove(filename_list):

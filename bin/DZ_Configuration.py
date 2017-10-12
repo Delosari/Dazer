@@ -1,12 +1,15 @@
 from numpy import loadtxt
-from os import path, getcwd
+from os import path, getcwd, name
 
 class ImportConfiguration():
     
     def __init__(self):
         
-        Root_Folder             = '/home/vital/'
- 
+        if name == 'posix':
+            Root_Folder             = '/home/vital/'
+        elif name == 'nt':
+            Root_Folder             = 'E:/Cloud Storage/'
+            
         self.Catalogue_Folder = Root_Folder + "Dropbox/Astrophysics/Data/WHT_observations/objects/"
         self.Flow_Configuration(Root_Folder, DefaultSpectra_Preffix = '', DefaultSpectra_Suffix='_WHT.fits')
         self.DataType = 'WHT'
@@ -44,10 +47,10 @@ class ImportConfiguration():
         self.SpectraPreffix                 = DefaultSpectra_Preffix
         self.SpectraSuffix                  = DefaultSpectra_Suffix
 
-        #WARNING need a better way to find bin folder
+        #WARNING need a better way to find bin folder        
         __location__ = path.realpath(path.join(getcwd(), path.dirname(__file__)))
-        root_folder  = __location__[0:__location__.find('/bin')+1]
-
+        root_folder  = __location__[0:__location__.find('dazer')] + 'dazer/'
+        
         self.Conf_Folder                    = root_folder + 'format/'
         self.LinesLogHeader_Name            = 'DZT_LineLog_Headers.dz'
         self.LinesLogExtension_Name         = '_linesLog_reduc.txt'
