@@ -1,9 +1,8 @@
 import numpy as np
-
 from dazer_methods import Dazer
 from lib.Astro_Libraries.Abundances_InferenceModel_Helium_v26 import Run_MCMC
   
-iterat, burn, thin  = 10000, 0, 1
+iterat, burn, thin  = 11000, 0, 1
 sim_model           = 'SymSpectrum_Ar_N'
 sim_components      = '_He_S_O_neb_stellar'
 sim_name            = sim_model + sim_components
@@ -22,31 +21,44 @@ bm.select_inference_model(sim_components)
  
 #Variables to save
 db_address  = '{}{}_it{}_burn{}'.format(bm.paths_dict['inference_folder'], sim_name, iterat, burn) 
- 
+
+# dz.FigConf()
+# dz.data_plot(bm.obj_data['obs_wave_resam'], bm.obj_data['obs_flux_norm_masked'], label = 'obs_flux_norm_masked')
+# dz.data_plot(bm.obj_data['obs_wave_resam'], bm.obs_spectrum_sigma * 100, label = 'obs_spectrum_sigma')
+# dz.data_plot(bm.obj_data['obs_wave_resam'], stat_db_dict['simulated_spectrum']['trace'].mean(axis=0), label = 'simulated component')
+# dz.data_plot(bm.obj_data['obs_wave_resam'], stat_db_dict['stellar_continua_calculation']['trace'].mean(axis=0), label = 'stellar_continua_calculation')
+# dz.data_plot(bm.obj_data['obs_wave_resam'], stat_db_dict['simulated_spectrum']['trace'].mean(axis=0) - stat_db_dict['stellar_continua_calculation']['trace'].mean(axis=0), label = 'emision alomojor')
+# dz.FigWording(xlabel = 'Wavelength', ylabel = 'Flux', title = '')
+# dz.display_fig()
+
 #Run sampler
 bm.run_pymc2(db_address, iterat, variables_list=params_list, prefit=False)
         
-# #Load database
+#Load database
 pymc2_db, stat_db_dict = bm.load_pymc_database_manual(db_address, burning, params_list)
-       
+        
 #Traces plot
 print '-Generating traces plot'
 dz.traces_plot(params_list, pymc2_db, stat_db_dict)
 dz.save_manager(db_address + '_tracesPlot_Test', save_pickle = False)
-         
+           
 #Posteriors plot
 print '-Generating posteriors plot'
 dz.posteriors_plot(params_list, pymc2_db, stat_db_dict)
 dz.save_manager(db_address + '_posteriorPlot', save_pickle = False)
-          
+            
 #Posteriors plot
 print '-Generating acorrelation plot'
 dz.acorr_plot(params_list, pymc2_db, stat_db_dict, n_columns=4, n_rows=4)
 dz.save_manager(db_address + '_acorrPlot', save_pickle = False)
-        
+          
 #Corner plot
 print '-Generating corner plot'
 dz.corner_plot(params_list, pymc2_db, stat_db_dict, plot_true_values=True)
 dz.save_manager(db_address + '_cornerPlot', save_pickle = False)
-       
+         
 print '\nData treated'
+
+
+
+

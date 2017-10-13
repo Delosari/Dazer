@@ -1776,7 +1776,6 @@ class Dazer_Files(Txt_Files_Manager):
         root_folder  = __location__[0:__location__.find('dazer')] + 'dazer/'
        
         #Dazer logs structure files location
-        print 'seguro', root_folder, type(__location__), __location__[0:__location__.find('dazer')]
         self.Default_ObjectLogFormatAddress     = root_folder + 'format/DZT_ObjectLog_Format.dz'
         self.Default_LinesLogHeaderAddress      = root_folder + 'format/DZT_LineLog_Headers.dz'
         self.list_lines_address                 = root_folder + 'format/DZT_EmLine_List_Emission.dz'

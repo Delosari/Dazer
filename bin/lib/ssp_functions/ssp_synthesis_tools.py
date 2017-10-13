@@ -493,7 +493,7 @@ class ssp_fitter(ssp_synthesis_importer):
              
         return sspLib_dict
 
-    def calculate_synthStellarSED(self, Av_star, z_star, sigma_star, coeff_file, sspLib_starlight, resample_range=(4000, 6900), resample_int = 1, norm_factor = 100):
+    def calculate_synthStellarSED(self, Av_star, z_star, sigma_star, coeff_file, sspLib_starlight, resample_range=(4000, 6900), resample_int = 1, norm_factor = 100, mask_dict = None):
 
         #Dictionary to store the data   
         synth_dict = {}
@@ -520,26 +520,14 @@ class ssp_fitter(ssp_synthesis_importer):
         #obs_fluxEr_norm                 = obs_fluxEr_resam / norm_factor
         obs_fluxEr_norm                 = 0.02
                               
-        #Synthetic masks
-        masks_default = OrderedDict()
-        
-        masks_default['He1_4026A']      = (4019, 4033)
-        masks_default['He1_4471A']      = (4463, 4480)
-        masks_default['He1_5876A']      = (5867, 5885)
-        masks_default['He1_6678A']      = (6667, 6687)
-        
-        masks_default['HI_delta']       = (4090,4114)
-        masks_default['HI_gamma']       = (4329,4353)
-        masks_default['HI_beta']        = (4840,4880)
-        masks_default['HI_alpha']       = (6551,6575)
-        
         #Pixels within the spectrum mask
-        redshift = 1 + z_star
-        boolean_mask = ones(len(obs_flux_resam), dtype=bool)
-        for line in masks_default:
-            wmin, wmax = masks_default[line]
-            idx_cur_spec_mask   = (obs_wave_resam > wmin * redshift) & (obs_wave_resam < wmax * redshift)
-            boolean_mask        = boolean_mask & ~idx_cur_spec_mask
+        if mask_dict != None:
+            redshift = 1 + z_star
+            boolean_mask = ones(len(obs_flux_resam), dtype=bool)
+            for line in mask_dict:
+                wmin, wmax = mask_dict[line]
+                idx_cur_spec_mask   = (obs_wave_resam > wmin * redshift) & (obs_wave_resam < wmax * redshift)
+                boolean_mask        = boolean_mask & ~idx_cur_spec_mask
                 
         #Store the data vector
         synth_dict['normFlux_stellar']      = norm_factor
