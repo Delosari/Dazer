@@ -1,12 +1,12 @@
 from dazer_methods import Dazer
-from lib.Astro_Libraries.Abundances_InferenceModel_Helium_v28 import Run_MCMC
+from lib.Astro_Libraries.Abundances_InferenceModel_Helium_v29 import Run_MCMC
 
 iterat, burn, thin  = 20000, 0, 1
-sim_model           = 'Just_metals_NoRS3'
+sim_model           = 'All_together'
 sim_components      = '_He_S_O_neb_stellar'
 obs_metals          = ['H', 'He1', 'He2', 'S2', 'S3', 'O2', 'O3', 'N2', 'Ar3', 'Ar4']
 sim_name            = sim_model + sim_components
-params_list         = ['T_low', 'ne','cHbeta','S2_abund','S3_abund','O2_abund','O3_abund','N2_abund','Ar3_abund','Ar4_abund'] #['y_plus', 'T_He', 'T_low', 'ne','tau','cHbeta','xi','S2_abund','S3_abund','O2_abund','O3_abund','N2_abund','Ar3_abund','Ar4_abund','sigma_star','Av_star'] 
+params_list         = ['y_plus', 'T_He', 'T_low', 'ne','tau','cHbeta','xi','S2_abund','S3_abund','O2_abund','O3_abund','N2_abund','Ar3_abund','Ar4_abund','sigma_star','Av_star'] 
 burning             = 5000
                         
 #Generate dazer object
