@@ -1,8 +1,8 @@
 from dazer_methods import Dazer
 from lib.Astro_Libraries.Abundances_InferenceModel_Helium_v29 import Run_MCMC
 
-iterat, burn, thin  = 20000, 0, 1
-sim_model           = 'All_together'
+iterat, burn, thin  = 15000, 0, 1
+sim_model           = 'All_togetherPlease'
 sim_components      = '_He_S_O_neb_stellar'
 obs_metals          = ['H', 'He1', 'He2', 'S2', 'S3', 'O2', 'O3', 'N2', 'Ar3', 'Ar4']
 sim_name            = sim_model + sim_components
@@ -30,7 +30,7 @@ bm.select_inference_model(sim_components)
 db_address  = '{}{}_it{}_burn{}'.format(bm.paths_dict['inference_folder'], sim_name, iterat, burn) 
  
 #Run sampler
-# bm.run_pymc2(db_address, iterat, variables_list=params_list, prefit=False)
+bm.run_pymc2(db_address, iterat, variables_list=params_list, prefit=False)
         
 #Load database
 pymc2_db, stat_db_dict = bm.load_pymc_database_manual(db_address, burning, params_list)
