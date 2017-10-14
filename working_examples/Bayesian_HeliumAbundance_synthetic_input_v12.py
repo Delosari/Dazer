@@ -22,7 +22,7 @@ bm.select_inference_model(sim_components)
 db_address  = '{}{}_it{}_burn{}'.format(bm.paths_dict['inference_folder'], sim_name, iterat, burn) 
 
 #Run sampler
-# bm.run_pymc2(db_address, iterat, variables_list=params_list, prefit=False)
+bm.run_pymc2(db_address, iterat, variables_list=params_list, prefit=False)
        
 # #Load database
 pymc2_db, stat_db_dict = bm.load_pymc_database_manual(db_address, burning, params_list)

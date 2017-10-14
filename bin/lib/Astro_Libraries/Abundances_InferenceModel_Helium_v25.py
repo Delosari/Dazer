@@ -8,7 +8,6 @@ from lib.Astro_Libraries.Nebular_Continuum  import NebularContinuumCalculator
 from lib.ssp_functions.ssp_synthesis_tools  import ssp_fitter
 from numpy                                  import array, loadtxt, genfromtxt, copy, isnan, arange, insert, concatenate, mean, std, power, exp, zeros, square, empty, percentile, random, median, ones, isnan, sum as np_sum
 import pymc as pymc2
-import pymc3 
 from timeit                                 import default_timer as timer
 
 class Import_model_data(ReddeningLaws):
@@ -31,8 +30,12 @@ class Import_model_data(ReddeningLaws):
         
         #Paths for windows:
         elif name == 'nt':
-            self.paths_dict['inference_folder']     = '/home/vital/Astrodata/Inference_output/'
-            self.paths_dict['nebular_data_folder']  = '/home/vital/Dropbox/Astrophysics/Lore/NebularContinuum/'
+            self.paths_dict['inference_folder']     = 'D:/Inference_data/'
+            self.paths_dict['nebular_data_folder']  = 'E:/Cloud Storage/Dropbox/Astrophysics/Lore/NebularContinuum/'
+            self.paths_dict['Hydrogen_CollCoeff']   = 'C:/Users/lativ/git/dazer/bin/lib/Astro_Libraries/Neutral_Hydrogen_Collisional_Correction_coef.txt'
+            self.paths_dict['Helium_CollCoeff']     = 'C:/Users/lativ/git/dazer/bin/lib/Astro_Libraries/Neutral_Helium_Collisional_Correction_coef.txt'
+            self.paths_dict['Helium_OpticalDepth']  = 'C:/Users/lativ/git/dazer/bin/lib/Astro_Libraries/Helium_OpticalDepthFunction_Coefficients.txt'
+            self.paths_dict['stellar_data_folder']  = 'E:/Cloud Storage/Dropbox/Astrophysics/Tools/Starlight/'
         
         #Declare Hydrogen and Helium lines for the analysis
         self.posHydrogen_Lines      = ['H1_4102A',  'H1_4340A', 'H1_6563A']
@@ -159,8 +162,7 @@ class Import_model_data(ReddeningLaws):
         self.obj_data['Ar4_labels']     = ['Ar4_4740A']
         self.obj_data['Ar4_wave']       = array([4740])
         self.obj_data['Ar4_pyneb_code'] = array([4740])
-
-
+        
         return
 
     def load_obs_data(self, lines_df, obj_series, extension_treat = '', Deblend_Check = True):
@@ -616,14 +618,25 @@ class Inference_AbundanceModel(Import_model_data, Collisional_FluxCalibration, R
                      
         #-------Prepare stellar continua
         #Load stellar libraries
-        default_Starlight_file      = self.paths_dict['stellar_data_folder'] + 'Dani_Bases_Extra.txt'
+        default_Starlight_file      = self.paths_dict['stellar_data_folder'] + 'Bases/Dani_Bases_Extra.txt'
         default_Starlight_folder    = self.paths_dict['stellar_data_folder'] + 'Bases/'
         default_Starlight_coeffs    = self.paths_dict['stellar_data_folder'] + 'Bases/coeffs_sync.txt'  
         
         ssp_lib_dict                = self.load_stellar_bases('starlight', default_Starlight_folder, default_Starlight_file, resample_int=1, resample_range = (3600, 6900), norm_interval = (5100,5150))
         
-        #Generate synthetic observation using default values        
-        self.stellar_SED            = self.calculate_synthStellarSED(self.obj_data['Av_star'], self.obj_data['z_star'], self.obj_data['sigma_star'], default_Starlight_coeffs, ssp_lib_dict, (4000, 6900))
+        #Generate synthetic observation using default values
+        
+        self.mask_stellar = OrderedDict()
+        self.mask_stellar['He1_4026A']      = (4019, 4033)
+        self.mask_stellar['He1_4471A']      = (4463, 4480)
+        self.mask_stellar['He1_5876A']      = (5867, 5885)
+        self.mask_stellar['He1_6678A']      = (6667, 6687)
+        self.mask_stellar['H1_delta']       = (4090,4114)
+        self.mask_stellar['H1_gamma']       = (4329,4353)
+        self.mask_stellar['H1_beta']        = (4840,4880)
+        self.mask_stellar['H1_alpha']       = (6551,6575)
+        
+        self.stellar_SED            = self.calculate_synthStellarSED(self.obj_data['Av_star'], self.obj_data['z_star'], self.obj_data['sigma_star'], default_Starlight_coeffs, ssp_lib_dict, (4000, 6900), mask_dict= self.mask_stellar)
         
         #-------Prepare nebular continua
         self.Hbeta_Flux             = 1e4 #This is the zanstra calibration factor which we are multipliying by the emissivity ratio
