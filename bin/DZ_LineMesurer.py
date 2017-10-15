@@ -1,6 +1,6 @@
 from collections        import OrderedDict
 from pandas             import read_csv, Series
-from numpy              import concatenate, ones, power, searchsorted, sqrt, std, where, loadtxt, linspace, median, max as npmax, True_, False_, bool_, empty
+from numpy              import concatenate, ones, power, searchsorted, sqrt, std, where, loadtxt, linspace, median, max as npmax, True_, False_, bool_, empty, isnan
 from uncertainties      import ufloat 
 from DZ_Logs            import LineMesurer_Log
 from pandas.core.frame  import DataFrame
@@ -647,14 +647,14 @@ class LineMesurer_v2(Fitting_Gaussians_v2, LineMesurer_Log):
         self.fit_dict.loc['Wave1':'Wave6']      = wavelengths_list
                 
         #Calculation and plotting  parameters of adjacent continuum
-        self.continuum_Regions(subWave, subFlux)
+        self.continuum_Regions(subWave, subFlux, adjacent_continuum=True)
 
         #Check if emission or absorption line as well as line mixture #WE SHOULD ONLY FEED HERE THE LINE REGION NOT ALL
         self.check_GaussianMixture(subWave, Measuring_Method, lines_dataframe, force_check=True)
 
         #Convert emission lines to gaussian equivalents
         self.calculate_Intensity(subWave, subFlux, lines_dataframe)
-
+        
         #Store line data in the log                   
         if store_data and  self.fit_dict.start_treatment:
             if lines_dataframe is None:
@@ -735,6 +735,12 @@ class LineMesurer_v2(Fitting_Gaussians_v2, LineMesurer_Log):
             #We perform a linear regresion taking into consideration the error in the flux #WARNING no se si esto esta bien
             m_Continuum, n_continuum = Python_linfit(WaveCont_BothSides, FluxCont_BothSides, FluxError_BothSides, errors_output = False)
             
+            #Security check for very low density
+            if isnan(m_Continuum):
+                m_Continuum = 0.0
+            if isnan(n_continuum):
+                n_continuum = 0.0
+            
             #Features for plotting
             Blue_wave_zerolev  = (subWave[idx2] + subWave[idx1]) / 2
             Red_wave_zerolev   = (subWave[idx6] + subWave[idx5]) / 2
@@ -751,7 +757,7 @@ class LineMesurer_v2(Fitting_Gaussians_v2, LineMesurer_Log):
             
             #Storing data into the fitting dictionary
             self.fit_dict['zerolev_mean']       = m_Continuum * ((subWave[idx3] + subWave[idx4]) / 2) + n_continuum
-            self.fit_dict['zerolev_std']        = std(Dif_FluxCont)
+            self.fit_dict['zerolev_std']        = std(Dif_FluxCont) if std(Dif_FluxCont) != 0.0 else 1.0e-5
             self.fit_dict['m_zerolev']          = m_Continuum #Assuming a line this is the gradient (m)
             self.fit_dict['n_zerolev']          = n_continuum #Assuming a line this is the y axis interception point (n)
             self.fit_dict['zerolev_linear']     = Linear_Flux
@@ -760,10 +766,32 @@ class LineMesurer_v2(Fitting_Gaussians_v2, LineMesurer_Log):
             self.fit_dict['Blue_flux_zerolev']  = Blue_flux_zerolev
             self.fit_dict['Red_flux_zerolev']   = Red_flux_zerolev
             self.fit_dict['zerolev_width']      = zerolev_width
-        
+            
+#             print 'zerolev_mean', self.fit_dict['zerolev_mean'], m_Continuum, n_continuum
+#             print 'zerolev_std', self.fit_dict['zerolev_std']
+#             print 'm_zerolev', self.fit_dict['m_zerolev']  
+#             print 'n_zerolev', self.fit_dict['n_zerolev']
+#             print 'zerolev_linear', self.fit_dict['zerolev_linear'] 
+#             print 'Blue_wave_zerolev', self.fit_dict['Blue_wave_zerolev']
+#             print 'Red_wave_zerolev', self.fit_dict['Red_wave_zerolev']
+#             print 'Blue_flux_zerolev', self.fit_dict['Blue_flux_zerolev']
+#             print 'Red_flux_zerolev', self.fit_dict['Red_flux_zerolev']                            
+#             print 'zerolev_width', self.fit_dict['zerolev_width']                            
+                                    
         else:
-            print 'Middle region continua'
-                 
+
+            #Storing data into the fitting dictionary
+            self.fit_dict['zerolev_mean']       = (subFlux[idx3] + subFlux[idx4]) / 2 
+            self.fit_dict['zerolev_std']        = 0.0
+            self.fit_dict['m_zerolev']          = (subFlux[idx4] - subFlux[idx3]) / (subWave[idx4] - subWave[idx3])            
+            self.fit_dict['n_zerolev']          = subFlux[idx3] - self.fit_dict['m_zerolev'] * subWave[idx3]
+            self.fit_dict['zerolev_linear']     = self.fit_dict['m_zerolev'] * subWave + self.fit_dict['n_zerolev']
+            self.fit_dict['Blue_wave_zerolev']  = 0.0
+            self.fit_dict['Red_wave_zerolev']   = 0.0
+            self.fit_dict['Blue_flux_zerolev']  = 0.0
+            self.fit_dict['Red_flux_zerolev']   = 0.0
+            self.fit_dict['zerolev_width']      = self.fit_dict['zerolev_linear'].shape[0]
+                       
         return
               
     def check_GaussianMixture(self, SubWave, Methodology, lines_dataframe, force_check = True):
@@ -804,13 +832,9 @@ class LineMesurer_v2(Fitting_Gaussians_v2, LineMesurer_Log):
         if self.Current_Label is not None:
             if '_w' in self.Current_Label:
                 force_check = False
-        
-        
-        print self.Current_Label
-        
+                
         #Automatic analysis for blended lines
         if force_check:
-            print 'vamos bien', SubWave[self.fit_dict.idx2], SubWave[self.fit_dict.idx3]
 
             #Check we are actually including the emission line intended
             if  SubWave[self.fit_dict.idx2] < self.Current_TheoLoc < SubWave[self.fit_dict.idx3]:  #This is a security check that should be at the top
@@ -882,7 +906,7 @@ class LineMesurer_v2(Fitting_Gaussians_v2, LineMesurer_Log):
                 
         # Check we are actually including the line intended #GET A GOOD ERROR MESSAGE FOR THE CASE THIS DOES HAPPEN                
         if self.fit_dict['start_treatment']:
-          
+            
             #Load lmfit parameters:
             self.load_lmfit_parameters(subWave[idx3:idx4], subFlux[idx3:idx4], self.fit_dict.zerolev_linear[idx3:idx4], self.fit_dict.zerolev_std, self.fit_dict.line_number, wide_component = False)
                    
@@ -964,11 +988,11 @@ class LineMesurer_v2(Fitting_Gaussians_v2, LineMesurer_Log):
         #--MC treatment
         #Single
         if Ncomps == 1:
-            
-            start = timer()
-            Eqw0 = ufloat(self.fit_dict['flux_intg'], self.fit_dict['flux_intg_er']) / ufloat(local_median, sigma_continuum)
-            self.fit_dict['eqw0'], self.fit_dict['eqw0_er'] = Eqw0.nominal_value, Eqw0.std_dev
-            
+            if local_median > 1e-50:
+                Eqw0 = ufloat(self.fit_dict['flux_intg'], self.fit_dict['flux_intg_er']) / ufloat(local_median, sigma_continuum)
+                self.fit_dict['eqw0'], self.fit_dict['eqw0_er'] = Eqw0.nominal_value, Eqw0.std_dev
+            else:
+                self.fit_dict['eqw0'], self.fit_dict['eqw0_er'] = 0.0, 0.0
             
         #Blended line
         else:

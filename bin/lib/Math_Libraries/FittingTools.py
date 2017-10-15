@@ -653,9 +653,7 @@ class Fitting_Gaussians_v2():
         self.sqrt2pi = sqrt(2*pi)
 
     def load_lmfit_parameters(self, x, y, zerolev, err_zerolev, n_comps, wide_component = False, A_limits = 0.30, mu_precission = 2, sigma_limit = 5):
-        
-        #WARNING: lmfit uses ordered dictionaries... this consumes resources
-        
+                
         #Scale parameters
         ind_max = argmax(y)
         self.fit_dict['x_scaler'], self.fit_dict['y_scaler'] = x[ind_max], y[ind_max]
@@ -678,7 +676,7 @@ class Fitting_Gaussians_v2():
         self.params_lmfit.clear()
         
         #Just one component
-        if n_comps:
+        if n_comps == 1:
             self.params_lmfit.add('A0',     value = peak_flux[0] - mean(self.fit_dict.zerolev_n), min = 0.0)
             self.params_lmfit.add('mu0',    value = peak_wave[0], min = peak_wave[0] - mu_precission, max = peak_wave[0] + mu_precission)
             self.params_lmfit.add('sigma0', value = 1, min = 0)
@@ -793,10 +791,12 @@ class Fitting_Gaussians_v2():
                             
         #Perform the fit using kapteyn
         fitobj              = kmpfit.Fitter(residuals=residual_gauss_kmpfit, data=(x, y, zero_lev, err_continuum))
-        mean_area           = simps(y, x) - simps(zero_lev, x)
         fitobj.fit(params0  = initial_values)
         params_array        = fitobj.params
-            
+        
+        #Integrating area
+        mean_area           = simps(y, x) - simps(zero_lev, x)
+
         #Compute Bootstrap output        
         A                   = params_array[0]
         mu                  = params_array[1]
@@ -1276,4 +1276,3 @@ def NumpyRegression(x, y):
     m, n = lstsq(Matrix_Coefficient, y)[0]
  
     return m, n
-

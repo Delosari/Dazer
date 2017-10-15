@@ -517,7 +517,6 @@ class ssp_fitter(ssp_synthesis_importer):
         #Generate synth spectrum
         sigma_err                       = 0.01 * median(obs_flux_resam)
         obs_fluxEr_resam                = random.normal(0.0, sigma_err, len(obs_flux_norm))        
-        #obs_fluxEr_norm                 = obs_fluxEr_resam / norm_factor
         obs_fluxEr_norm                 = 0.02
                               
         #Pixels within the spectrum mask
@@ -538,10 +537,10 @@ class ssp_fitter(ssp_synthesis_importer):
         synth_dict['stellar_flux_resam']    = obs_flux_resam + obs_fluxEr_resam
         synth_dict['stellar_fluxEr_resam']  = obs_fluxEr_resam
         synth_dict['stellar_fluxEr_norm']   = obs_fluxEr_norm
-        synth_dict['stellar_one_array']   = ones(nBases) 
-        synth_dict['nObsPix']           = len(obs_flux_resam)       
-        synth_dict['boolean_mask']      = boolean_mask
-        synth_dict['int_mask']          = synth_dict['boolean_mask'] * 1
+        synth_dict['stellar_one_array']     = ones(nBases) 
+        synth_dict['nObsPix']               = len(obs_flux_resam)       
+        synth_dict['boolean_mask']          = boolean_mask
+        synth_dict['int_mask']              = synth_dict['boolean_mask'] * 1
                            
         return synth_dict
 

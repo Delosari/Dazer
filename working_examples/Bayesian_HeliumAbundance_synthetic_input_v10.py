@@ -16,24 +16,25 @@ bm = Run_MCMC()
 #Generate the synthetic data
 bm.calculate_synthFluxes(sim_components)
 
-# #Declare line to measure #We might need to multiply this frames by the waves
-# line                    = 'H1_6563A'
-# bm.Current_Label        = bm.lick_idcs_df.loc[line].name
-# bm.Current_Ion          = bm.lick_idcs_df.loc[line].Ion
-# bm.Current_TheoLoc      = bm.lick_idcs_df.loc[line].lambda_theo * (1 + bm.obj_data['z_star'])
-# selections              = bm.lick_idcs_df.loc[line][3:9].values
-# #Measure the line
-# line_data = bm.measure_line(bm.obj_data['obs_wave_resam'], bm.emission_SED, selections, None, Measuring_Method = 'lmfit', store_data = False) 
-# print 'Flux measured'
-# print line_data['flux_intg']
-# print line_data['flux_gauss0']
-# print 'self.Halpha_norm', bm.Halpha_norm
-# print (bm.Hbeta_Flux/bm.stellar_SED['normFlux_stellar'])
-# dz.FigConf()
-# dz.data_plot(bm.obj_data['obs_wave_resam'], bm.emission_SED, label = 'Emision hydrogen')
-# dz.data_plot(line_data.x_resample, line_data.y_resample, label = 'manual fitting')
-# dz.FigWording(xlabel = 'Wavelength', ylabel = 'Flux', title = '')
-# dz.display_fig()
+#Declare line to measure #We might need to multiply this frames by the waves
+line                    = 'H1_6563A'
+bm.Current_Label        = bm.lick_idcs_df.loc[line].name
+bm.Current_Ion          = bm.lick_idcs_df.loc[line].Ion
+bm.Current_TheoLoc      = bm.lick_idcs_df.loc[line].lambda_theo * (1 + bm.obj_data['z_star'])
+selections              = bm.lick_idcs_df.loc[line][3:9].values
+
+#Measure the line
+line_data = bm.measure_line(bm.obj_data['obs_wave_resam'], bm.emission_SED, selections, None, Measuring_Method = 'lmfit', store_data = False) 
+print 'Flux measured'
+print line_data['flux_intg']
+print line_data['flux_gauss0']
+print 'self.Halpha_norm', bm.Halpha_norm
+print (bm.Hbeta_Flux/bm.stellar_SED['normFlux_stellar'])
+dz.FigConf()
+dz.data_plot(bm.obj_data['obs_wave_resam'], bm.emission_SED, label = 'Emision hydrogen')
+dz.data_plot(line_data.x_resample, line_data.y_resample, label = 'manual fitting')
+dz.FigWording(xlabel = 'Wavelength', ylabel = 'Flux', title = '')
+dz.display_fig()
 
 #Select right model according to data
 bm.select_inference_model(sim_components)     

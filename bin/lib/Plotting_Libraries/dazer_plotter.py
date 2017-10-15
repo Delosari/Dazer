@@ -373,6 +373,8 @@ class Plot_Conf(Fig_Conf):
         Fig_Conf.__init__(self)
         
         self.labels_latex_dic = {'y_plus':r'$y^{+}$',
+                                 'He1_abund':r'$y^{+}$',
+                                 'He2_abund':r'$y^{++}$',
                             'Te':r'$T_{e}$',
                             'T_low':r'$T_{low}$',
                             'T_high':r'$T_{high}$',

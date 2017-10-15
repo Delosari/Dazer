@@ -328,6 +328,18 @@ class Import_model_data(ReddeningLaws):
             
         return
 
+    def calculate_wavelength_mask(self, mask_dict, wavelength_range, z_obj = 0):
+                
+        #Pixels within the spectrum mask
+        redshift        = 1 + z_obj
+        boolean_mask    = ones(len(wavelength_range), dtype=bool)
+        for line in mask_dict:
+            wmin, wmax = mask_dict[line]
+            idx_cur_spec_mask   = (wavelength_range > wmin * redshift) & (wavelength_range < wmax * redshift)
+            boolean_mask        = boolean_mask & ~idx_cur_spec_mask
+        
+        return boolean_mask * 1
+
 class Continua_FluxCalculation(ssp_fitter):
 
     def __init__(self):
