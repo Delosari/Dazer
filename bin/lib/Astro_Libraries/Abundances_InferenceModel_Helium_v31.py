@@ -560,7 +560,7 @@ class Recombination_FluxCalibration(LineMesurer_v2):
                 self.Current_TheoLoc        = lines_waves[i]
                 selections                  = lick_indices.loc[self.Recomb_labels[i]][3:9].values
                 line_data                   = self.measure_line(obs_wave, obs_flux, selections, None, Measuring_Method = 'lmfit', store_data = False)
-                self.obs_recomb_fluxes[i]   = line_data['flux_intg']                
+                self.obs_recomb_fluxes[i]   = line_data['flux_intg'] * (self.obj_data['normFlux_obs'] /self.obj_data['Hbeta_Flux'])                
             
         #Reddening factor for all the lines
         f_module = power(10, -1 * lines_flambda * cHbeta)
@@ -974,6 +974,8 @@ class Inference_AbundanceModel(Import_model_data, Collisional_FluxCalibration, R
             recomb_fluxes = self.calculate_recomb_fluxes(T_He, ne, cHbeta, xi, tau, abund_dict,\
                                                          self.obj_data['obs_wave_resam'], emission_spectrum, self.obj_data['lick_idcs_df'],\
                                                          self.obj_data['recombLine_waves'], self.obj_data['recombLine_ions'], self.obj_data['recombLine_flambda'])
+            
+            recomb_fluxes_norm = recomb_fluxes * (self.stellar_SED['normFlux_stellar']/self.obj_data['Hbeta_Flux'])
             
             return recomb_fluxes
             
