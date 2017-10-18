@@ -641,7 +641,7 @@ class LineMesurer_v2(Fitting_Gaussians_v2, LineMesurer_Log):
         
         #Reset the dictionary to None
         self.fit_dict[self.fitting_parameters]  = None
-               
+                
         #Get indeces of line_regions in spectrum wavelength
         self.fit_dict.loc['idx0':'idx5']        = searchsorted(subWave, wavelengths_list)
         self.fit_dict.loc['Wave1':'Wave6']      = wavelengths_list

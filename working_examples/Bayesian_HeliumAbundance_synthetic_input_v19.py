@@ -3,8 +3,8 @@ from scipy.integrate import simps
 from dazer_methods import Dazer
 from lib.Astro_Libraries.Abundances_InferenceModel_Helium_v32 import Run_MCMC
 
-iterat, burn, thin  = 10000, 0, 1
-sim_model           = 'WithoutAbsorptions_newStructure'
+iterat, burn, thin  = 20000, 0, 1
+sim_model           = 'WithAbsorptions_newStructure'
 sim_components      = '_He_S_O_neb_stellar'
 obs_metals          = ['H', 'He1', 'S2', 'S3', 'O2', 'O3', 'N2', 'Ar3', 'Ar4']
 sim_name            = sim_model + sim_components
@@ -31,23 +31,23 @@ bm.run_pymc2(db_address, iterat, variables_list=params_list, prefit=False)
 pymc2_db, stat_db_dict = bm.load_pymc_database_manual(db_address, burning, params_list)
 
 #Measure the line
-dz.FigConf()
-dz.data_plot(bm.obj_data['obs_wave_resam'], bm.obj_data['obs_flux_norm_masked'], label = 'obs_flux_norm_masked')
+#dz.FigConf()
+#dz.data_plot(bm.obj_data['obs_wave_resam'], bm.obj_data['obs_flux_norm_masked'], label = 'obs_flux_norm_masked')
 # dz.data_plot(bm.obj_data['obs_wave_resam'], bm.obj_data['obs_flux_norm'], label = 'obs_flux_norm')
 # dz.data_plot(bm.obj_data['obs_wave_resam'], bm.stellar_SED['stellar_flux_norm'] + bm.nebular_SED['neb_flux_norm'], label = 'stellar_flux_norm + neb' )
 # dz.data_plot(bm.obj_data['obs_wave_resam'], bm.nebular_SED['neb_flux_norm'], label = 'nebular_SED')
 # dz.data_plot(bm.obj_data['obs_wave_resam'], bm.emission_Spec, label = 'emission_Spec')
 # dz.data_plot(bm.obj_data['obs_wave_resam'], bm.obj_data['obs_flux_norm'] - np.mean(stat_db_dict['stellar_continua_calculation']['trace'], axis=0), label = 'obs_flux_norm minus')
-dz.data_plot(bm.obj_data['obs_wave_resam'], np.mean(stat_db_dict['stellar_continua_calculation']['trace'],axis=0), label = 'stellar_continua_calculation', linestyle='--')
+#dz.data_plot(bm.obj_data['obs_wave_resam'], np.mean(stat_db_dict['stellar_continua_calculation']['trace'],axis=0), label = 'stellar_continua_calculation', linestyle='--')
 # dz.data_plot(bm.obj_data['obs_wave_resam'], np.mean(stat_db_dict['nebular_continua_calculation']['trace'],axis=0), label = 'nebular_continua_calculation', linestyle='--')
-dz.FigWording(xlabel = 'Wavelength', ylabel = 'Flux', title = '')
+#dz.FigWording(xlabel = 'Wavelength', ylabel = 'Flux', title = '')
 # print 'y_plus', stat_db_dict['He1_abund']['mean']
 # print 'T_He', stat_db_dict['T_He']['mean']
 # print 'ne', stat_db_dict['ne']['mean']
-print 'obs pure emission', bm.recomb_fluxes
+#print 'obs pure emission', bm.recomb_fluxes
 # print 'The pure emission', np.mean(stat_db_dict['calc_recomb_fluxes']['trace'],axis=0)
-print 'calc_obs_emission', np.mean(stat_db_dict['calc_obs_emission']['trace'],axis=0)
-dz.display_fig()
+#print 'calc_obs_emission', np.mean(stat_db_dict['calc_obs_emission']['trace'],axis=0)
+#dz.display_fig()
 
 # dz.FigConf()
 # emis_spectrum = bm.emission_Spec
@@ -69,24 +69,24 @@ dz.display_fig()
 # dz.display_fig()
 
          
-# #Traces plot
-# print '-Generating traces plot'
-# dz.traces_plot(params_list, pymc2_db, stat_db_dict)
-# dz.save_manager(db_address + '_tracesPlot_Test', save_pickle = False)
-#               
-# #Posteriors plot
-# print '-Generating posteriors plot'
-# dz.posteriors_plot(params_list, pymc2_db, stat_db_dict)
-# dz.save_manager(db_address + '_posteriorPlot', save_pickle = False)
-#                
-# #Posteriors plot
-# print '-Generating acorrelation plot'
-# dz.acorr_plot(params_list, pymc2_db, stat_db_dict, n_columns=4, n_rows=4)
-# dz.save_manager(db_address + '_acorrPlot', save_pickle = False)
-#              
-# #Corner plot
-# print '-Generating corner plot'
-# dz.corner_plot(params_list, pymc2_db, stat_db_dict, plot_true_values=True)
-# dz.save_manager(db_address + '_cornerPlot', save_pickle = False)
-#             
-# print '\nData treated'
+#Traces plot
+print '-Generating traces plot'
+dz.traces_plot(params_list, pymc2_db, stat_db_dict)
+dz.save_manager(db_address + '_tracesPlot_Test', save_pickle = False)
+               
+#Posteriors plot
+print '-Generating posteriors plot'
+dz.posteriors_plot(params_list, pymc2_db, stat_db_dict)
+dz.save_manager(db_address + '_posteriorPlot', save_pickle = False)
+                
+#Posteriors plot
+print '-Generating acorrelation plot'
+dz.acorr_plot(params_list, pymc2_db, stat_db_dict, n_columns=4, n_rows=4)
+dz.save_manager(db_address + '_acorrPlot', save_pickle = False)
+              
+#Corner plot
+print '-Generating corner plot'
+dz.corner_plot(params_list, pymc2_db, stat_db_dict, plot_true_values=True)
+dz.save_manager(db_address + '_cornerPlot', save_pickle = False)
+             
+print '\nData treated'

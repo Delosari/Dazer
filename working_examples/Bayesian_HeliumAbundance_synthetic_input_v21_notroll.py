@@ -1,8 +1,8 @@
 from dazer_methods import Dazer
-from lib.Astro_Libraries.Abundances_InferenceModel_Helium_v30 import Run_MCMC
+from lib.Astro_Libraries.Abundances_InferenceModel_Helium_v34_notroll import Run_MCMC
 
-iterat, burn, thin  = 10000, 0, 1
-sim_model           = 'NewRecomb_porSiAcaso'
+iterat, burn, thin  = 15000, 0, 1
+sim_model           = 'ReDoing_WithoutAbs'
 sim_components      = '_He_S_O_neb_stellar'
 obs_metals          = ['H', 'He1', 'S2', 'S3', 'O2', 'O3', 'N2', 'Ar3', 'Ar4']
 sim_name            = sim_model + sim_components
