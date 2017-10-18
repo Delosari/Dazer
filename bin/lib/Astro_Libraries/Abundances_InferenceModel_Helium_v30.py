@@ -653,7 +653,10 @@ class Inference_AbundanceModel(Import_model_data, Collisional_FluxCalibration, R
         #Collisinal excited features        
         self.obs_metal_fluxes       = self.synth_collisional_emission(obs_lines)
         self.obs_metal_Error        = self.obs_metal_fluxes * 0.02
-                             
+        
+        #Total lines
+        self.obs_total_lines
+                    
         #-------Prepare stellar continua
         #Load stellar libraries
         default_Starlight_file      = self.paths_dict['stellar_data_folder'] + 'Dani_Bases_Extra.txt'
@@ -839,6 +842,61 @@ class Inference_AbundanceModel(Import_model_data, Collisional_FluxCalibration, R
         
         return recomb_fluxes
 
+    def synth_emission(self, obs_lines):
+        
+        #Loop through the ions and read the lines (this is due to the type I format the synth data)
+        lines_labes, lines_waves, lines_ions, lines_abund, lines_pynebCode = [], [], [], [], []
+        abund_dict = {}
+        
+        for ion in obs_lines:
+            if ion in ['H', 'He', 'He1', 'He2']:
+                lines_ions          += [ion] * len(self.obj_data[ion + '_wave'])
+                lines_labes         += list(self.obj_data[ion + '_labels'])
+                lines_waves         += list(self.obj_data[ion + '_wave'])
+                lines_pynebCode     += list(self.obj_data[ion + '_pyneb_code'])
+                
+                if ion == 'H':
+                    lines_abund     += [1.0] * len(self.obj_data[ion + '_wave'])
+                    abund_dict[ion] = 1.0                    
+                else:
+                    lines_abund     += [self.obj_data[ion + '_abund']] * len(self.obj_data[ion + '_wave'])
+                    abund_dict[ion] = self.obj_data[ion + '_abund']
+                    
+                self.abund_iter_dict[ion] = 0.0    
+
+        #Convert lists to numpy arrays
+        lines_labes, lines_waves, lines_ions = array(lines_labes), array(lines_waves), array(lines_ions)
+        lines_abund, lines_pynebCode = array(lines_abund), array(lines_pynebCode)
+
+        #Sorting by increasing wavelength
+        idx_sort        = argsort(lines_waves)
+        lines_labes     = lines_labes[idx_sort]
+        lines_waves     = lines_waves[idx_sort]
+        lines_ions      = lines_ions[idx_sort]
+        lines_abund     = lines_abund[idx_sort]
+        self.Recomb_pynebCode = lines_pynebCode[idx_sort]
+        self.Recomb_labels = lines_labes
+        
+        #Calculate xX array
+        lines_labes_xX  = self.reddening_Xx(lines_waves, self.reddedning_curve_model, self.Rv_model)
+        lines_flambda   = lines_labes_xX/self.Hbeta_xX - 1.0
+
+        #Parameters to speed the code
+        self.n_recombLines = len(lines_waves)
+        self.range_recombLines = arange(self.n_recombLines)
+
+        recomb_fluxes = self.calculate_recomb_fluxes(self.obj_data['T_high'], self.obj_data['n_e'],\
+                                                      self.obj_data['cHbeta'], self.obj_data['xi'], self.obj_data['tau'],\
+                                                      abund_dict, lines_waves, lines_ions, lines_flambda)
+        
+        self.obj_data['recombLine_ions'] = lines_ions
+        self.obj_data['recombLine_labes'] = lines_labes
+        self.obj_data['recombLine_waves'] = lines_waves
+        self.obj_data['recombLine_pynebCode'] = lines_pynebCode  
+        self.obj_data['recombLine_flambda'] = lines_flambda
+        
+        return recomb_fluxes    
+     
     def He_O_S_nebStellar_model(self):
         
         ne          =   pymc2.TruncatedNormal(  'ne',           self.obj_data['nSII'],      self.obj_data['nSII_error']**-2,    a = 50.0 ,   b = 1000.0)
