@@ -676,8 +676,7 @@ class Inference_AbundanceModel(Import_model_data, Collisional_FluxCalibration, R
         #Recombination features                    
         self.recomb_fluxes          = self.synth_recomb_emission(obs_lines)
         self.obs_recomb_err         = self.recomb_fluxes * 0.02
-        self.obs_recomb_fluxes      = empty(self.recomb_fluxes.shape[0])
-                                
+                           
         #Collisinal excited features        
         self.obs_metal_fluxes       = self.synth_collisional_emission(obs_lines)
         self.obs_metal_Error        = self.obs_metal_fluxes * 0.02
@@ -707,7 +706,7 @@ class Inference_AbundanceModel(Import_model_data, Collisional_FluxCalibration, R
         self.Hbeta_Flux  = 1e4 #This is the zanstra calibration factor which we are multipliying by the emissivity ratio
         
         self.idx_Halpha  = (self.obj_data['recombLine_labes'] == 'H1_6563A')
-        Halpha_Flux      = self.obs_recomb_fluxes[self.idx_Halpha] * self.Hbeta_Flux / self.stellar_SED['normFlux_stellar']
+        Halpha_Flux      = self.recomb_fluxes[self.idx_Halpha] * self.Hbeta_Flux / self.stellar_SED['normFlux_stellar']
         self.Halpha_norm = Halpha_Flux[0]
 
         self.nebular_SED = self.calculate_nebular_SED(self.stellar_SED['stellar_wave_resam'], self.obj_data['z_star'], self.obj_data['cHbeta'], self.obj_data['T_low'], self.obj_data['He1_abund'], self.obj_data['He2_abund'], Halpha_Flux)
@@ -740,6 +739,19 @@ class Inference_AbundanceModel(Import_model_data, Collisional_FluxCalibration, R
         self.obj_data['int_mask']               = self.stellar_SED['int_mask']
         self.obj_data['obs_fluxEr_norm']        = self.stellar_SED['stellar_fluxEr_norm']
         
+        #Calculate the recombination fluxes_taking into consideration the absorptions
+        self.obs_recomb_fluxes = empty(self.n_recombLines)
+        for i in self.range_recombLines:
+            line_label = self.Recomb_labels[i]
+            self.Current_Label        = self.Recomb_labels[i]
+            self.Current_Ion          = self.obj_data['recombLine_ions'][i]
+            self.Current_TheoLoc      = self.obj_data['recombLine_waves'][i]
+            selections                = self.obj_data['lick_idcs_df'].loc[self.Recomb_labels[i]][3:9].values
+            
+            line_data_with_abs        = self.measure_line(self.obj_data['obs_wave_resam'], self.obj_data['obs_flux_norm'], selections, None, Measuring_Method = 'lmfit', store_data = False)   
+            self.obs_recomb_fluxes[i] = line_data_with_abs['flux_intg'] * (self.obj_data['normFlux_obs'] / self.Hbeta_Flux)
+            print line_label, self.obs_recomb_fluxes[i]
+            
         if verbose:
             print '\nInput Parameters:'
             print '-He1_abund', self.obj_data['He1_abund']
@@ -954,7 +966,7 @@ class Inference_AbundanceModel(Import_model_data, Collisional_FluxCalibration, R
             return flux_continuum_norm
         
         @pymc2.deterministic
-        def calc_recomb_fluxes(abund_dict=calc_abund_dict, T_He=T_He, ne=ne, cHbeta=cHbeta, xi=xi, tau=tau):
+        def calc_recomb_emis(abund_dict=calc_abund_dict, T_He=T_He, ne=ne, cHbeta=cHbeta, xi=xi, tau=tau):
               
             recomb_fluxes = self.calculate_recomb_fluxes(T_He, ne, cHbeta, xi, tau, abund_dict,\
                                                           self.obj_data['recombLine_waves'], self.obj_data['recombLine_ions'], self.obj_data['recombLine_flambda'])
@@ -962,11 +974,14 @@ class Inference_AbundanceModel(Import_model_data, Collisional_FluxCalibration, R
             return recomb_fluxes
 
         @pymc2.deterministic
-        def calc_obs_emission(continuum_flux = stellar_continua_calculation):
+        def calc_recomb_line(recomb_emis_fluxes = calc_recomb_emis, continuum_flux = stellar_continua_calculation, z_obj=self.obj_data['z_star']):
             
-            emission_spectrum = self.obj_data['obs_flux_norm'] - continuum_flux
+            emission_Spec = self.synth_spectrum(self.obj_data['obs_wave_resam'], self.obj_data['recombLine_waves'], recomb_emis_fluxes,\
+                                                       self.obj_data['recombLine_waves'], self.obj_data['sigma_gas'], z_obj)            
             
-            self.obs_recomb_fluxes = empty(self.n_recombLines)
+            sym_spectrum  = emission_Spec + continuum_flux
+            
+            theo_recomb_fluxes = empty(self.n_recombLines)
             
             for i in self.range_recombLines:
                 line_label = self.Recomb_labels[i]
@@ -974,11 +989,11 @@ class Inference_AbundanceModel(Import_model_data, Collisional_FluxCalibration, R
                 self.Current_Ion            = self.obj_data['recombLine_ions'][i]
                 self.Current_TheoLoc        = self.obj_data['recombLine_waves'][i]
                 selections                  = self.obj_data['lick_idcs_df'].loc[self.Recomb_labels[i]][3:9].values
-                line_data                   = self.measure_line(self.obj_data['obs_wave_resam'], emission_spectrum, selections, None, Measuring_Method = 'lmfit', store_data = False)
-                self.obs_recomb_fluxes[i]   = line_data['flux_intg'] * (self.obj_data['normFlux_obs'] / self.Hbeta_Flux)        
-
-            return self.obs_recomb_fluxes
-
+                line_data                   = self.measure_line(self.obj_data['obs_wave_resam'], sym_spectrum, selections, None, Measuring_Method = 'lmfit', store_data = False)
+                theo_recomb_fluxes[i]       = line_data['flux_intg'] * (self.obj_data['normFlux_obs'] / self.Hbeta_Flux)        
+                        
+            return theo_recomb_fluxes
+                    
         @pymc2.stochastic(observed=True) #Likelihood
         def likelihood_ssp(value = self.obj_data['obs_flux_norm_masked'], StellarCont_TheoFlux=stellar_continua_calculation, sigmaContinuum=self.obj_data['obs_fluxEr_norm']):
             
@@ -987,7 +1002,7 @@ class Inference_AbundanceModel(Import_model_data, Collisional_FluxCalibration, R
             return - chi_F / 2
  
         @pymc2.stochastic(observed=True) #Likelihood
-        def likelihood_recomb(value = self.obs_recomb_fluxes, H_He_TheoFlux = calc_recomb_fluxes, sigmaLines = self.obs_recomb_err):
+        def likelihood_recomb(value = self.obs_recomb_fluxes, H_He_TheoFlux = calc_recomb_line, sigmaLines = self.obs_recomb_err):
             chi_F = sum(square(H_He_TheoFlux - value) / square(sigmaLines))
             return - chi_F / 2
 
@@ -1008,7 +1023,7 @@ class Inference_AbundanceModel(Import_model_data, Collisional_FluxCalibration, R
             return - chi_F / 2  
 
         @pymc2.deterministic() #Deterministic method to track the evolution of the chi:
-        def chiSq_recomb(H_He_ObsFlux = self.obs_recomb_fluxes, H_He_TheoFlux = calc_recomb_fluxes, sigmaLines = self.obs_recomb_err):
+        def chiSq_recomb(H_He_ObsFlux = self.obs_recomb_fluxes, H_He_TheoFlux = calc_recomb_line, sigmaLines = self.obs_recomb_err):
             chi_F = sum(square(H_He_TheoFlux - H_He_ObsFlux) / square(sigmaLines))
             return - chi_F / 2
  
