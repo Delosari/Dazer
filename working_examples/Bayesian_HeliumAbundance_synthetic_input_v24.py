@@ -2,7 +2,7 @@ from numpy import empty
 from dazer_methods import Dazer
 from lib.Astro_Libraries.Abundances_InferenceModel_Helium_v36 import Run_MCMC
 
-iterat, burn, thin  = 15000, 0, 1
+iterat, burn, thin  = 10000, 0, 1
 sim_model           = 'ReDoing_WithAbs_theOtherWay'
 sim_components      = '_He_S_O_neb_stellar'
 obs_metals          = ['H', 'He1', 'S2', 'S3', 'O2', 'O3', 'N2', 'Ar3', 'Ar4']
