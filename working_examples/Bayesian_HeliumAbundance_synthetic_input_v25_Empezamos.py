@@ -16,36 +16,36 @@ bm = Run_MCMC()
 #Generate the synthetic data
 bm.calculate_simObservation(sim_components, obs_lines = obs_metals)
 
-#Select right model according to data
-bm.select_inference_model(sim_components)     
-
-#Variables to save
-db_address  = '{}{}_it{}_burn{}'.format(bm.paths_dict['inference_folder'], sim_name, iterat, burn) 
-   
-#Run sampler
-bm.run_pymc2(db_address, iterat, variables_list=params_list, prefit=False)
-         
-#Load database
-pymc2_db, stat_db_dict = bm.load_pymc_database_manual(db_address, burning, params_list)
-          
-#Traces plot
-print '-Generating traces plot'
-dz.traces_plot(params_list, pymc2_db, stat_db_dict)
-dz.save_manager(db_address + '_tracesPlot_Test', save_pickle = False)
-            
-#Posteriors plot
-print '-Generating posteriors plot'
-dz.posteriors_plot(params_list, pymc2_db, stat_db_dict)
-dz.save_manager(db_address + '_posteriorPlot', save_pickle = False)
-             
-#Posteriors plot
-print '-Generating acorrelation plot'
-dz.acorr_plot(params_list, pymc2_db, stat_db_dict, n_columns=4, n_rows=4)
-dz.save_manager(db_address + '_acorrPlot', save_pickle = False)
-           
-#Corner plot
-print '-Generating corner plot'
-dz.corner_plot(params_list, pymc2_db, stat_db_dict, plot_true_values=True)
-dz.save_manager(db_address + '_cornerPlot', save_pickle = False)
-          
-print '\nData treated'
+# #Select right model according to data
+# bm.select_inference_model(sim_components)     
+# 
+# #Variables to save
+# db_address  = '{}{}_it{}_burn{}'.format(bm.paths_dict['inference_folder'], sim_name, iterat, burn) 
+#    
+# #Run sampler
+# bm.run_pymc2(db_address, iterat, variables_list=params_list, prefit=False)
+#          
+# #Load database
+# pymc2_db, stat_db_dict = bm.load_pymc_database_manual(db_address, burning, params_list)
+#           
+# #Traces plot
+# print '-Generating traces plot'
+# dz.traces_plot(params_list, pymc2_db, stat_db_dict)
+# dz.save_manager(db_address + '_tracesPlot_Test', save_pickle = False)
+#             
+# #Posteriors plot
+# print '-Generating posteriors plot'
+# dz.posteriors_plot(params_list, pymc2_db, stat_db_dict)
+# dz.save_manager(db_address + '_posteriorPlot', save_pickle = False)
+#              
+# #Posteriors plot
+# print '-Generating acorrelation plot'
+# dz.acorr_plot(params_list, pymc2_db, stat_db_dict, n_columns=4, n_rows=4)
+# dz.save_manager(db_address + '_acorrPlot', save_pickle = False)
+#            
+# #Corner plot
+# print '-Generating corner plot'
+# dz.corner_plot(params_list, pymc2_db, stat_db_dict, plot_true_values=True)
+# dz.save_manager(db_address + '_cornerPlot', save_pickle = False)
+#           
+# print '\nData treated'
