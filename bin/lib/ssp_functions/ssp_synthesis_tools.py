@@ -540,6 +540,7 @@ class ssp_fitter(ssp_synthesis_importer):
         synth_dict['stellar_one_array']     = ones(nBases) 
         synth_dict['nObsPix']               = len(obs_flux_resam)       
         synth_dict['boolean_mask']          = boolean_mask
+        synth_dict['bases_coeff']           = bases_coeff
         synth_dict['int_mask']              = synth_dict['boolean_mask'] * 1
                            
         return synth_dict
