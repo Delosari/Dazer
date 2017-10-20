@@ -938,10 +938,17 @@ class Run_MCMC(Inference_AbundanceModel, ssp_fitter):
         #Print prefit data
         print 'Initial conditions:'
         self.display_run_data(self.MAP_Model, variables_list)
-                 
+        
+#         M.use_step_method(pymc.AdaptiveMetropolis, [x,y,z], \
+#                    scales={'x':1, 'y':2, 'z':.5}, delay=10000)
+        
         #Launch sample
         print '\nInitiating fit:'
         self.pymc2_M = pymc2.MCMC(self.MAP_Model.variables, db = 'pickle', dbname =  db_address)
+        
+        self.pymc2_M.use_step_method(pymc2.AdaptiveMetropolis, self.MAP_Model.T_low)
+        self.pymc2_M.use_step_method(pymc2.AdaptiveMetropolis, self.MAP_Model.T_He)
+        
         self.pymc2_M.sample(iter=iterations)
          
         #Save the output csv mean data
