@@ -133,7 +133,7 @@ class Import_model_data(ReddeningLaws):
         H1_labels = ['H1_4102A', 'H1_4341A', 'H1_6563A']
         self.ready_lines_data('H1', H1_labels)  
         
-        He1_labels = ['He1_3889A',   'He1_4026A',  'He1_4471A',  'He1_5876A', 'He1_6678A',   'He1_7065A',    'He1_10830A']                          
+        He1_labels = ['He1_4026A',  'He1_4471A',  'He1_5876A', 'He1_6678A']                          
         self.ready_lines_data('He1', He1_labels)  
         
         S2_labels = ['S2_6716A', 'S2_6731A']                        
@@ -157,38 +157,6 @@ class Import_model_data(ReddeningLaws):
         Ar4_labels = ['Ar4_4740A']
         self.ready_lines_data('Ar4', Ar4_labels)    
               
-#         self.obj_data['He1_labels']     = ['He1_3889A',         'He1_4026A',    'He1_4471A',    'He1_5876A', 'He1_6678A',   'He1_7065A',    'He1_10830A']
-#         self.obj_data['He1_wave']       = array([ 3889.0,       4026.0,         4471.0,         5876.0,      6678.0,        7065.0,         10830.0])
-#         self.obj_data['He1_pyneb_code'] = array(['3889.0',      '4026.0',       '4471.0',       '5876.0',    '6678.0',      '7065.0',       '10830.0'])
-# 
-#         self.obj_data['S2_labels']      = ['S2_6716A', 'S2_6731A']
-#         self.obj_data['S2_wave']        = array([6716.44, 6730.81])
-#         self.obj_data['S2_pyneb_code']  = array([6716, 6730])
-#         
-#         self.obj_data['S3_labels']      = ['S3_6312A', 'S3_9069A', 'S3_9531A']
-#         self.obj_data['S3_wave']        = array([6312.06, 9068.6, 9531.1])
-#         self.obj_data['S3_pyneb_code']  = array([6312, 9069, 9531])
-# 
-#         self.obj_data['O2_labels']      = ['O2_3726A', 'O2_3729A']
-#         self.obj_data['O2_wave']        = array([3726.032, 3728.815])
-#         self.obj_data['O2_pyneb_code']  = array([3726, 3729])
-#         
-#         self.obj_data['O3_labels']      = ['O3_4363A', 'O3_4959A', 'O3_5007A']
-#         self.obj_data['O3_wave']        = array([4363.21, 4958.911, 5006.843])
-#         self.obj_data['O3_pyneb_code']  = array([4363, 4959, 5007])
-# 
-#         self.obj_data['N2_labels']      = ['N2_6548A', 'N2_6584A']
-#         self.obj_data['N2_wave']        = array([6548.05, 6583.46])
-#         self.obj_data['N2_pyneb_code']  = array([6548, 6584])
-# 
-#         self.obj_data['Ar3_labels']     = ['Ar3_7136A']
-#         self.obj_data['Ar3_wave']       = array([7135.79])
-#         self.obj_data['Ar3_pyneb_code'] = array([7136])
-#         
-#         self.obj_data['Ar4_labels']     = ['Ar4_4740A']
-#         self.obj_data['Ar4_wave']       = array([4740])
-#         self.obj_data['Ar4_pyneb_code'] = array([4740])
-
         #Generate synthetic observation using default values        
         self.obj_data['mask_stellar'] = OrderedDict()
         self.obj_data['mask_stellar']['He1_4026A']  = (4019, 4033)
@@ -202,67 +170,136 @@ class Import_model_data(ReddeningLaws):
                 
         return
 
-    def load_obs_data(self, lines_df, obj_series, extension_treat = '', Deblend_Check = True):
+    def correct_df_row_name(self, df, lines_to_cor):
+        
+        list_index = df.index.tolist()
+        
+        for i in range(len(lines_to_cor)):
+            idx_i = list_index.index(lines_to_cor[i][0])
+            list_index[idx_i] = lines_to_cor[i][1]
+        
+        df.index = list_index
+        
+        return df
+
+    def load_obs_data(self, lineslog_df, obj_series, obj_wave, obj_flux, extension_treat = '', Deblend_Check = True):
         
         #Empty dictionary to store the data
         self.obj_data = {}
+        #self.Hbeta_xX = self.reddening_Xx(array([self.Hbeta_wave]), self.reddedning_curve_model, self.Rv_model)[0]
+        
+        #Hbeta_data
+        idx_Hbeta                       = lineslog_df.index == 'H1_4861A'
+        self.obj_data['Hbeta_Flux']     = nominal_values(lineslog_df.loc[idx_Hbeta, 'line_Flux'].values[0])
+        self.obj_data['Hbeta_err']      = nominal_values(lineslog_df.loc[idx_Hbeta, 'line_Flux'].values[0])
+        
+        #Correction from new to old indexes
+        corr_pairs                      = [('H1_4340A', 'H1_4341A'), ('He1_4472A', 'He1_4471A')]
+        lineslog_df                     = self.correct_df_row_name(lineslog_df, corr_pairs)
+        
+        #----Get recombination lines
+        posHydro_lines  = ['H1_4102A','H1_4341A','H1_6563A']
+        posHelium_lines = ['He1_4026A','He1_4471A','He1_5876A','He1_6678A']
 
-        #--Define HBeta values in advance
-        idx_Hbeta                       = lines_df.index == 'H1_4861A'
-        self.Hbeta_Flux                 = nominal_values(lines_df.loc[idx_Hbeta, 'line_Flux'].values)
-        self.Hbeta_error                = std_devs(lines_df.loc[idx_Hbeta, 'line_Flux'].values)
-        self.Hbeta_Eqw                  = nominal_values(lines_df.loc[idx_Hbeta, 'line_Eqw'].values) #WARNING: in cases with removed stellar this eqw gives trouble
-        self.Hbeta_EqwErr               = std_devs(lines_df.loc[idx_Hbeta, 'line_Eqw'].values)
-        self.Hbeta_hlambda              = nominal_values(lines_df.loc[idx_Hbeta, 'Continuum_Median'].values)
+        obsHydrogen_lines = lineslog_df.loc[lineslog_df.index.isin(posHydro_lines)].index.values
+        obsHelium_lines = lineslog_df.loc[lineslog_df.index.isin(posHelium_lines)].index.values
+        self.ready_lines_data('H1', obsHydrogen_lines) 
+        self.ready_lines_data('He1', obsHelium_lines)
+                
+        obsRecomb_lines                 = list(obsHydrogen_lines) + list(obsHelium_lines)
+        
+        #self.Recomb_labels      = lineslog_df.loc[lineslog_df.index.isin(obsRecomb_lines)].index.values
+        #self.Recomb_pynebCode   = self.lines_df.loc[self.lines_df.index.isin(obsRecomb_lines)].pyneb_code.values
+        
+        self.obj_data['recombLine_labes']       = lineslog_df.loc[lineslog_df.index.isin(obsRecomb_lines)].index.values
+        self.obj_data['recombLine_ions']        = self.lines_df.loc[self.lines_df.index.isin(obsRecomb_lines)].ion.values
+        self.obj_data['recombLine_waves']       = self.lines_df.loc[self.lines_df.index.isin(obsRecomb_lines)].wavelength.values
+        self.obj_data['recombLine_pynebCode']   = self.lines_df.loc[self.lines_df.index.isin(obsRecomb_lines)].pyneb_code.values          
+        self.obj_data['recombLine_flambda']     = self.reddening_Xx(self.obj_data['recombLine_waves'], self.reddedning_curve_model, self.Rv_model)/self.Hbeta_xX - 1.0
+        
+        #----Get collisional excited lines
+        S2_labels       = ['S2_6716A', 'S2_6731A']
+        S3_labels       = ['S3_6312A', 'S3_9069A', 'S3_9531A']
+        O2_labels       = ['O2_3726A', 'O2_3729A']
+        O3_labels       = ['O3_4363A', 'O3_4959A', 'O3_5007A']
+        N2_labels       = ['N2_6548A', 'N2_6584A']
+        Ar3_labels      = ['Ar3_7136A']
+        Ar4_labels      = ['Ar4_4740A']
+        self.ready_lines_data('S2', S2_labels)  
+        self.ready_lines_data('S3', S3_labels)
+        self.ready_lines_data('O2', O2_labels)
+        self.ready_lines_data('O3', O3_labels) 
+        self.ready_lines_data('N2', N2_labels)  
+        self.ready_lines_data('Ar3', Ar3_labels)               
+        self.ready_lines_data('Ar4', Ar4_labels) 
+        
+        metals_lines    = S2_labels + S3_labels + O2_labels + O3_labels + N2_labels + Ar3_labels + Ar4_labels
+        obsMetals_lines = lineslog_df.loc[lineslog_df.index.isin(metals_lines)].index.values
+        
+        self.obj_data['colLine_labes']      = lineslog_df.loc[lineslog_df.index.isin(obsMetals_lines)].index.values
+        self.obj_data['colLine_ions']       = self.lines_df.loc[self.lines_df.index.isin(obsMetals_lines)].ion.values
+        self.obj_data['colLine_waves']      = self.lines_df.loc[self.lines_df.index.isin(obsMetals_lines)].wavelength.values
+        self.obj_data['colLine_pynebCode']  = self.lines_df.loc[self.lines_df.index.isin(obsMetals_lines)].pyneb_code.values   
+        self.obj_data['colLine_flambda']    = self.reddening_Xx(self.obj_data['colLine_waves'], self.reddedning_curve_model, self.Rv_model)/self.Hbeta_xX - 1.0
+        
+        
+        
+        
 
-        #Load Hydrogen lines data in the dictionary
-        idcs_H                          = lines_df.index.isin(self.posHydrogen_Lines)   #Hydrogen lines
-        self.obj_data['H_labels']       = lines_df.loc[idcs_H].index.values
-        self.obj_data['H_Ions']         = lines_df.loc[idcs_H, 'Ion'].values
-        self.obj_data['H_Flux']         = nominal_values(lines_df.loc[idcs_H, 'line_Flux'].values)
-        self.obj_data['H_error']        = std_devs(lines_df.loc[idcs_H, 'line_Flux'].values)
-        self.obj_data['H_wave']         = lines_df.loc[idcs_H, 'TheoWavelength'].values
-        self.obj_data['H_Eqw']          = nominal_values(lines_df.loc[idcs_H, 'line_Eqw'].values) #WARNING: in cases with removed stellar this eqw gives trouble
-        self.obj_data['H_EqwErr']       = std_devs(lines_df.loc[idcs_H, 'line_Eqw'].values)
-        self.obj_data['H_hlambda']      = nominal_values(lines_df.loc[idcs_H, 'Continuum_Median'].values)
-        self.obj_data['H_pyneb_code']   = lines_df.loc[idcs_H, 'Ion'].str[lines_df.loc[idcs_H, 'Ion'].str.find('_'):]
 
-        #Load Helium lines data
-        idcs_He                         = lines_df.index.isin(self.posHelium_Lines)
-        self.obj_data['He_labels']      = lines_df.loc[idcs_He].index.values
-        self.obj_data['He_Ions']        = lines_df.loc[idcs_He, 'Ion'].values
-        self.obj_data['He_Flux']        = nominal_values(lines_df.loc[idcs_He, 'line_Flux'].values)
-        self.obj_data['He_error']       = std_devs(lines_df.loc[idcs_He, 'line_Flux'].values)
-        self.obj_data['He_wave']        = lines_df.loc[idcs_He, 'TheoWavelength'].values
-        self.obj_data['He_Eqw']         = nominal_values(lines_df.loc[idcs_He, 'line_Eqw'].values) #WARNING: in cases with removed stellar this eqw gives trouble
-        self.obj_data['He_EqwErr']      = std_devs(lines_df.loc[idcs_He, 'line_Eqw'].values)
-        self.obj_data['He_hlambda']     = nominal_values(lines_df.loc[idcs_He, 'Continuum_Median'].values)
-        self.obj_data['He_pyneb_code']  = lines_df.loc[idcs_He].index.str[lines_df.loc[idcs_He].index.str.find('_')+1:-1]
-
-        #Load physical parameters data       
-        Thigh_key                       = obj_series['T_high']
-        self.obj_data['TOIII']          = obj_series[Thigh_key + extension_treat].nominal_value
-        self.obj_data['TOIII_error']    = obj_series[Thigh_key + extension_treat].std_dev
-        self.obj_data['nSII']           = obj_series['neSII' + extension_treat].nominal_value
-        self.obj_data['nSII_error']     = obj_series['neSII' + extension_treat].std_dev
-        self.obj_data['cHbeta_obs']     = obj_series['cHbeta' + extension_treat].nominal_value
-
-        #Check if He1_3889A is on the observations (In the current analysis it appears as 'H1_3889A')
-        if 'H1_3889A' in lines_df.index:
-            idx_He3889A = (lines_df.index == 'H1_4861A')
-            
-            #This should be calculated using the error
-            He3889A_debFlux = self.deblend_He3889A(Te = self.obj_data['TOIII'], ne = self.obj_data['nSII'], cHbeta = self.obj_data['cHbeta_obs'])
-    
-            insert(self.obj_data['He_labels'],      0, lines_df.loc[idx_He3889A].index.values)
-            insert(self.obj_data['He_Ions'],        0, lines_df.loc[idx_He3889A, 'Ion'].values)
-            insert(self.obj_data['He_Flux'],        0, He3889A_debFlux.nominal_value)
-            insert(self.obj_data['He_error'],       0, He3889A_debFlux.std_dev)
-            insert(self.obj_data['He_wave'],        0, lines_df.loc[idx_He3889A, 'TheoWavelength'].values)
-            insert(self.obj_data['He_Eqw'],         0, nominal_values(lines_df.loc[idx_He3889A, 'line_Eqw'].values)) #WARNING: in cases with removed stellar this eqw gives trouble
-            insert(self.obj_data['He_EqwErr'],      0, std_devs(lines_df.loc[idx_He3889A, 'line_Eqw'].values))
-            insert(self.obj_data['He_hlambda'],     0, nominal_values(lines_df.loc[idx_He3889A, 'Continuum_Median'].values))
-            insert(self.obj_data['He_pyneb_code'],  0, lines_df.loc[idx_He3889A].index.str[lines_df.loc[idx_He3889A].index.str.find('_')+1:-1])
+      
+        
+        #Load metallic lines
+#         #Load Hydrogen lines data in the dictionary
+#         idcs_H                          = lines_df.index.isin(self.posHydrogen_Lines)   #Hydrogen lines
+#         self.obj_data['H_labels']       = lines_df.loc[idcs_H].index.values
+#         self.obj_data['H_Ions']         = lines_df.loc[idcs_H, 'Ion'].values
+#         self.obj_data['H_Flux']         = nominal_values(lines_df.loc[idcs_H, 'line_Flux'].values)
+#         self.obj_data['H_error']        = std_devs(lines_df.loc[idcs_H, 'line_Flux'].values)
+#         self.obj_data['H_wave']         = lines_df.loc[idcs_H, 'TheoWavelength'].values
+#         self.obj_data['H_Eqw']          = nominal_values(lines_df.loc[idcs_H, 'line_Eqw'].values) #WARNING: in cases with removed stellar this eqw gives trouble
+#         self.obj_data['H_EqwErr']       = std_devs(lines_df.loc[idcs_H, 'line_Eqw'].values)
+#         self.obj_data['H_hlambda']      = nominal_values(lines_df.loc[idcs_H, 'Continuum_Median'].values)
+#         self.obj_data['H_pyneb_code']   = lines_df.loc[idcs_H, 'Ion'].str[lines_df.loc[idcs_H, 'Ion'].str.find('_'):]
+# 
+#         #Load Helium lines data
+#         idcs_He                         = lines_df.index.isin(self.posHelium_Lines)
+#         self.obj_data['He_labels']      = lines_df.loc[idcs_He].index.values
+#         self.obj_data['He_Ions']        = lines_df.loc[idcs_He, 'Ion'].values
+#         self.obj_data['He_Flux']        = nominal_values(lines_df.loc[idcs_He, 'line_Flux'].values)
+#         self.obj_data['He_error']       = std_devs(lines_df.loc[idcs_He, 'line_Flux'].values)
+#         self.obj_data['He_wave']        = lines_df.loc[idcs_He, 'TheoWavelength'].values
+#         self.obj_data['He_Eqw']         = nominal_values(lines_df.loc[idcs_He, 'line_Eqw'].values) #WARNING: in cases with removed stellar this eqw gives trouble
+#         self.obj_data['He_EqwErr']      = std_devs(lines_df.loc[idcs_He, 'line_Eqw'].values)
+#         self.obj_data['He_hlambda']     = nominal_values(lines_df.loc[idcs_He, 'Continuum_Median'].values)
+#         self.obj_data['He_pyneb_code']  = lines_df.loc[idcs_He].index.str[lines_df.loc[idcs_He].index.str.find('_')+1:-1]
+# 
+#         #Load physical parameters data       
+#         Thigh_key                       = obj_series['T_high']
+#         self.obj_data['TOIII']          = obj_series[Thigh_key + extension_treat].nominal_value
+#         self.obj_data['TOIII_error']    = obj_series[Thigh_key + extension_treat].std_dev
+#         self.obj_data['nSII']           = obj_series['neSII' + extension_treat].nominal_value
+#         self.obj_data['nSII_error']     = obj_series['neSII' + extension_treat].std_dev
+#         self.obj_data['cHbeta_obs']     = obj_series['cHbeta' + extension_treat].nominal_value
+# 
+#         #Check if He1_3889A is on the observations (In the current analysis it appears as 'H1_3889A')
+#         if 'H1_3889A' in lines_df.index:
+#             idx_He3889A = (lines_df.index == 'H1_4861A')
+#             
+#             #This should be calculated using the error
+#             He3889A_debFlux = self.deblend_He3889A(Te = self.obj_data['TOIII'], ne = self.obj_data['nSII'], cHbeta = self.obj_data['cHbeta_obs'])
+#     
+#             insert(self.obj_data['He_labels'],      0, lines_df.loc[idx_He3889A].index.values)
+#             insert(self.obj_data['He_Ions'],        0, lines_df.loc[idx_He3889A, 'Ion'].values)
+#             insert(self.obj_data['He_Flux'],        0, He3889A_debFlux.nominal_value)
+#             insert(self.obj_data['He_error'],       0, He3889A_debFlux.std_dev)
+#             insert(self.obj_data['He_wave'],        0, lines_df.loc[idx_He3889A, 'TheoWavelength'].values)
+#             insert(self.obj_data['He_Eqw'],         0, nominal_values(lines_df.loc[idx_He3889A, 'line_Eqw'].values)) #WARNING: in cases with removed stellar this eqw gives trouble
+#             insert(self.obj_data['He_EqwErr'],      0, std_devs(lines_df.loc[idx_He3889A, 'line_Eqw'].values))
+#             insert(self.obj_data['He_hlambda'],     0, nominal_values(lines_df.loc[idx_He3889A, 'Continuum_Median'].values))
+#             insert(self.obj_data['He_pyneb_code'],  0, lines_df.loc[idx_He3889A].index.str[lines_df.loc[idx_He3889A].index.str.find('_')+1:-1])
+        
+        
         
         return
             
@@ -277,7 +314,7 @@ class Nebular_FluxCalculation(NebularContinuumCalculator):
     def __init__(self):
         
         NebularContinuumCalculator.__init__(self)
-
+        
     def nebular_Cont(self, wave_obs, z, cHbeta, Te, He1_abund, He2_abund, Halpha_Flux):
         
         wave_obs_rest   = wave_obs / (1.0 + z)
@@ -887,13 +924,8 @@ class Inference_AbundanceModel(Import_model_data, Collisional_FluxCalibration, R
         @pymc2.deterministic
         def calc_recomb_fluxes(abund_dict=calc_abund_dict, T_He=T_He, ne=ne, cHbeta=cHbeta, xi=xi, tau=tau):
               
-            recomb_fluxes   = self.calculate_recomb_fluxes(T_He, ne, cHbeta, xi, tau, abund_dict,\
+            recomb_fluxes = self.calculate_recomb_fluxes(T_He, ne, cHbeta, xi, tau, abund_dict,\
                                                           self.obj_data['recombLine_waves'], self.obj_data['recombLine_ions'], self.obj_data['recombLine_flambda'])
-            
-            H_He_fluxes     = self.recomb_fluxes * self.obj_data['Hbeta_Flux']  / self.stellar_SED['normFlux_stellar']
-
-            self.emission_Spec = self.calc_emis_spectrum(self.stellar_SED['stellar_wave_resam'], self.obj_data['recombLine_waves'], H_He_fluxes,\
-                                                       self.obj_data['recombLine_waves'], self.obj_data['sigma_gas'], self.obj_data['z_star'])            
             
             return recomb_fluxes
             
