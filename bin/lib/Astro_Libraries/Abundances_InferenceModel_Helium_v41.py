@@ -42,7 +42,8 @@ class Import_model_data(ReddeningLaws):
             self.paths_dict['Helium_OpticalDepth']  = 'C:/Users/lativ/git/dazer/bin/lib/Astro_Libraries/Helium_OpticalDepthFunction_Coefficients.txt'
             self.paths_dict['stellar_data_folder']  = 'E:/Cloud Storage/Dropbox/Astrophysics/Tools/Starlight/'  
             self.paths_dict['dazer_path']           = 'C:/Users/lativ/git/dazer/'
-    
+            self.paths_dict['lines_data_file']      = 'C:/Users/lativ/git/dazer/bin/lib/Astro_Libraries/lines_data.xlsx'
+            
         #Lines labels and wavelength to use in pyneb
         self.lines_df = read_excel(self.paths_dict['lines_data_file'], sheetname=0, header=0, index_col=0)
      
