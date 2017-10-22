@@ -1,23 +1,35 @@
-import pyneb as pn
-
-# import numpy as np
-# from dazer_methods import Dazer
-# from lib.Astro_Libraries.Abundances_InferenceModel_Helium_v47 import Run_MCMC
-#    
-# iterat, burn, thin  = 15000, 0, 1
-# sim_model           = 'PuttingAllTogether'
-# sim_components      = '_neb_stars_Abunds'
-# obs_metals          = ['H1', 'He1', 'S2', 'S3', 'O2', 'O3', 'N2', 'Ar3', 'Ar4']
-# sim_name            = sim_model + sim_components
-# params_list         = ['He1_abund', 'T_He', 'T_low', 'ne','tau','cHbeta','xi','S2_abund','S3_abund','O2_abund','O3_abund', 'N2_abund', 'Ar3_abund', 'Ar4_abund', 'sigma_star', 'Av_star'] 
-# burning             = 5000
-#                            
-# #Generate dazer object
-# dz = Dazer()
-# bm = Run_MCMC()
+# import pyneb as pn
 # 
-# #Generate the synthetic data
-# bm.calculate_simObservation(sim_components, obs_lines = obs_metals)
+# O2 = pn.Atom('O', 2)
+# 
+# Te = 10000.0
+# ne = 150
+# 
+# print O2.getEmissivity(Te, ne, wave='7319A')
+# print O2.getEmissivity(Te, ne, wave='7319A+')
+# print O2.getEmissivity(Te, ne, wave='7320A')
+# print O2.getEmissivity(Te, ne, wave='7319A') + O2.getEmissivity(Te, ne, wave='7320A')
+# print O2.getEmissivity(Te, ne, wave='3727A+')
+
+
+import numpy as np
+from dazer_methods import Dazer
+from lib.Astro_Libraries.Abundances_InferenceModel_Helium_v47 import Run_MCMC
+    
+iterat, burn, thin  = 15000, 0, 1
+sim_model           = 'PuttingAllTogether'
+sim_components      = '_neb_stars_Abunds'
+obs_metals          = ['H1', 'He1', 'S2', 'S3', 'O2', 'O3', 'N2', 'Ar3', 'Ar4']
+sim_name            = sim_model + sim_components
+params_list         = ['He1_abund', 'T_He', 'T_low', 'ne','tau','cHbeta','xi','S2_abund','S3_abund','O2_abund','O3_abund', 'N2_abund', 'Ar3_abund', 'Ar4_abund', 'sigma_star', 'Av_star'] 
+burning             = 5000
+                            
+#Generate dazer object
+dz = Dazer()
+bm = Run_MCMC()
+ 
+#Generate the synthetic data
+bm.calculate_simObservation(sim_components, obs_lines = obs_metals)
 # 
 # #Select right model according to data
 # bm.select_inference_model(sim_components)
