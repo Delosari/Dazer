@@ -42,8 +42,7 @@ class Import_model_data(ReddeningLaws):
             self.paths_dict['Helium_OpticalDepth']  = 'C:/Users/lativ/git/dazer/bin/lib/Astro_Libraries/Helium_OpticalDepthFunction_Coefficients.txt'
             self.paths_dict['stellar_data_folder']  = 'E:/Cloud Storage/Dropbox/Astrophysics/Tools/Starlight/'  
             self.paths_dict['dazer_path']           = 'C:/Users/lativ/git/dazer/'
-            self.paths_dict['lines_data_file']      = 'C:/Users/lativ/git/dazer/bin/lib/Astro_Libraries/lines_data.xlsx'
-            
+    
         #Lines labels and wavelength to use in pyneb
         self.lines_df = read_excel(self.paths_dict['lines_data_file'], sheetname=0, header=0, index_col=0)
      
@@ -134,7 +133,7 @@ class Import_model_data(ReddeningLaws):
         H1_labels = ['H1_4102A', 'H1_4341A', 'H1_6563A']
         self.ready_lines_data('H1', H1_labels)  
         
-        He1_labels = ['He1_3889A',   'He1_4026A',  'He1_4471A',  'He1_5876A', 'He1_6678A',   'He1_7065A',    'He1_10830A']                          
+        He1_labels = ['He1_4026A',  'He1_4471A',  'He1_5876A', 'He1_6678A']                          
         self.ready_lines_data('He1', He1_labels)  
         
         S2_labels = ['S2_6716A', 'S2_6731A']                        
@@ -888,13 +887,8 @@ class Inference_AbundanceModel(Import_model_data, Collisional_FluxCalibration, R
         @pymc2.deterministic
         def calc_recomb_fluxes(abund_dict=calc_abund_dict, T_He=T_He, ne=ne, cHbeta=cHbeta, xi=xi, tau=tau):
               
-            recomb_fluxes   = self.calculate_recomb_fluxes(T_He, ne, cHbeta, xi, tau, abund_dict,\
+            recomb_fluxes = self.calculate_recomb_fluxes(T_He, ne, cHbeta, xi, tau, abund_dict,\
                                                           self.obj_data['recombLine_waves'], self.obj_data['recombLine_ions'], self.obj_data['recombLine_flambda'])
-            
-            H_He_fluxes     = self.recomb_fluxes * self.obj_data['Hbeta_Flux']  / self.stellar_SED['normFlux_stellar']
-
-            self.emission_Spec = self.calc_emis_spectrum(self.stellar_SED['stellar_wave_resam'], self.obj_data['recombLine_waves'], H_He_fluxes,\
-                                                       self.obj_data['recombLine_waves'], self.obj_data['sigma_gas'], self.obj_data['z_star'])            
             
             return recomb_fluxes
             

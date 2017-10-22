@@ -448,7 +448,7 @@ class ssp_fitter(ssp_synthesis_importer):
         
         #Store stellar base type
         sspLib_dict['data_type'] = ssp_lib_type
-        
+                
         #-----------Resampling the bases
         if resample_int != None:
             bases_wave_resam = arange(int(resample_range[0]), int(resample_range[-1]), resample_int, dtype=float)
@@ -456,6 +456,7 @@ class ssp_fitter(ssp_synthesis_importer):
             #Loop through the bases. (It is assumed the bases may have different wavelength ranges)
             bases_flux_resam = empty((sspLib_dict['nBases'], len(bases_wave_resam)))
             for i in range(sspLib_dict['nBases']):
+                #print i, sspLib_dict['basesWave'][i][0], sspLib_dict['basesWave'][i][-1], bases_wave_resam[0], bases_wave_resam[-1]
                 bases_flux_resam[i,:] = interp1d(sspLib_dict['basesWave'][i], sspLib_dict['fluxBases'][i], bounds_error=True)(bases_wave_resam)
             
             sspLib_dict['basesWave_resam'] = bases_wave_resam
