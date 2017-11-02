@@ -223,14 +223,27 @@ class Import_model_data(ReddeningLaws):
 
     def load_obs_data(self, lineslog_df, obj_series, obj_name, obj_wave, obj_flux, valid_lines, extension_treat = '', Deblend_Check = True):
 
+        #Correction from new to old indexes
         corr_pairs                      = [('H1_4340A', 'H1_4341A'), ('He1_4472A', 'He1_4471A')]
         lineslog_df                     = self.correct_df_row_name(lineslog_df, corr_pairs)
-
+        
+        #Append the pyneb_code and label
+        lineslog_df['pyneb_code']       = None
+        lineslog_df['ion']              = None
+        lineslog_df['wavelength']       = 0.0
+        for row_name in self.lines_df.index:
+            lineslog_df.loc[row_name, 'pyneb_code'] = self.lines_df.loc[row_name, 'pyneb_code']
+            lineslog_df.loc[row_name, 'ion'] = self.lines_df.loc[row_name, 'ion']
+            lineslog_df.loc[row_name, 'wavelength'] = self.lines_df.loc[row_name, 'wavelength']
+        
+        #Nitrogen line does not have error (wide component)
+        lineslog_df.loc['N2_6548A', 'line_Flux'] = lineslog_df.loc['N2_6584A', 'line_Flux'] / 3.0
+        
         #Empty dictionary to store the data
         self.obj_data = {}
        
         #Resample object wavelength and flux
-        wmin, wmax = 3550, 6900
+        wmin, wmax = int(obj_wave[0])+1, 6900
         norm_interval = (5100,5150)
         
         #Resample observation
@@ -248,18 +261,14 @@ class Import_model_data(ReddeningLaws):
         self.obj_data['Hbeta_err']      = std_devs(lineslog_df.loc[idx_Hbeta, 'line_Flux'].values[0])
         self.Halpha_norm                = nominal_values(lineslog_df.loc['H1_6563A', 'line_Flux']) / normFlux_obj
                 
-        #Correction from new to old indexes
-        corr_pairs                      = [('H1_4340A', 'H1_4341A'), ('He1_4472A', 'He1_4471A')]
-        lineslog_df                     = self.correct_df_row_name(lineslog_df, corr_pairs)
-        
         #----Get recombination lines     
         self.ready_lines_data('H1', valid_lines['H1']) 
         self.ready_lines_data('He1', valid_lines['He1'])
-            
+        
         obsRecomb_lines         = valid_lines['H1'] + valid_lines['He1']
         
-        self.n_recombLines = len(obsRecomb_lines)
-        self.range_recombLines = arange(self.n_recombLines)
+        self.n_recombLines      = len(obsRecomb_lines)
+        self.range_recombLines  = arange(self.n_recombLines)
                 
         self.obs_recomb_fluxes  = nominal_values(lineslog_df.loc[lineslog_df.index.isin(obsRecomb_lines)].line_Flux.values) / self.obj_data['Hbeta_Flux']
         self.obs_recomb_err     = std_devs(lineslog_df.loc[lineslog_df.index.isin(obsRecomb_lines)].line_Flux.values) / self.obj_data['Hbeta_Flux']
@@ -267,17 +276,13 @@ class Import_model_data(ReddeningLaws):
         self.Recomb_labels      = lineslog_df.loc[lineslog_df.index.isin(obsRecomb_lines)].index.values
         self.Recomb_pynebCode   = self.lines_df.loc[self.lines_df.index.isin(obsRecomb_lines)].pyneb_code.values
         
-        self.obj_data['recombLine_labes']       = lineslog_df.loc[lineslog_df.index.isin(obsRecomb_lines)].index.values
-        self.obj_data['recombLine_ions']        = self.lines_df.loc[self.lines_df.index.isin(obsRecomb_lines)].ion.values
-        self.obj_data['recombLine_waves']       = self.lines_df.loc[self.lines_df.index.isin(obsRecomb_lines)].wavelength.values
-        self.obj_data['recombLine_pynebCode']   = self.lines_df.loc[self.lines_df.index.isin(obsRecomb_lines)].pyneb_code.values          
+        idx_recomb = lineslog_df.index.isin(obsRecomb_lines)
+        self.obj_data['recombLine_labes']       = lineslog_df.loc[idx_recomb].index.values
+        self.obj_data['recombLine_ions']        = lineslog_df.loc[idx_recomb].ion.values
+        self.obj_data['recombLine_waves']       = lineslog_df.loc[idx_recomb].wavelength.values
+        self.obj_data['recombLine_pynebCode']   = lineslog_df.loc[idx_recomb].pyneb_code.values          
         self.obj_data['recombLine_flambda']     = self.reddening_Xx(self.obj_data['recombLine_waves'], self.reddedning_curve_model, self.Rv_model)/self.Hbeta_xX - 1.0
-
-        for i in range(len(self.obj_data['recombLine_labes'])):
-            print self.obj_data['recombLine_labes'][i], self.obj_data['recombLine_ions'][i], self.obj_data['recombLine_waves'][i], self.obs_recomb_fluxes[i]
-
-            
-        
+                        
         #----Get collisional excited lines
         self.ready_lines_data('S2', valid_lines['S2'])  
         self.ready_lines_data('S3', valid_lines['S3'])
@@ -294,14 +299,14 @@ class Import_model_data(ReddeningLaws):
         self.obs_metal_fluxes = nominal_values(lineslog_df.loc[lineslog_df.index.isin(obsMetals_lines)].line_Flux.values) / self.obj_data['Hbeta_Flux']
         self.obs_metal_Error = std_devs(lineslog_df.loc[lineslog_df.index.isin(obsMetals_lines)].line_Flux.values) / self.obj_data['Hbeta_Flux']        
         
+        idx_coll = lineslog_df.index.isin(obsMetals_lines)
         self.obj_data['colLine_labes']      = lineslog_df.loc[lineslog_df.index.isin(obsMetals_lines)].index.values
-        self.obj_data['colLine_ions']       = self.lines_df.loc[self.lines_df.index.isin(obsMetals_lines)].ion.values
-        self.obj_data['colLine_waves']      = self.lines_df.loc[self.lines_df.index.isin(obsMetals_lines)].wavelength.values
-        self.obj_data['colLine_pynebCode']  = self.lines_df.loc[self.lines_df.index.isin(obsMetals_lines)].pyneb_code.values   
+        self.obj_data['colLine_ions']       = lineslog_df.loc[idx_coll].ion.values
+        self.obj_data['colLine_waves']      = lineslog_df.loc[idx_coll].wavelength.values
+        self.obj_data['colLine_pynebCode']  = lineslog_df.loc[idx_coll].pyneb_code.values   
         self.obj_data['colLine_flambda']    = self.reddening_Xx(self.obj_data['colLine_waves'], self.reddedning_curve_model, self.Rv_model)/self.Hbeta_xX - 1.0
-        
-        #Get physical parameters
-        
+                
+        #Get physical parameters        
         Tlow_key                        = obj_series['T_low']
         self.obj_data['TSIII']          = obj_series[Tlow_key].nominal_value
         self.obj_data['TSIII_error']    = obj_series[Tlow_key].std_dev
@@ -379,7 +384,7 @@ class Import_model_data(ReddeningLaws):
         self.obj_data['basesWave_resam']        = ssp_lib_dict['basesWave_resam'] 
         self.obj_data['bases_flux_norm']        = delete(ssp_lib_dict['bases_flux_norm'], columns_to_delete, axis=0)
         self.obj_data['obs_fluxEr_norm']        = 0.05
-                
+                       
         return
             
 class Continua_FluxCalculation(ssp_fitter):
@@ -591,7 +596,6 @@ class Recombination_FluxCalibration(LineMesurer_v2):
         lines_abs_vector                = empty(self.n_recombLines)
         
         for i in self.range_recombLines:
-            
             ion = lines_ions[i]
             
             if ion == 'H1':
@@ -971,12 +975,12 @@ class Inference_AbundanceModel(Import_model_data, Collisional_FluxCalibration, R
         tau         =   pymc2.TruncatedNormal(  'tau',          0.75,                       0.5**-2,    a = 0.0,    b = 7.0)
         cHbeta      =   pymc2.TruncatedNormal(  'cHbeta',       0.15,                       0.05**-2,   a = 0.0,    b = 3.0)
         xi          =   pymc2.TruncatedNormal(  'xi',           1,                          200**-2,    a = 0.0,    b = 1000.0)
-        T_He        =   pymc2.TruncatedNormal(  'T_He',         self.obj_data['TSIII'],     self.obj_data['TSIII_error']**-2,    a = 7000.0 ,   b = 20000.0, value=14500.0)
+#         T_He        =   pymc2.TruncatedNormal(  'T_He',         self.obj_data['TSIII'],     self.obj_data['TSIII_error']**-2,    a = 7000.0 ,   b = 20000.0, value=14500.0)
         
-        #z_star     =   pymc2.Uniform(          'z_star',       self.z_min_ssp_limit,       self.z_max_ssp_limit)
-        Av_star     =   pymc2.Uniform(          'Av_star',      0.0,                        5.00)
-        sigma_star  =   pymc2.Uniform(          'sigma_star',   0.0,                        5.00)
-        ssp_coefs   =  [pymc2.Uniform(          'ssp_coefs_%i' % i,   self.population_limitss[i][0],   self.population_limitss[i][1])   for i in self.range_bases]
+#         #z_star     =   pymc2.Uniform(          'z_star',       self.z_min_ssp_limit,       self.z_max_ssp_limit)
+#         Av_star     =   pymc2.Uniform(          'Av_star',      0.0,                        5.00)
+#         sigma_star  =   pymc2.Uniform(          'sigma_star',   0.0,                        5.00)
+#         ssp_coefs   =  [pymc2.Uniform(          'ssp_coefs_%i' % i,   self.population_limitss[i][0],   self.population_limitss[i][1])   for i in self.range_bases]
 
         @pymc2.deterministic()
         def calc_Thigh(Te = T_low):
@@ -1003,53 +1007,53 @@ class Inference_AbundanceModel(Import_model_data, Collisional_FluxCalibration, R
             
             return colExcit_fluxes
                        
-        @pymc2.deterministic
-        def calc_nebular_cont(z_star=self.obj_data['z_star'], cHbeta=self.obj_data['cHbeta'], Te=T_He, He1_abund=He1_abund, He2_abund=0.0, Halpha_Flux=self.Halpha_norm):
-                   
-            neb_flux_norm = self.nebular_Cont(self.obj_data['obs_wave_resam'], z_star, cHbeta, Te, He1_abund, He2_abund, Halpha_Flux)
-
-            return neb_flux_norm
+#         @pymc2.deterministic
+#         def calc_nebular_cont(z_star=self.obj_data['z_star'], cHbeta=self.obj_data['cHbeta'], Te=10000.0, He1_abund=He1_abund, He2_abund=0.0, Halpha_Flux=self.Halpha_norm):
+#                    
+#             neb_flux_norm = self.nebular_Cont(self.obj_data['obs_wave_resam'], z_star, cHbeta, Te, He1_abund, He2_abund, Halpha_Flux)
+# 
+#             return neb_flux_norm
+#         
+#         @pymc2.deterministic
+#         def calc_continuum(z_star=self.obj_data['z_star'], Av_star=Av_star, sigma_star=sigma_star, ssp_coefs=ssp_coefs, nebular_flux=calc_nebular_cont):
+#                                     
+#             ssp_grid_i      = self.physical_SED_model(self.obj_data['basesWave_resam'], self.obj_data['obs_wave_resam'], self.obj_data['bases_flux_norm'],\
+#                                                        Av_star, z_star, sigma_star, 3.4)
+#             
+#             fit_continuum   = ssp_grid_i.dot(ssp_coefs) + nebular_flux
+#             
+#             return fit_continuum        
         
         @pymc2.deterministic
-        def calc_continuum(z_star=self.obj_data['z_star'], Av_star=Av_star, sigma_star=sigma_star, ssp_coefs=ssp_coefs, nebular_flux=calc_nebular_cont):
-                                    
-            ssp_grid_i      = self.physical_SED_model(self.obj_data['basesWave_resam'], self.obj_data['obs_wave_resam'], self.obj_data['bases_flux_norm'],\
-                                                       Av_star, z_star, sigma_star, 3.4)
-            
-            fit_continuum   = ssp_grid_i.dot(ssp_coefs) + nebular_flux
-            
-            return fit_continuum        
-        
-        @pymc2.deterministic
-        def calc_recomb_fluxes(abund_dict=calc_abund_dict, T_He=T_He, ne=ne, cHbeta=cHbeta, xi=xi, tau=tau):
+        def calc_recomb_fluxes(abund_dict=calc_abund_dict, T_He=calc_Thigh, ne=ne, cHbeta=cHbeta, xi=xi, tau=tau):
               
             recomb_fluxes = self.calculate_recomb_fluxes(T_He, ne, cHbeta, xi, tau, abund_dict,\
                                                           self.obj_data['recombLine_waves'], self.obj_data['recombLine_ions'], self.obj_data['recombLine_flambda'])
             
             return recomb_fluxes
 
-        @pymc2.deterministic
-        def calc_obs_recomb_fluxes(fit_continuum=calc_continuum, emis_recomb_fluses=calc_recomb_fluxes, z_star = self.obj_data['z_star']):
-            
-            H_He_fluxes         = emis_recomb_fluses * self.obj_data['Hbeta_Flux']  / self.obj_data['normFlux_obs']
+#         @pymc2.deterministic
+#         def calc_obs_recomb_fluxes(fit_continuum=calc_continuum, emis_recomb_fluses=calc_recomb_fluxes, z_star = self.obj_data['z_star']):
+#             
+#             H_He_fluxes         = emis_recomb_fluses * self.obj_data['Hbeta_Flux']  / self.obj_data['normFlux_obs']
+# 
+#             emiss_spectrum      = self.calc_emis_spectrum(self.obj_data['obs_wave_resam'], self.obj_data['recombLine_waves'], H_He_fluxes,\
+#                                                        self.obj_data['recombLine_waves'], self.obj_data['sigma_gas'], z_star)                            
+#             
+#             sym_spectrum        = fit_continuum + emiss_spectrum
+#             
+#             lines_fluxes_obs    = self.measure_lines(self.Recomb_labels, self.obj_data['obs_wave_resam'], sym_spectrum, calibration_factor = (self.obj_data['normFlux_obs'] / self.obj_data['Hbeta_Flux']))
+#             
+#             return lines_fluxes_obs
 
-            emiss_spectrum      = self.calc_emis_spectrum(self.obj_data['obs_wave_resam'], self.obj_data['recombLine_waves'], H_He_fluxes,\
-                                                       self.obj_data['recombLine_waves'], self.obj_data['sigma_gas'], z_star)                            
-            
-            sym_spectrum        = fit_continuum + emiss_spectrum
-            
-            lines_fluxes_obs    = self.measure_lines(self.Recomb_labels, self.obj_data['obs_wave_resam'], sym_spectrum, calibration_factor = (self.obj_data['normFlux_obs'] / self.obj_data['Hbeta_Flux']))
-            
-            return lines_fluxes_obs
-
-        @pymc2.stochastic(observed=True) #Likelihood
-        def likelihood_ssp(value = self.obj_data['obs_flux_norm_masked'], fit_continuum=calc_continuum, sigmaContinuum=self.obj_data['obs_fluxEr_norm']):
-            calc_continuum_masked = fit_continuum * self.obj_data['int_mask']
-            chi_F = sum(square(calc_continuum_masked - value) / square(sigmaContinuum))
-            return - chi_F / 2
+#         @pymc2.stochastic(observed=True) #Likelihood
+#         def likelihood_ssp(value = self.obj_data['obs_flux_norm_masked'], fit_continuum=calc_continuum, sigmaContinuum=self.obj_data['obs_fluxEr_norm']):
+#             calc_continuum_masked = fit_continuum * self.obj_data['int_mask']
+#             chi_F = sum(square(calc_continuum_masked - value) / square(sigmaContinuum))
+#             return - chi_F / 2
  
         @pymc2.stochastic(observed=True) #Likelihood
-        def likelihood_recomb(value = self.obs_recomb_fluxes, H_He_TheoFlux = calc_obs_recomb_fluxes, sigmaLines = self.obs_recomb_err):
+        def likelihood_recomb(value = self.obs_recomb_fluxes, H_He_TheoFlux = calc_recomb_fluxes, sigmaLines = self.obs_recomb_err):
             chi_F = sum(square(H_He_TheoFlux - value) / square(sigmaLines))
             return - chi_F / 2
 

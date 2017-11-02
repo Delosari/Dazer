@@ -311,9 +311,9 @@ class Fig_Conf():
                 Leg_Frame = myLegend.get_frame()
                 Leg_Frame.set_edgecolor('black')
                                 
-    def savefig(self, output_address, extension = '.png', reset_fig = True, pad_inches=0.2):
+    def savefig(self, output_address, extension = '.png', reset_fig = True, pad_inches=0.2, resolution = 300.0):
 
-        plt.savefig(output_address + extension, dpi=300.0, bbox_inches='tight', pad_inches=pad_inches)
+        plt.savefig(output_address + extension, dpi=resolution, bbox_inches='tight', pad_inches=pad_inches)
         
         if reset_fig:
             self.reset_fig()

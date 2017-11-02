@@ -1,23 +1,23 @@
 import numpy as np
 from dazer_methods import Dazer
-from lib.Astro_Libraries.Abundances_InferenceModel_Helium_v50 import Run_MCMC
+from lib.Astro_Libraries.Abundances_InferenceModel_Helium_v52 import Run_MCMC
 from collections import OrderedDict
   
-iterat, burn, thin  = 30000, 0, 1
-sim_model           = 'Ssp_object'
+iterat, burn, thin  = 20000, 0, 1
+sim_model           = 'soloEmision'
 sim_components      = '_neb_stellar_abund'
 obs_metals          = ['H1', 'He1', 'S2', 'S3', 'O2', 'O3', 'N2', 'Ar3', 'Ar4']
 sim_name            = sim_model + sim_components
-params_list         = ['He1_abund', 'T_He', 'T_low', 'ne','tau','cHbeta','xi','S2_abund','S3_abund','O2_abund','O3_abund', 'N2_abund', 'Ar3_abund', 'Ar4_abund', 'sigma_star', 'Av_star'] 
+params_list         = ['He1_abund', 'T_low', 'ne','tau','cHbeta','xi'] #['He1_abund', 'T_He', 'T_low', 'ne','tau','cHbeta','xi','S2_abund','S3_abund','O2_abund','O3_abund', 'N2_abund', 'Ar3_abund', 'Ar4_abund', 'sigma_star', 'Av_star'] 
 burning             = 7000
 
 #Lines to employed in the object
 lines_to_use_dict   = OrderedDict()
-lines_to_use_dict['H1']     = ['H1_4102A','H1_4341A','H1_6563A']
-lines_to_use_dict['He1']    = ['He1_4026A','He1_4471A','He1_5876A','He1_6678A']
+lines_to_use_dict['H1']     = ['H1_4341A','H1_6563A']
+lines_to_use_dict['He1']    = ['He1_4471A','He1_5876A','He1_6678A']
 lines_to_use_dict['S2']     = ['S2_6716A', 'S2_6731A']
 lines_to_use_dict['S3']     = ['S3_6312A', 'S3_9069A', 'S3_9531A']
-lines_to_use_dict['O2']     = ['O2_3726A', 'O2_3729A']
+lines_to_use_dict['O2']     = ['O2_7319A', 'O2_7330A']
 lines_to_use_dict['O3']     = ['O3_4363A', 'O3_4959A', 'O3_5007A']
 lines_to_use_dict['N2']     = ['N2_6548A', 'N2_6584A']
 lines_to_use_dict['Ar3']    = ['Ar3_7136A']
@@ -32,7 +32,7 @@ catalogue_dict      = dz.import_catalogue()
 catalogue_df        = dz.load_excel_DF('/home/vital/Dropbox/Astrophysics/Data/WHT_observations/WHT_Galaxies_properties.xlsx')
 
 #Load object scientific data file
-obj_code            = 'SHOC579'
+obj_code            = '8'
 obj_data            = catalogue_df.loc[obj_code]
 
 #Load object spectrum
@@ -50,61 +50,48 @@ bm.load_obs_data(lineslog_frame, obj_data, obj_code, wave, flux, valid_lines=lin
 
 # #Select right model according to data
 bm.select_inference_model(sim_components)
- 
+  
 # Variables to save
 db_address = '{}{}_it{}_burn{}'.format(bm.paths_dict['inference_folder'], sim_name, iterat, burn) 
-    
-print 'Obs recmb fluxes'
-print bm.obs_recomb_fluxes    
-print bm.obs_recomb_err    
-
-print 'Obs metales fluxes'
-print bm.obs_metal_fluxes    
-print bm.obs_metal_Error  
-
+     
 # Run sampler
 # bm.run_pymc2(db_address, iterat, variables_list=params_list, prefit=False)
-             
+              
 # #Load database
 pymc2_db, stat_db_dict = bm.load_pymc_database_manual(db_address, burning, params_list)
+ 
+# print 'calc_colExcit_fluxes'
+# print  np.mean(stat_db_dict['calc_colExcit_fluxes']['trace'], axis=0)
+#  
+# print 'Calc emis Recomb'
+# print  np.mean(stat_db_dict['calc_recomb_fluxes']['trace'], axis=0)
+#  
+# print 'Calc obs fluxes'
+# print np.mean(stat_db_dict['calc_obs_recomb_fluxes']['trace'], axis=0)
 
-print 'calc_colExcit_fluxes'
-print  np.mean(stat_db_dict['calc_colExcit_fluxes']['trace'], axis=0)
-
-print 'Calc emis Recomb'
-print  np.mean(stat_db_dict['calc_recomb_fluxes']['trace'], axis=0)
-
-print 'Calc obs fluxes'
-print np.mean(stat_db_dict['calc_obs_recomb_fluxes']['trace'], axis=0)
-
-
-
-# # Traces plot
-# print '-Generating traces plot'
-# dz.traces_plot(params_list, pymc2_db, stat_db_dict)
-# dz.save_manager(db_address + '_tracesPlot_Test', save_pickle = False)
-#                    
-# #Posteriors plot
-# print '-Generating posteriors plot'
-# dz.posteriors_plot(params_list, pymc2_db, stat_db_dict)
-# dz.save_manager(db_address + '_posteriorPlot', save_pickle = False)
-#                     
-# #Posteriors plot
-# print '-Generating acorrelation plot'
-# dz.acorr_plot(params_list, pymc2_db, stat_db_dict, n_columns=4, n_rows=4)
-# dz.save_manager(db_address + '_acorrPlot', save_pickle = False)
-#                   
-# #Corner plot
-# print '-Generating corner plot'
-# dz.corner_plot(params_list, pymc2_db, stat_db_dict, plot_true_values=False)
-# dz.save_manager(db_address + '_cornerPlot', save_pickle = False)
+# Traces plot
+print '-Generating traces plot'
+dz.traces_plot(params_list, pymc2_db, stat_db_dict)
+dz.save_manager(db_address + '_tracesPlot_Test', save_pickle = False)
+                    
+#Posteriors plot
+print '-Generating posteriors plot'
+dz.posteriors_plot(params_list, pymc2_db, stat_db_dict)
+dz.save_manager(db_address + '_posteriorPlot', save_pickle = False)
+                     
+#Posteriors plot
+print '-Generating acorrelation plot'
+dz.acorr_plot(params_list, pymc2_db, stat_db_dict, n_columns=4, n_rows=4)
+dz.save_manager(db_address + '_acorrPlot', save_pickle = False)
+                   
+#Corner plot
+print '-Generating corner plot'
+dz.corner_plot(params_list, pymc2_db, stat_db_dict, plot_true_values=False)
+dz.save_manager(db_address + '_cornerPlot', save_pickle = False)
 
 dz.FigConf()
-dz.data_plot(bm.obj_data['obs_wave_resam'], bm.obj_data['obs_flux_norm'], label = 'Observed spectrum')
-dz.data_plot(bm.obj_data['obs_wave_resam'], np.mean(stat_db_dict['calc_continuum']['trace'], axis=0), label = 'Continua fitting')
-dz.data_plot(bm.obj_data['obs_wave_resam'], np.mean(stat_db_dict['calc_continuum']['trace'], axis=0) - np.mean(stat_db_dict['calc_nebular_cont']['trace'], axis=0), label = 'Stellar continuum', linestyle='--')
-dz.data_plot(bm.obj_data['obs_wave_resam'], np.mean(stat_db_dict['calc_nebular_cont']['trace'], axis=0), label = 'Nebular continuum', linestyle='--')
-
+dz.data_plot(bm.obj_data['obs_wave_resam'], bm.obj_data['obs_flux_norm'], label = 'obs_flux_norm')
+dz.data_plot(bm.obj_data['obs_wave_resam'], np.mean(stat_db_dict['calc_continuum']['trace'], axis=0), label = 'calc_continuum')
 dz.FigWording(xlabel = 'Wavelength', ylabel = 'Flux', title = '')
 dz.display_fig()
 

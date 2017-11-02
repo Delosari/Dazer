@@ -592,6 +592,7 @@ class ssp_fitter(ssp_synthesis_importer):
 #         print wave_z[0], wave_z[-1]
 #         print obs_wave[0], obs_wave[-1]
 #         print
+    
         bases_grid_interp       = (interp1d(wave_z, bases_grid_convolve, axis=1, bounds_error=True)(obs_wave)).T       
         
         #Generate final flux model including reddening

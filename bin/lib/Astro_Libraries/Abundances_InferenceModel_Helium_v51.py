@@ -7,12 +7,11 @@ from Reddening_Corrections                  import ReddeningLaws
 from lib.Astro_Libraries.Nebular_Continuum  import NebularContinuumCalculator
 from lib.ssp_functions.ssp_synthesis_tools  import ssp_fitter
 from DZ_LineMesurer                         import LineMesurer_v2
-from numpy                                  import max, array, loadtxt, genfromtxt, copy, isnan, arange, insert, concatenate, mean, std, power, exp, zeros, square, empty, percentile, random, median, ones, isnan, sum as np_sum, argsort, vstack, hstack, delete, where, searchsorted
+from numpy                                  import array, loadtxt, genfromtxt, copy, isnan, arange, insert, concatenate, mean, std, power, exp, zeros, square, empty, percentile, random, median, ones, isnan, sum as np_sum, argsort, vstack, hstack, delete, where
 import pymc as pymc2
 from timeit                                 import default_timer as timer
 from uncertainties import ufloat
-from pandas                                 import read_excel, read_csv
-from scipy.interpolate                      import interp1d
+from pandas import read_excel, read_csv
 
 class Import_model_data(ReddeningLaws):
 
@@ -33,8 +32,8 @@ class Import_model_data(ReddeningLaws):
             self.paths_dict['lines_data_file']      = '/home/vital/workspace/dazer/bin/lib/Astro_Libraries/lines_data.xlsx'
             self.paths_dict['dazer_path']           = '/home/vital/workspace/dazer/'
             self.paths_dict['stellar_data_folder']  = '/home/vital/Starlight/'    
-            self.paths_dict['observations_folder']  = '/home/vital/Dropbox/Astrophysics/Data/WHT_observations/objects/'  
-              
+            self.paths_dict['lick_indexes_folder']  = '/home/vital/workspace/dazer/working_examples/'
+        
         #Paths for windows:
         elif name == 'nt':
             self.paths_dict['inference_folder']     = 'D:/Inference_data/'
@@ -44,14 +43,15 @@ class Import_model_data(ReddeningLaws):
             self.paths_dict['Helium_OpticalDepth']  = 'C:/Users/lativ/git/dazer/bin/lib/Astro_Libraries/Helium_OpticalDepthFunction_Coefficients.txt'
             self.paths_dict['stellar_data_folder']  = 'E:/Cloud Storage/Dropbox/Astrophysics/Tools/Starlight/'  
             self.paths_dict['dazer_path']           = 'C:/Users/lativ/git/dazer/'
-            self.paths_dict['observations_folder']  = 'E:/Cloud Storage/Dropbox/Astrophysics/Data/WHT_observations/objects/'    
-    
+            self.paths_dict['lick_indexes_folder']  = 'C:/Users/lativ/git/dazer/working_examples/'
+            
         #Lines labels and wavelength to use in pyneb
         self.lines_df = read_excel(self.paths_dict['lines_data_file'], sheetname=0, header=0, index_col=0)
         self.lines_df['pyneb_code'] = self.lines_df['pyneb_code'].astype(str)
         idx_numeric_pynebCode = ~self.lines_df['pyneb_code'].str.contains('A+')
         self.lines_df.loc[idx_numeric_pynebCode,'pyneb_code'] = self.lines_df.loc[idx_numeric_pynebCode,'pyneb_code'].astype(int)
-        
+
+     
     def import_table_data(self, Address, Columns):
         
         Imported_Array  = genfromtxt(Address, dtype=float, usecols = Columns, skip_header = 2).T
@@ -103,7 +103,7 @@ class Import_model_data(ReddeningLaws):
         self.obj_data = dict()
         
         #Physical parameters from the object
-        self.obj_data['z_star']         = 0.0154
+        self.obj_data['z_star']         = 0.00
         self.obj_data['sigma_star']     = 1.254
         self.obj_data['Av_star']        = 0.754            
 
@@ -136,10 +136,15 @@ class Import_model_data(ReddeningLaws):
         self.obj_data['Ar3_abund']      = 0.00065
         self.obj_data['Ar4_abund']      = 0.00012
         
+        print 'La direccion', self.paths_dict['lick_indexes_folder']
+        self.obj_data['lick_idcs_df']   = read_csv(self.paths_dict['lick_indexes_folder'] + 'synth_lick_indeces.txt', delim_whitespace = True,\
+                                          header = 0, index_col = 0, comment='L') #Dirty trick to avoid the Line_label row
+        
         H1_labels = ['H1_4102A', 'H1_4341A', 'H1_6563A']
         self.ready_lines_data('H1', H1_labels)  
         
-        He1_labels = ['He1_4026A',  'He1_4471A',  'He1_5876A', 'He1_6678A']                          
+        #He1_labels = ['He1_3889A',   'He1_4026A',  'He1_4471A',  'He1_5876A', 'He1_6678A',   'He1_7065A',    'He1_10830A']
+        He1_labels = ['He1_4026A',  'He1_4471A',  'He1_5876A', 'He1_6678A']                                                      
         self.ready_lines_data('He1', He1_labels)  
         
         S2_labels = ['S2_6716A', 'S2_6731A']                        
@@ -208,178 +213,68 @@ class Import_model_data(ReddeningLaws):
                 
         return
 
-    def correct_df_row_name(self, df, lines_to_cor):
+    def load_obs_data(self, lines_df, obj_series, extension_treat = '', Deblend_Check = True):
         
-        list_index = df.index.tolist()
-        
-        for i in range(len(lines_to_cor)):
-            if lines_to_cor[i][0] in list_index:
-                idx_i = list_index.index(lines_to_cor[i][0])
-                list_index[idx_i] = lines_to_cor[i][1]
-        
-        df.index = list_index
-        
-        return df
-
-    def load_obs_data(self, lineslog_df, obj_series, obj_name, obj_wave, obj_flux, valid_lines, extension_treat = '', Deblend_Check = True):
-
-        corr_pairs                      = [('H1_4340A', 'H1_4341A'), ('He1_4472A', 'He1_4471A')]
-        lineslog_df                     = self.correct_df_row_name(lineslog_df, corr_pairs)
-
         #Empty dictionary to store the data
         self.obj_data = {}
-       
-        #Resample object wavelength and flux
-        wmin, wmax = 3550, 6900
-        norm_interval = (5100,5150)
-        
-        #Resample observation
-        obj_wave_resam = arange(wmin, wmax, 1, dtype=float)
-        obj_flux_resam = interp1d(obj_wave, obj_flux, bounds_error=True)(obj_wave_resam)
-        
-        #Normalize  observation
-        idx_Wavenorm_min, idx_Wavenorm_max = searchsorted(obj_wave, norm_interval)
-        normFlux_obj    = median(obj_flux[idx_Wavenorm_min:idx_Wavenorm_max])        
-        obj_flux_norm   = obj_flux_resam / normFlux_obj        
-        
-        #Hbeta_data
-        idx_Hbeta                       = lineslog_df.index == 'H1_4861A'
-        self.obj_data['Hbeta_Flux']     = nominal_values(lineslog_df.loc[idx_Hbeta, 'line_Flux'].values[0])
-        self.obj_data['Hbeta_err']      = std_devs(lineslog_df.loc[idx_Hbeta, 'line_Flux'].values[0])
-        self.Halpha_norm                = nominal_values(lineslog_df.loc['H1_6563A', 'line_Flux']) / normFlux_obj
-                
-        #Correction from new to old indexes
-        corr_pairs                      = [('H1_4340A', 'H1_4341A'), ('He1_4472A', 'He1_4471A')]
-        lineslog_df                     = self.correct_df_row_name(lineslog_df, corr_pairs)
-        
-        #----Get recombination lines     
-        self.ready_lines_data('H1', valid_lines['H1']) 
-        self.ready_lines_data('He1', valid_lines['He1'])
+
+        #--Define HBeta values in advance
+        idx_Hbeta                       = lines_df.index == 'H1_4861A'
+        self.Hbeta_Flux                 = nominal_values(lines_df.loc[idx_Hbeta, 'line_Flux'].values)
+        self.Hbeta_error                = std_devs(lines_df.loc[idx_Hbeta, 'line_Flux'].values)
+        self.Hbeta_Eqw                  = nominal_values(lines_df.loc[idx_Hbeta, 'line_Eqw'].values) #WARNING: in cases with removed stellar this eqw gives trouble
+        self.Hbeta_EqwErr               = std_devs(lines_df.loc[idx_Hbeta, 'line_Eqw'].values)
+        self.Hbeta_hlambda              = nominal_values(lines_df.loc[idx_Hbeta, 'Continuum_Median'].values)
+
+        #Load Hydrogen lines data in the dictionary
+        idcs_H                          = lines_df.index.isin(self.posHydrogen_Lines)   #Hydrogen lines
+        self.obj_data['H_labels']       = lines_df.loc[idcs_H].index.values
+        self.obj_data['H_Ions']         = lines_df.loc[idcs_H, 'Ion'].values
+        self.obj_data['H_Flux']         = nominal_values(lines_df.loc[idcs_H, 'line_Flux'].values)
+        self.obj_data['H_error']        = std_devs(lines_df.loc[idcs_H, 'line_Flux'].values)
+        self.obj_data['H_wave']         = lines_df.loc[idcs_H, 'TheoWavelength'].values
+        self.obj_data['H_Eqw']          = nominal_values(lines_df.loc[idcs_H, 'line_Eqw'].values) #WARNING: in cases with removed stellar this eqw gives trouble
+        self.obj_data['H_EqwErr']       = std_devs(lines_df.loc[idcs_H, 'line_Eqw'].values)
+        self.obj_data['H_hlambda']      = nominal_values(lines_df.loc[idcs_H, 'Continuum_Median'].values)
+        self.obj_data['H_pyneb_code']   = lines_df.loc[idcs_H, 'Ion'].str[lines_df.loc[idcs_H, 'Ion'].str.find('_'):]
+
+        #Load Helium lines data
+        idcs_He                         = lines_df.index.isin(self.posHelium_Lines)
+        self.obj_data['He_labels']      = lines_df.loc[idcs_He].index.values
+        self.obj_data['He_Ions']        = lines_df.loc[idcs_He, 'Ion'].values
+        self.obj_data['He_Flux']        = nominal_values(lines_df.loc[idcs_He, 'line_Flux'].values)
+        self.obj_data['He_error']       = std_devs(lines_df.loc[idcs_He, 'line_Flux'].values)
+        self.obj_data['He_wave']        = lines_df.loc[idcs_He, 'TheoWavelength'].values
+        self.obj_data['He_Eqw']         = nominal_values(lines_df.loc[idcs_He, 'line_Eqw'].values) #WARNING: in cases with removed stellar this eqw gives trouble
+        self.obj_data['He_EqwErr']      = std_devs(lines_df.loc[idcs_He, 'line_Eqw'].values)
+        self.obj_data['He_hlambda']     = nominal_values(lines_df.loc[idcs_He, 'Continuum_Median'].values)
+        self.obj_data['He_pyneb_code']  = lines_df.loc[idcs_He].index.str[lines_df.loc[idcs_He].index.str.find('_')+1:-1]
+
+        #Load physical parameters data       
+        Thigh_key                       = obj_series['T_high']
+        self.obj_data['TOIII']          = obj_series[Thigh_key + extension_treat].nominal_value
+        self.obj_data['TOIII_error']    = obj_series[Thigh_key + extension_treat].std_dev
+        self.obj_data['nSII']           = obj_series['neSII' + extension_treat].nominal_value
+        self.obj_data['nSII_error']     = obj_series['neSII' + extension_treat].std_dev
+        self.obj_data['cHbeta_obs']     = obj_series['cHbeta' + extension_treat].nominal_value
+
+        #Check if He1_3889A is on the observations (In the current analysis it appears as 'H1_3889A')
+        if 'H1_3889A' in lines_df.index:
+            idx_He3889A = (lines_df.index == 'H1_4861A')
             
-        obsRecomb_lines         = valid_lines['H1'] + valid_lines['He1']
+            #This should be calculated using the error
+            He3889A_debFlux = self.deblend_He3889A(Te = self.obj_data['TOIII'], ne = self.obj_data['nSII'], cHbeta = self.obj_data['cHbeta_obs'])
+    
+            insert(self.obj_data['He_labels'],      0, lines_df.loc[idx_He3889A].index.values)
+            insert(self.obj_data['He_Ions'],        0, lines_df.loc[idx_He3889A, 'Ion'].values)
+            insert(self.obj_data['He_Flux'],        0, He3889A_debFlux.nominal_value)
+            insert(self.obj_data['He_error'],       0, He3889A_debFlux.std_dev)
+            insert(self.obj_data['He_wave'],        0, lines_df.loc[idx_He3889A, 'TheoWavelength'].values)
+            insert(self.obj_data['He_Eqw'],         0, nominal_values(lines_df.loc[idx_He3889A, 'line_Eqw'].values)) #WARNING: in cases with removed stellar this eqw gives trouble
+            insert(self.obj_data['He_EqwErr'],      0, std_devs(lines_df.loc[idx_He3889A, 'line_Eqw'].values))
+            insert(self.obj_data['He_hlambda'],     0, nominal_values(lines_df.loc[idx_He3889A, 'Continuum_Median'].values))
+            insert(self.obj_data['He_pyneb_code'],  0, lines_df.loc[idx_He3889A].index.str[lines_df.loc[idx_He3889A].index.str.find('_')+1:-1])
         
-        self.n_recombLines = len(obsRecomb_lines)
-        self.range_recombLines = arange(self.n_recombLines)
-                
-        self.obs_recomb_fluxes  = nominal_values(lineslog_df.loc[lineslog_df.index.isin(obsRecomb_lines)].line_Flux.values) / self.obj_data['Hbeta_Flux']
-        self.obs_recomb_err     = std_devs(lineslog_df.loc[lineslog_df.index.isin(obsRecomb_lines)].line_Flux.values) / self.obj_data['Hbeta_Flux']
-        
-        self.Recomb_labels      = lineslog_df.loc[lineslog_df.index.isin(obsRecomb_lines)].index.values
-        self.Recomb_pynebCode   = self.lines_df.loc[self.lines_df.index.isin(obsRecomb_lines)].pyneb_code.values
-        
-        self.obj_data['recombLine_labes']       = lineslog_df.loc[lineslog_df.index.isin(obsRecomb_lines)].index.values
-        self.obj_data['recombLine_ions']        = self.lines_df.loc[self.lines_df.index.isin(obsRecomb_lines)].ion.values
-        self.obj_data['recombLine_waves']       = self.lines_df.loc[self.lines_df.index.isin(obsRecomb_lines)].wavelength.values
-        self.obj_data['recombLine_pynebCode']   = self.lines_df.loc[self.lines_df.index.isin(obsRecomb_lines)].pyneb_code.values          
-        self.obj_data['recombLine_flambda']     = self.reddening_Xx(self.obj_data['recombLine_waves'], self.reddedning_curve_model, self.Rv_model)/self.Hbeta_xX - 1.0
-
-        for i in range(len(self.obj_data['recombLine_labes'])):
-            print self.obj_data['recombLine_labes'][i], self.obj_data['recombLine_ions'][i], self.obj_data['recombLine_waves'][i], self.obs_recomb_fluxes[i]
-
-            
-        
-        #----Get collisional excited lines
-        self.ready_lines_data('S2', valid_lines['S2'])  
-        self.ready_lines_data('S3', valid_lines['S3'])
-        self.ready_lines_data('O2', valid_lines['O2'])
-        self.ready_lines_data('O3', valid_lines['O3']) 
-        self.ready_lines_data('N2', valid_lines['N2'])  
-        self.ready_lines_data('Ar3', valid_lines['Ar3'])               
-        self.ready_lines_data('Ar4', valid_lines['Ar4']) 
-        
-        obsMetals_lines = valid_lines['S2'] + valid_lines['S3'] + valid_lines['O2'] + valid_lines['O3'] + valid_lines['N2'] + valid_lines['Ar3'] + valid_lines['Ar4']
-        
-        self.n_colExcLines = len(obsMetals_lines)
-        self.range_colExcLines = arange(self.n_colExcLines)
-        self.obs_metal_fluxes = nominal_values(lineslog_df.loc[lineslog_df.index.isin(obsMetals_lines)].line_Flux.values) / self.obj_data['Hbeta_Flux']
-        self.obs_metal_Error = std_devs(lineslog_df.loc[lineslog_df.index.isin(obsMetals_lines)].line_Flux.values) / self.obj_data['Hbeta_Flux']        
-        
-        self.obj_data['colLine_labes']      = lineslog_df.loc[lineslog_df.index.isin(obsMetals_lines)].index.values
-        self.obj_data['colLine_ions']       = self.lines_df.loc[self.lines_df.index.isin(obsMetals_lines)].ion.values
-        self.obj_data['colLine_waves']      = self.lines_df.loc[self.lines_df.index.isin(obsMetals_lines)].wavelength.values
-        self.obj_data['colLine_pynebCode']  = self.lines_df.loc[self.lines_df.index.isin(obsMetals_lines)].pyneb_code.values   
-        self.obj_data['colLine_flambda']    = self.reddening_Xx(self.obj_data['colLine_waves'], self.reddedning_curve_model, self.Rv_model)/self.Hbeta_xX - 1.0
-        
-        #Get physical parameters
-        
-        Tlow_key                        = obj_series['T_low']
-        self.obj_data['TSIII']          = obj_series[Tlow_key].nominal_value
-        self.obj_data['TSIII_error']    = obj_series[Tlow_key].std_dev
-        
-        self.obj_data['nSII']           = obj_series['neSII'].nominal_value
-        self.obj_data['nSII_error']     = obj_series['neSII'].std_dev
-        
-        self.obj_data['cHbeta']         = obj_series['cHbeta_emis'].nominal_value
-        self.obj_data['cHbeta_error']   = obj_series['cHbeta_emis'].std_dev
-        
-        self.obj_data['sigma_gas']      = nominal_values(lineslog_df.loc[lineslog_df.index.isin(obsRecomb_lines)].sigma.values)
-        
-        self.obj_data['z_star']         = 0.0
-        
-        print '--Importing physical data'
-        print '---{}: {} +/- {}'.format('TSIII', self.obj_data['TSIII'], self.obj_data['TSIII_error'])
-        print '---{}: {} +/- {}'.format('nSII', self.obj_data['nSII'], self.obj_data['nSII_error'])
-        print '---{}: {} +/- {}'.format('cHbeta',self.obj_data['cHbeta'], self.obj_data['cHbeta_error'])
-        print '---{}: {}'.format('sigma_gas', self.obj_data['sigma_gas'])
-        
-        #----Get stellar data (This must go outside)
-        
-        #Load stellar libraries
-        default_Starlight_file          = self.paths_dict['stellar_data_folder'] + 'Dani_Bases_Extra.txt'
-        default_Starlight_folder        = self.paths_dict['stellar_data_folder'] + 'Bases/'
-        
-        ssp_lib_dict                    = self.load_stellar_bases('starlight', default_Starlight_folder, default_Starlight_file,\
-                                                resample_int=1, resample_range = (wmin, wmax), norm_interval = norm_interval)
-                
-        #Load object mask
-        mask_file_address = '{}{}/{}_Mask.lineslog'.format(self.paths_dict['observations_folder'], obj_name, obj_name)
-
-        mask_df = read_csv(mask_file_address, delim_whitespace=True, names=['blue_limit', 'red_limit', 'code', 'label'], skiprows=1)
-        
-        #Pixels within the spectrum mask
-        boolean_mask = ones(len(obj_wave_resam), dtype=bool)
-        for line in mask_df.index:
-            wmin, wmax          = mask_df.loc[line, 'blue_limit'], mask_df.loc[line, 'red_limit']
-            idx_cur_spec_mask   = (obj_wave_resam > wmin) & (obj_wave_resam < wmax)
-            boolean_mask        = boolean_mask & ~idx_cur_spec_mask
-        
-        #Load results from first ssp fittings
-        populations_coeffs_file = '{}{}/{}_populations_prefit.txt'.format(self.paths_dict['observations_folder'], obj_name, obj_name)
-        ssp_coefs_mean, ssp_coefs_std = loadtxt(populations_coeffs_file, unpack=True) 
-        
-        idx_populations           = ssp_coefs_mean > 0.0
-        self.nBases               = len(where(idx_populations)[0]) 
-        self.range_bases          = arange(self.nBases)  
-        self.mean_coeffs          = ssp_coefs_mean[idx_populations]
-        self.population_limitss   = vstack((self.mean_coeffs*0.8, self.mean_coeffs*1.2)).T
-        columns_to_delete         = where(~idx_populations)
-
-        self.obj_data['lick_idcs_df'] = read_csv(self.paths_dict['observations_folder'] + '{}/{}_lick_indeces.txt'.format(obj_name,obj_name), delim_whitespace = True,\
-                                          header = 0, index_col = 0, comment='L') 
-        
-        #Correction from new to old indexes
-        corr_pairs                      = [('H1_4340A', 'H1_4341A'), ('He1_4472A', 'He1_4471A')]
-        self.obj_data['lick_idcs_df']   = self.correct_df_row_name(self.obj_data['lick_idcs_df'], corr_pairs)        
-        self.obj_data['lick_idcs_df']   = self.correct_df_row_name(self.obj_data['lick_idcs_df'], corr_pairs)        
-        
-        #Redshift limits for the object
-        z_max_ssp                   = (ssp_lib_dict['basesWave_resam'][0] / obj_wave_resam[0]) - 1.0
-        z_min_ssp                   = (ssp_lib_dict['basesWave_resam'][-1] / obj_wave_resam[-1]) - 1.0
-        self.z_max_ssp_limit        = round(z_max_ssp - 0.001, 3)
-        self.z_min_ssp_limit        = z_min_ssp
-        print 'z_limits', z_min_ssp, z_max_ssp
-        
-        #Store the data in the object dictionary 
-        self.obj_data['normFlux_obs']           = normFlux_obj
-        self.obj_data['obs_wave_resam']         = obj_wave_resam
-        self.obj_data['obs_flux_resam']         = obj_flux_resam
-        self.obj_data['obs_flux_norm']          = obj_flux_norm
-        self.obj_data['int_mask']               = boolean_mask * 1
-        self.obj_data['obs_flux_norm_masked']   = self.obj_data['obs_flux_norm'] * self.obj_data['int_mask']
-        self.obj_data['basesWave_resam']        = ssp_lib_dict['basesWave_resam'] 
-        self.obj_data['bases_flux_norm']        = delete(ssp_lib_dict['bases_flux_norm'], columns_to_delete, axis=0)
-        self.obj_data['obs_fluxEr_norm']        = 0.05
-                
         return
             
 class Continua_FluxCalculation(ssp_fitter):
@@ -393,8 +288,6 @@ class Nebular_FluxCalculation(NebularContinuumCalculator):
     def __init__(self):
         
         NebularContinuumCalculator.__init__(self)
-        
-        self.load_neb_constants(self.paths_dict['nebular_data_folder'])
 
     def nebular_Cont(self, wave_obs, z, cHbeta, Te, He1_abund, He2_abund, Halpha_Flux):
         
@@ -687,7 +580,7 @@ class Collisional_FluxCalibration(Import_model_data):
                 emisHbeta = Emis_Hbeta_low
                 
             #Ions emissivities by Hbeta emissivity
-            ion_emis = self.ionDict[ion].getEmissivity(Te, ne, wave = self.obj_data['colLine_pynebCode'][i])
+            ion_emis = self.ionDict[ion].getEmissivity(Te, ne, wave = self.lines_pynebCode[i])
             lines_emis_vector[i] = lines_abund_dict[ion] * ion_emis / emisHbeta
 
         #Reddening factor for all the lines
@@ -770,7 +663,6 @@ class Inference_AbundanceModel(Import_model_data, Collisional_FluxCalibration, R
         self.range_bases            = arange(self.nBases)       
         columns_to_delete           = where(~idx_populations)
         
-        
         #-------Prepare nebular continua
         self.idx_Halpha             = (self.obj_data['recombLine_labes'] == 'H1_6563A')
         
@@ -785,15 +677,17 @@ class Inference_AbundanceModel(Import_model_data, Collisional_FluxCalibration, R
         self.z_max_ssp_limit        = round(z_max_ssp - 0.001, 3)
         self.z_min_ssp_limit        = z_min_ssp
 
-
         #-------Emission sed from the object
         H_He_fluxes                 = self.recomb_fluxes * self.obj_data['Hbeta_Flux']  / self.stellar_SED['normFlux_stellar']
         self.emission_Spec          = self.calc_emis_spectrum(self.stellar_SED['stellar_wave_resam'], self.obj_data['recombLine_waves'], H_He_fluxes,\
                                                        self.obj_data['recombLine_waves'], self.obj_data['sigma_gas'], self.obj_data['z_star'])
 
         #Add the components to be considered in the analysis
-        #obs_flux_norm               = self.stellar_SED['stellar_flux_norm']
+        #obs_flux_norm              = self.stellar_SED['stellar_flux_norm']
         obs_flux_norm               = self.stellar_SED['stellar_flux_norm'] + self.nebular_SED['neb_flux_norm'] + self.emission_Spec
+        
+        
+
         
         #Store the data in the object dictionary 
         self.obj_data['normFlux_obs']           = self.stellar_SED['normFlux_stellar']
@@ -804,7 +698,11 @@ class Inference_AbundanceModel(Import_model_data, Collisional_FluxCalibration, R
         self.obj_data['bases_flux_norm']        = delete(ssp_lib_dict['bases_flux_norm'], columns_to_delete, axis=0)
         self.obj_data['int_mask']               = self.stellar_SED['int_mask']
         self.obj_data['obs_fluxEr_norm']        = self.stellar_SED['stellar_fluxEr_norm']
-                   
+    
+    
+        self.obs_recomb_fluxes = self.measure_lines(self.Recomb_labels, self.obj_data['obs_wave_resam'], self.obj_data['obs_flux_norm'], calibration_factor = (self.obj_data['normFlux_obs'] / self.obj_data['Hbeta_Flux']))
+        print 'Troleo mayor', self.obs_recomb_fluxes, type(self.obs_recomb_fluxes)
+    
         #Print the model values
         if verbose:
             print '\nInput Parameters:'
@@ -947,7 +845,7 @@ class Inference_AbundanceModel(Import_model_data, Collisional_FluxCalibration, R
         
         wave_matrix         = wavelength_range * ones((lines_waves.shape[0], wavelength_range.shape[0]))
         
-        emis_spec_matrix    = A_lines[:,None] * exp(-(wave_matrix-lines_mu[:,None])*(wave_matrix-lines_mu[:,None])/(2 * lines_sigma[:,None] * lines_sigma[:,None]))
+        emis_spec_matrix    = A_lines[:,None] * exp(-(wave_matrix-lines_mu[:,None])*(wave_matrix-lines_mu[:,None])/(2 * lines_sigma * lines_sigma))
         
         combined_spectrum   = emis_spec_matrix.sum(axis=0)
         
@@ -1004,7 +902,7 @@ class Inference_AbundanceModel(Import_model_data, Collisional_FluxCalibration, R
             return colExcit_fluxes
                        
         @pymc2.deterministic
-        def calc_nebular_cont(z_star=self.obj_data['z_star'], cHbeta=self.obj_data['cHbeta'], Te=T_He, He1_abund=He1_abund, He2_abund=0.0, Halpha_Flux=self.Halpha_norm):
+        def calc_nebular_cont(z_star=self.obj_data['z_star'], cHbeta=self.obj_data['cHbeta'], Te=self.obj_data['T_low'], He1_abund=He1_abund, He2_abund=0.0, Halpha_Flux=self.Halpha_norm):
                    
             neb_flux_norm = self.nebular_Cont(self.obj_data['obs_wave_resam'], z_star, cHbeta, Te, He1_abund, He2_abund, Halpha_Flux)
 
@@ -1027,11 +925,11 @@ class Inference_AbundanceModel(Import_model_data, Collisional_FluxCalibration, R
                                                           self.obj_data['recombLine_waves'], self.obj_data['recombLine_ions'], self.obj_data['recombLine_flambda'])
             
             return recomb_fluxes
-
+        
         @pymc2.deterministic
         def calc_obs_recomb_fluxes(fit_continuum=calc_continuum, emis_recomb_fluses=calc_recomb_fluxes, z_star = self.obj_data['z_star']):
             
-            H_He_fluxes         = emis_recomb_fluses * self.obj_data['Hbeta_Flux']  / self.obj_data['normFlux_obs']
+            H_He_fluxes         = emis_recomb_fluses * self.obj_data['Hbeta_Flux']  / self.stellar_SED['normFlux_stellar']
 
             emiss_spectrum      = self.calc_emis_spectrum(self.obj_data['obs_wave_resam'], self.obj_data['recombLine_waves'], H_He_fluxes,\
                                                        self.obj_data['recombLine_waves'], self.obj_data['sigma_gas'], z_star)                            
@@ -1040,8 +938,9 @@ class Inference_AbundanceModel(Import_model_data, Collisional_FluxCalibration, R
             
             lines_fluxes_obs    = self.measure_lines(self.Recomb_labels, self.obj_data['obs_wave_resam'], sym_spectrum, calibration_factor = (self.obj_data['normFlux_obs'] / self.obj_data['Hbeta_Flux']))
             
+            
             return lines_fluxes_obs
-
+            
         @pymc2.stochastic(observed=True) #Likelihood
         def likelihood_ssp(value = self.obj_data['obs_flux_norm_masked'], fit_continuum=calc_continuum, sigmaContinuum=self.obj_data['obs_fluxEr_norm']):
             calc_continuum_masked = fit_continuum * self.obj_data['int_mask']
@@ -1086,106 +985,6 @@ class Inference_AbundanceModel(Import_model_data, Collisional_FluxCalibration, R
             return - chi_F / 2
 
         return locals()
-    
-    def stellar_semi(self):
-        
-        He1_abund   =   pymc2.Uniform(          'He1_abund',    0.001,                      0.30)
-            
-        #z_star     =   pymc2.Uniform(    'z_star',             self.z_min_ssp_limit,       self.z_max_ssp_limit)
-        Av_star     =   pymc2.Uniform(    'Av_star',            0.0,                        5.00)
-        sigma_star  =   pymc2.Uniform(    'sigma_star',         0.0,                        max(self.obj_data['sigma_gas']),       value=mean(self.obj_data['sigma_gas']))
-
-        @pymc2.deterministic
-        def calc_nebular_cont(z_star=self.obj_data['z_star'], cHbeta=self.obj_data['cHbeta'], Te=self.obj_data['TSIII'], He1_abund=He1_abund, He2_abund=0.0, Halpha_Flux=self.Halpha_norm):
-                   
-            neb_flux_norm = self.nebular_Cont(self.obj_data['obs_wave_resam'], z_star, cHbeta, Te, He1_abund, He2_abund, Halpha_Flux)
-
-            return neb_flux_norm
-        
-        @pymc2.deterministic
-        def ssp_coefficients(z_star=self.obj_data['z_star'], Av_star=Av_star, sigma_star=sigma_star, nebular_flux=calc_nebular_cont):
-            
-            nebular_flux_masked = nebular_flux * self.obj_data['int_mask']
-            
-            obsFlux_non_neb_masked = self.obj_data['obs_flux_norm_masked'] - nebular_flux_masked          
-            
-            self.ssp_grid_i = self.physical_SED_model(self.obj_data['basesWave_resam'], self.obj_data['obs_wave_resam'], self.obj_data['bases_flux_norm'], Av_star, z_star, sigma_star, 3.4)
-            
-            ssp_grid_i_masked = (self.obj_data['int_mask'] * self.ssp_grid_i.T).T
-            
-            ssp_coeffs_norm = self.ssp_fitting(ssp_grid_i_masked, obsFlux_non_neb_masked)
-            
-            return ssp_coeffs_norm        
-
-        @pymc2.deterministic
-        def stellar_continua_calculation(ssp_coeffs = ssp_coefficients, nebular_flux=calc_nebular_cont):
-            
-            flux_sspFit_norm = np_sum(ssp_coeffs.T * self.ssp_grid_i, axis=1)
-            
-            flux_continuum_norm = flux_sspFit_norm + nebular_flux
-            
-            return flux_continuum_norm
-
-        @pymc2.stochastic(observed=True) #Likelihood
-        def likelihood_ssp(value = self.obj_data['obs_flux_norm_masked'], StellarCont_TheoFlux=stellar_continua_calculation, sigmaContinuum=self.obj_data['obs_fluxEr_norm']):
-            StellarCont_TheoFlux_masked = stellar_continua_calculation * self.obj_data['int_mask']
-            chi_F = sum(square(StellarCont_TheoFlux_masked - value) / square(sigmaContinuum))
-            return - chi_F / 2
-
-#         @pymc2.deterministic
-#         def ssp_spectrum(z_star=self.obj_data['z_star'], Av_star=Av_star, sigma_star=sigma_star, ssp_coefs = ssp_coefs):#, nebular_flux=nebular_continua):
-#                                     
-#             ssp_grid_i          = self.physical_SED_model(self.obj_data['basesWave_resam'], self.obj_data['obs_wave_resam'], self.obj_data['bases_flux_norm'],\
-#                                     Av_star, z_star, sigma_star, 3.4)
-#             
-#             ssp_grid_i_masked   = (self.obj_data['int_mask'] * ssp_grid_i.T).T
-#             
-#             
-#             fitted_spectrum     = ssp_grid_i_masked.dot(ssp_coefs)
-#                         
-#             return fitted_spectrum        
-#         
-#         @pymc2.stochastic(observed=True) #Likelihood
-#         def likelihood_ssp(value = self.obj_data['obs_flux_norm_masked'], StellarCont_TheoFlux=ssp_spectrum, sigmaContinuum=self.obj_data['obs_fluxEr_norm']):
-#             chi_F = sum(square(StellarCont_TheoFlux - value) / square(sigmaContinuum))
-#             return - chi_F / 2
-
-        return locals()
-    
-    def continuum_bayesian(self):
-    
-        T_He        =   pymc2.TruncatedNormal(  'T_He',         self.obj_data['TSIII'],     self.obj_data['TSIII_error']**-2,    a = 7000.0 ,   b = 20000.0, value=self.obj_data['TSIII'])
-        He1_abund   =   pymc2.Uniform(          'He1_abund',    0.001,                      0.30)
-        
-        #z_star     =   pymc2.Uniform(          'z_star',       self.z_min_ssp_limit,       self.z_max_ssp_limit)
-        Av_star     =   pymc2.Uniform(          'Av_star',      0.0,                        5.00)
-        sigma_star  =   pymc2.Uniform(          'sigma_star',   0.0,                        5.00)
-        ssp_coefs   =  [pymc2.Uniform(          'ssp_coefs_%i' % i,   self.population_limitss[i][0],   self.population_limitss[i][1], value=self.mean_coeffs[i])   for i in self.range_bases]
-
-        @pymc2.deterministic
-        def calc_nebular_cont(z_star=self.obj_data['z_star'], cHbeta=self.obj_data['cHbeta'], Te=T_He, He1_abund=He1_abund, He2_abund=0.0, Halpha_Flux=self.Halpha_norm):
-                   
-            neb_flux_norm = self.nebular_Cont(self.obj_data['obs_wave_resam'], z_star, cHbeta, Te, He1_abund, He2_abund, Halpha_Flux)
-
-            return neb_flux_norm
-        
-        @pymc2.deterministic
-        def calc_continuum(z_star=self.obj_data['z_star'], Av_star=Av_star, sigma_star=sigma_star, ssp_coefs=ssp_coefs, nebular_flux=calc_nebular_cont):
-                                    
-            ssp_grid_i      = self.physical_SED_model(self.obj_data['basesWave_resam'], self.obj_data['obs_wave_resam'], self.obj_data['bases_flux_norm'],\
-                                                       Av_star, z_star, sigma_star, 3.4)
-            
-            fit_continuum   = ssp_grid_i.dot(ssp_coefs) + nebular_flux
-            
-            return fit_continuum
-        
-        @pymc2.stochastic(observed=True) #Likelihood
-        def likelihood_ssp(value = self.obj_data['obs_flux_norm_masked'], fit_continuum=calc_continuum, sigmaContinuum=self.obj_data['obs_fluxEr_norm']):
-            calc_continuum_masked = fit_continuum * self.obj_data['int_mask']
-            chi_F = sum(square(calc_continuum_masked - value) / square(sigmaContinuum))
-            return - chi_F / 2        
- 
-        return locals()
  
 class Run_MCMC(Inference_AbundanceModel, ssp_fitter):
 
@@ -1198,16 +997,9 @@ class Run_MCMC(Inference_AbundanceModel, ssp_fitter):
                     
     def select_inference_model(self, model):
         
-        if model == '_ssp_semi':
-            self.inf_dict = self.stellar_semi()
-        
-        elif model == '_continuum_bayesian':
-            self.inf_dict = self.continuum_bayesian()
-        
-        elif model == '_stellar_tests':
+        if model == '_stellar_tests':
             self.inf_dict = self.stellar_bayes()
-        
-        elif model == '_neb_stellar_abund':  
+        else:
             self.inf_dict = self.He_O_S_nebStellar_model()
                          
     def run_pymc2(self, db_address, iterations = 10000, variables_list = None, prefit = True):
@@ -1245,7 +1037,7 @@ class Run_MCMC(Inference_AbundanceModel, ssp_fitter):
         #Close the database
         self.pymc2_M.db.close()       
 
-    def load_pymc_database_manual(self, db_address, burning = 0, params_list = None, true_values = False):
+    def load_pymc_database_manual(self, db_address, burning = 0, params_list = None):
                 
         #Load the pymc output textfile database
         pymc_database = pymc2.database.pickle.load(db_address)
@@ -1285,10 +1077,8 @@ class Run_MCMC(Inference_AbundanceModel, ssp_fitter):
                     #Special cases
                     if key_true == 'ne':
                         key_true = 'n_e'
-                    
-                    if true_values:
-                        stats_dic[trace]['true_value'] = self.obj_data[key_true]
-                        
+                     
+                    stats_dic[trace]['true_value'] = self.obj_data[key_true]
                  
                 if params_list is not None:
                     if trace in params_list:
