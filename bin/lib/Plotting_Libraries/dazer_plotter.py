@@ -704,8 +704,8 @@ class Plot_Conf(Fig_Conf):
         #Set figure conf
         sizing_dict = {}
         sizing_dict['figure.figsize']   = (14, 14)
-        sizing_dict['legend.fontsize']  = 30
-        sizing_dict['axes.labelsize']   = 20
+        sizing_dict['legend.fontsize']  = 40
+        sizing_dict['axes.labelsize']   = 40
         sizing_dict['axes.titlesize']   = 12
         sizing_dict['xtick.labelsize']  = 12
         sizing_dict['ytick.labelsize']  = 12
