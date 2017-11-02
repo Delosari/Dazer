@@ -2,7 +2,7 @@ import numpy as np
 from dazer_methods import Dazer
 from lib.Astro_Libraries.Abundances_InferenceModel_Helium_v41 import Run_MCMC
    
-iterat, burn, thin  = 20000, 0, 1
+iterat, burn, thin  = 15000, 0, 1
 sim_model           = 'PuttingAllTogether'
 sim_components      = '_neb_stars_Abunds'
 obs_metals          = ['H1', 'He1', 'S2', 'S3', 'O2', 'O3', 'N2', 'Ar3', 'Ar4']

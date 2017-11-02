@@ -44,9 +44,13 @@ class Import_model_data(ReddeningLaws):
             self.paths_dict['stellar_data_folder']  = 'E:/Cloud Storage/Dropbox/Astrophysics/Tools/Starlight/'  
             self.paths_dict['dazer_path']           = 'C:/Users/lativ/git/dazer/'
             self.paths_dict['lick_indexes_folder']  = 'C:/Users/lativ/git/dazer/working_examples/'
+            self.paths_dict['lines_data_file']      = 'C:/Users/lativ/git/dazer/bin/lib/Astro_Libraries/lines_data.xlsx'
             
         #Lines labels and wavelength to use in pyneb
         self.lines_df = read_excel(self.paths_dict['lines_data_file'], sheetname=0, header=0, index_col=0)
+        self.lines_df['pyneb_code'] = self.lines_df['pyneb_code'].astype(str)
+        idx_numeric_pynebCode = ~self.lines_df['pyneb_code'].str.contains('A+')
+        self.lines_df.loc[idx_numeric_pynebCode,'pyneb_code'] = self.lines_df.loc[idx_numeric_pynebCode,'pyneb_code'].astype(int)
      
     def import_table_data(self, Address, Columns):
         
@@ -490,7 +494,7 @@ class Recombination_FluxCalibration(LineMesurer_v2):
                 lines_emis_vector[i]    = emisRatio_i * cr_i
                 
             elif ion == 'He1':
-                ftau_i                  = self.OpticalDepth_He(tau = tau, T_4 = t4, ne = ne, He_label = self.Recomb_labels[i]) 
+                ftau_i                  = self.OpticalDepth_He(tau = tau, T_4 = t4, ne = ne, He_label = self.Recomb_labels[i])
                 emisRatio_i             = self.recombDict[ion].getEmissivity(Te, ne, wave = self.Recomb_pynebCode[i]) / Emis_Hbeta
                 lines_emis_vector[i]    = lines_abund_dict[ion] * emisRatio_i * ftau_i * (1.0/cr_Hbeta)
                 
@@ -868,8 +872,8 @@ class Inference_AbundanceModel(Import_model_data, Collisional_FluxCalibration, R
         T_He        =   pymc2.TruncatedNormal(  'T_He',         self.obj_data['TSIII'],     self.obj_data['TSIII_error']**-2,    a = 7000.0 ,   b = 20000.0, value=14500.0)
         
         #z_star     =   pymc2.Uniform(          'z_star',       self.z_min_ssp_limit,       self.z_max_ssp_limit)
-        Av_star     =   pymc2.Uniform(          'Av_star',      0.0,                        5.00)
-        sigma_star  =   pymc2.Uniform(          'sigma_star',   0.0,                        5.00)
+        Av_star     =   pymc2.Uniform(          'Av_star',      0.0,                        2.00)
+        sigma_star  =   pymc2.Uniform(          'sigma_star',   0.0,                        2.00)
         ssp_coefs   =  [pymc2.Uniform(          'ssp_coefs_%i' % i,   self.population_limitss[i][0],   self.population_limitss[i][1])   for i in self.range_bases]
 
         @pymc2.deterministic()
