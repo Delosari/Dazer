@@ -2,6 +2,7 @@ import pymc as pm
 import numpy as np
 from scipy.optimize import nnls
 
+
 def model(a_matrix, b_vector):
     x_coeffs = [pm.Uniform('x_coeffs_%i' % i, 0.0, 5.00) for i in range(len(x_true))]
 
