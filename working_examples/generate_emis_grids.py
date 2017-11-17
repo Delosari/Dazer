@@ -23,16 +23,22 @@ def bilinear_interpolator_axis(x, y, x_range, y_range, data_grid):
 
     return inter_value
 
-
+H1 = pn.RecAtom('H', 1)
 He1 = pn.RecAtom('He', 1)
 Te, ne = 10550.0, 155.0
 lines = np.array([4026.0, 4471.0, 5876.0, 6678.0])
 
-min_den, max_den, step_den = 0, 1000, 5
+min_den, max_den, step_den = 0, 1000, 10
 den_interval = np.arange(min_den, max_den, step_den)
 den_interval[0] = 1
-min_tem, max_tem, step_tem = 7000, 20000, 50
+min_tem, max_tem, step_tem = 7000, 20000, 100
 tem_interval = np.arange(min_tem, max_tem, step_tem)
+
+print den_interval.shape[0]
+print tem_interval.shape[0]
+print 'Horas', den_interval.shape[0] * tem_interval.shape[0] * 30.0 / 3600
+print 60 * 60
+
 
 He_emis_grid = np.empty((tem_interval.shape[0], den_interval.shape[0], lines.shape[0]))
 
@@ -44,6 +50,9 @@ bilinear_manual_axis = bilinear_interpolator_axis(ne, Te, den_interval, tem_inte
 end = timer()
 time_new = end - start
 print 'new method', time_new
+
+print He1.getEmissivity(10000, 100, wave=4713.0)/H1.getEmissivity(10000, 100, wave=4861.0)
+print
 
 start = timer()
 for i in range(lines.shape[0]):
