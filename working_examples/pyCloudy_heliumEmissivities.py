@@ -180,7 +180,6 @@ if start_simulation_check:
             pc.log_.timer('-Cloudy script run @ {}. Process ended after:'.format(dir_results), calling='log')
 
 # --This code section generates some plots on the results to compare the results with the emissivities from Porter et al 2012-13
-
 #Loading simulation results
 Ms = pc.load_models(dir_results, verbose=False)
 

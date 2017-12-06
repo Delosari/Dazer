@@ -607,7 +607,7 @@ class Inference_AbundanceModel(Import_model_data, Collisional_FluxCalibration, R
         #Physical parameters for the nebular continua calculation
         self.load_neb_constants(self.paths_dict['nebular_data_folder'])
         
-        #Recombination features                    
+        #Recombination features
         self.recomb_fluxes          = self.synth_recomb_emission(obs_lines)
         self.obs_recomb_err         = self.recomb_fluxes * 0.02
                                 

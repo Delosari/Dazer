@@ -452,10 +452,7 @@ class Recombination_FluxCalibration(LineMesurer_v2):
         self.H13889A_label          = 'H1_3889A'          
         self.He3889_label           = 'He1_3889A'
         self.He3889_Check           = None
-        
-        #Set up the right emissivities
-        #atomicData.setDataFile('he_i_rec_Pal12-Pal13.fits')
-        
+
         #Atoms to fit the data
         self.recombDict        = {}
         self.recombDict['H1']  = RecAtom('H', 1)

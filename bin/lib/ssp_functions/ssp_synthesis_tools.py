@@ -424,9 +424,35 @@ class ssp_fitter(ssp_synthesis_importer):
         ssp_synthesis_importer.__init__(self)
         
         self.ssp_conf_dict = OrderedDict()
-         
+
+    def import_ssp_library(self, ssp_lib_type, data_folder=None, data_file=None):
+
+        # Store stellar base type
+        sspLib_dict = {}
+        sspLib_dict['data_type'] = ssp_lib_type
+
+        # -----------Import the base type
+        if ssp_lib_type == 'FIT3D':
+
+            # Check if more files are being introduced
+            if ',' in data_file:
+                ssp_lib1, ssp_lib2 = data_file.split(',')  # Corrently we are only using the first one (the big)
+            else:
+                ssp_lib1 = data_file
+
+            sspLib_dict = self.import_Fit3D_ssplibrary(data_folder + ssp_lib1)
+
+        elif ssp_lib_type == 'starlight':
+
+            sspLib_dict = self.import_STARLIGHT_ssplibrary(data_folder, data_file)
+
+        # Store stellar base type
+        sspLib_dict['data_type'] = ssp_lib_type
+
+        return sspLib_dict
+
     def load_stellar_bases(self, ssp_lib_type, data_folder = None, data_file = None, resample_int = None, resample_range = None, norm_interval = (5100, 5150)):
-        
+        #TODO this library must be divided in two parts: loading ssp files and resampling
         #Store stellar base type
         sspLib_dict = {}
         sspLib_dict['data_type'] = ssp_lib_type
