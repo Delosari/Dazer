@@ -128,7 +128,6 @@ class Import_model_data():
         self.lines_df.loc[idx_numeric_pynebCode, 'pyneb_code'] = self.lines_df.loc[idx_numeric_pynebCode, 'pyneb_code'].astype(int)
         self.lines_df['ion'].apply(str)
 
-
     def import_optical_depth_coeff_table(self, helium_lines):
         
         Data_dict = OrderedDict()
@@ -328,7 +327,108 @@ class Import_model_data():
         self.obj_data['obs_fluxEr_norm'] = 0.05
 
         return
-            
+
+    def import_emission_line_data(self, output_dict, obj_lines_df, input_ions):
+
+        # If wavelengths are provided for the observation we use them, else we use the theoretical values
+        if all(obj_lines_df.obs_wavelength.isnull().values):
+            idx_obs_labels = self.lines_df.index.isin(obj_lines_df.index)
+            obj_lines_df['obs_wavelength'] = self.lines_df.loc[idx_obs_labels].wavelength
+
+        # Sort the dataframe by wavelength in case it isn't
+        obj_lines_df.sort_values(by=['obs_wavelength'], ascending=True, inplace=True)
+
+        # Get the references for the lines treatment
+        idx_obj_lines               = self.lines_df.index.isin(obj_lines_df.index)
+        obj_lines_df['emis_type']   = self.lines_df.loc[idx_obj_lines].emis_type.astype(str)
+        obj_lines_df['pynebCode']   = self.lines_df.loc[idx_obj_lines].pyneb_code
+        obj_lines_df['ion']         = self.lines_df.loc[idx_obj_lines].ion.astype(str)
+
+        # Save the data in the dictionary according to recomb or colExt format
+        # TODO Code to change if we remove recomb/colExt dividion
+        # TODO add fluxes when we store synthetic data to a file
+        idx_recomb = (obj_lines_df.emis_type == 'rec') & (obj_lines_df.ion.isin(input_ions))
+        output_dict['recombLine_ions']      = obj_lines_df.loc[idx_recomb].ion.values
+        output_dict['recombLine_labes']     = obj_lines_df.loc[idx_recomb].index.values
+        output_dict['recombLine_waves']     = obj_lines_df.loc[idx_recomb].obs_wavelength.values
+        output_dict['recombLine_pynebCode'] = obj_lines_df.loc[idx_recomb].pynebCode.values
+        idx_col = (obj_lines_df.emis_type == 'col') & (obj_lines_df.ion.isin(input_ions))
+        output_dict['colLine_ions']         = obj_lines_df.loc[idx_col].ion.values
+        output_dict['colLine_labes']        = obj_lines_df.loc[idx_col].index.values
+        output_dict['colLine_waves']        = obj_lines_df.loc[idx_col].obs_wavelength.values
+        output_dict['colLine_pynebCode']    = obj_lines_df.loc[idx_col].pynebCode.values
+
+        # Generate the dictionary with pyneb ions
+        self.ionDict = {}
+        for raw_idx in obj_lines_df.index:
+            ion = obj_lines_df.loc[raw_idx].ion
+            if ion not in self.ionDict:
+                element, state = ion[:-1], ion[-1]
+                if obj_lines_df.loc[raw_idx].emis_type == 'rec':
+                    self.ionDict[ion] = RecAtom(element, state)
+                elif obj_lines_df.loc[raw_idx].emis_type == 'col':
+                    self.ionDict[ion] = Atom(element, state)
+
+        # Establish index of lines which below to high and low ionization zones
+        # TODO This should also include recomb (unnecesary if we  we remove recomb/colExt dividion)
+        self.idx_highU = in1d(output_dict['colLine_ions'], self.high_temp_ions)
+        self.idx_lowU = ~self.idx_highU
+
+        # Parameters to improve calculation speed:
+        self.n_recombLines, self.n_colExcLines = len(output_dict['recombLine_labes']), len(output_dict['colLine_labes'])
+        self.range_recombLines, self.range_colExcLines = arange(self.n_recombLines), arange(self.n_colExcLines)
+
+        # Empty Ionic dictionary for the MCMC
+        self.abund_dict = {ion: 0 for ion in self.ionDict.keys()}
+
+        return
+
+    def import_emissivity_grids(self, output_dict):
+
+        # TODO This must be change to a mechanism which recognizes missing ions/grids
+        # Generate recomb emissivity grids. Check if they are already available from previous run
+        if path.isfile(self.paths_dict['recomb_grid']):
+            self.recomb_emis_grid = load_emissivity_grid(self.paths_dict['recomb_grid'])
+        else:
+            self.recomb_emis_grid = generate_emissivity_grid(output_dict['recombLine_pynebCode'],
+                                                             output_dict['recombLine_ions'], self.ionDict,
+                                                             self.tem_grid_range, self.den_grid_range)
+            # Save the grid
+            save_emissivity_grid(self.paths_dict['recomb_grid'], self.recomb_emis_grid)
+
+        # Generate coll emissivity grids. Check if they are already available from previous run
+        if path.isfile(self.paths_dict['collext_grid']):
+            self.metals_emis_grid = load_emissivity_grid(self.paths_dict['collext_grid'])
+        else:
+            self.metals_emis_grid = generate_emissivity_grid(output_dict['colLine_pynebCode'],
+                                                             output_dict['colLine_ions'], self.ionDict,
+                                                             self.tem_grid_range, self.den_grid_range)
+
+            # Save the grid
+            save_emissivity_grid(self.paths_dict['collext_grid'], self.metals_emis_grid)
+
+        # Normalize the grids by Hbeta value
+        self.Hbeta_emis_grid = generate_emissivity_grid([4861.0], ['H1'], self.ionDict, self.tem_grid_range, self.den_grid_range)
+
+        self.recomb_emis_grid = self.recomb_emis_grid / self.Hbeta_emis_grid
+        self.metals_emis_grid = self.metals_emis_grid / self.Hbeta_emis_grid
+
+        return
+
+    def generate_object_mask(self, output_dict, obj_mask_file, obj_wave_resam):
+
+        # TODO We need to adapt this from the lick indeces system to a mask_label wmin wmax (or viceversa)
+        obj_mask_df = read_csv(obj_mask_file, delim_whitespace=True, header=0, index_col=0)
+        boolean_mask = ones(len(obj_wave_resam), dtype=bool)
+        for mask_label in obj_mask_df.index:
+            wmin, wmax = obj_mask_df.loc[mask_label, 'wmin'], obj_mask_df.loc[mask_label, 'wmax']
+            idx_cur_spec_mask = (obj_wave_resam > wmin) & (obj_wave_resam < wmax)
+            boolean_mask = boolean_mask & ~idx_cur_spec_mask
+
+        output_dict['boolean_mask'] = boolean_mask
+
+        return
+
 class ContinuaComponents(ssp_fitter, NebularContinuumCalculator):
 
     def __init__(self):
@@ -369,7 +469,31 @@ class ContinuaComponents(ssp_fitter, NebularContinuumCalculator):
                        'flambda_neb': flambda_neb, 'neb_flux_norm': neb_flux_norm}
 
         return nebular_SED
-                   
+
+    def load_ssp_prefit(self, obj_ssp_coeffs_file, ssp_dict, lower_limit_coeffs = 0.01):
+
+        # TODO add a true ssp prefit
+        full_ssp_Flux = ssp_dict['basesFlux_resam']
+        full_ssp_FluxNorm = ssp_dict['bases_flux_norm']
+        full_ssp_FluxNormCoeffs = ssp_dict['normFlux_bases']
+
+        bases_idx, bases_coeff = loadtxt(obj_ssp_coeffs_file, usecols=[0, 1], unpack=True)
+
+        idx_populations                     = bases_coeff > lower_limit_coeffs #
+        self.sspPrefit_Idcs                 = where(idx_populations)[0]
+        self.sspPrefit_Coeffs               = bases_coeff[idx_populations]
+        self.nBases                         = len(where(idx_populations)[0])
+        self.range_bases                    = arange(self.nBases)
+        self.sspPrefit_Limits               = vstack((self.sspPrefit_Coeffs * 0.8, self.sspPrefit_Coeffs * 1.2)).T
+        self.neglected_populations          = where(~idx_populations)
+
+        self.onBasesWave                    = ssp_dict['basesWave_resam']
+        self.onBasesFlux                    = delete(full_ssp_Flux, self.neglected_populations, axis=0)
+        self.onBasesFluxNorm                = delete(full_ssp_FluxNorm, self.neglected_populations, axis=0)
+        self.onBasesFluxCoeffs              = delete(full_ssp_FluxNormCoeffs, self.neglected_populations, axis=0)
+
+        return
+
 class EmissionComponents(LineMesurer_v2):
     
     def __init__(self):
@@ -448,6 +572,20 @@ class EmissionComponents(LineMesurer_v2):
 
         return colExcit_fluxes
 
+    def reddening_parameters(self, output_dict):
+
+        # TODO a class should be created to include reddening features for the function
+        # Hbeta parameters #TODO This could go into the configuration file (change the normalizing wavelength?)
+        self.Hbeta_xX   = self.reddening_Xx(array([self.Hbeta_wave]), self.reddedning_curve_model, self.Rv_model)[0]
+
+        recomblines_xX  = self.reddening_Xx(output_dict['recombLine_waves'], self.reddedning_curve_model, self.Rv_model)
+        colLines_xX     = self.reddening_Xx(output_dict['colLine_waves'], self.reddedning_curve_model, self.Rv_model)
+
+        output_dict['recombLine_flambda'] = recomblines_xX / self.Hbeta_xX - 1.0
+        output_dict['colLine_flambda'] = colLines_xX / self.Hbeta_xX - 1.0
+
+        return
+
 class SpectrumFitter(Import_model_data, ContinuaComponents, EmissionComponents, ReddeningLaws):
 
     def __init__(self):
@@ -460,135 +598,98 @@ class SpectrumFitter(Import_model_data, ContinuaComponents, EmissionComponents, 
         #Import sub classes
         ReddeningLaws.__init__(self)
 
-        # #Self
-        # self.Rv_model = 3.4
-        # self.reddedning_curve_model = 'G03_average'
-        # self.abund_iter_dict = {}
-        #
-        # #Speed up calculation
+    def ready_simulation(self, model_name, output_folder, obs_data, ssp_data, fitting_components, prefit_ssp=True, overwrite_grids=False):
 
-    def sort_emission_types(self, obs_ions):
+        # Dictionary to store the data
+        self.obj_data = {}
 
-        # Loop through the ions and read the lines (this is due to the type I format the synth data)
-        lines_labes, lines_waves, lines_ions, lines_abund, lines_pynebCode = [], [], [], [], []
-        abund_dict = {}
+        if output_folder is None: # TODO need to establish a global path to save the data
+            self.output_folder = obs_data['output_folder']
 
-        for ion in obs_ions:
+        # Prepare emission data
+        if 'emission' in fitting_components: # TODO change this to components label
 
-            # Recombination lines
-            if ion in ['H1', 'He1', 'He2']:
-                lines_ions += [ion] * len(self.obj_data[ion + '_wave'])
-                lines_labes += list(self.obj_data[ion + '_labels'])
-                lines_waves += list(self.obj_data[ion + '_wave'])
-                lines_pynebCode += list(self.obj_data[ion + '_pyneb_code'])
+            obj_lines_df = read_csv(obs_data['obj_lines_file'], delim_whitespace=True, header=0, index_col=0)
 
-                if ion == 'H1':
-                    abund_dict[ion] = 1.0
-                else:
-                    abund_dict[ion] = self.obj_data[ion + '_abund']
+            #Prepare data from emission line file
+            self.import_emission_line_data(self.obj_data, obj_lines_df, obs_data['input_ions'])
 
-            # Collisional excited lines
-            else:
-                lines_ions += [ion] * len(self.obj_data[ion + '_wave'])
-                lines_labes += list(self.obj_data[ion + '_labels'])
-                lines_waves += list(self.obj_data[ion + '_wave'])
-                lines_pynebCode += list(self.obj_data[ion + '_pyneb_code'])
-                abund_dict[ion] = self.obj_data[ion + '_abund']
+            #Create or load emissivity grids
+            self.import_emissivity_grids(self.obj_data)
 
-        # Convert lists to numpy arrays
-        lines_labes, lines_waves, lines_ions = array(lines_labes), array(lines_waves), array(lines_ions)
-        lines_pynebCode = array(lines_pynebCode)
+            # Reddening parameters
+            self.reddening_parameters(self.obj_data)
 
-        # Sorting by increasing wavelength and by recombination or collisional excited
-        idx_sort = argsort(lines_waves)
-        idx_recomb = in1d(lines_ions[idx_sort], ['H1', 'He1', 'He2'])
-        idx_metals = ~idx_recomb
+        # Prepare stellar data
+        if 'stellar' in fitting_components:
 
-        # Store the data for later use
-        self.obj_data['recombLine_ions'] = lines_ions[idx_sort][idx_recomb]
-        self.obj_data['recombLine_labes'] = lines_labes[idx_sort][idx_recomb]
-        self.obj_data['recombLine_waves'] = lines_waves[idx_sort][idx_recomb]
-        self.obj_data['recombLine_pynebCode'] = lines_pynebCode[idx_sort][idx_recomb]
+            # Create dictionary with the stellar library configuration which this object will use
+            self.ssp_lib = ssp_data.copy()
 
-        self.obj_data['colLine_ions'] = lines_ions[idx_sort][idx_metals]
-        self.obj_data['colLine_labes'] = lines_labes[idx_sort][idx_metals]
-        self.obj_data['colLine_waves'] = lines_waves[idx_sort][idx_metals]
-        self.obj_data['colLine_pynebCode'] = lines_pynebCode[idx_sort][idx_metals]
+            # Trim, resample and normalize and the ssp
+            self.treat_ssp_library(self.ssp_lib, obs_data['wavelengh_limits'], obs_data['resample_inc'], obs_data['norm_interval'])
 
-        self.obj_data['synth_abund'] = abund_dict
+            # Generate object masks:
+            self.generate_object_mask(self.obj_data, obs_data['obj_mask_file'], obs_data['obj_wave_resam'])
 
-        return
+            # Stellar data prefit
+            if prefit_ssp:
+                self.load_ssp_prefit(obs_data['obj_ssp_coeffs_file'], self.ssp_lib)
 
-    def ready_emission_data(self, obs_ions, overwrite_grids=True):
+            # Redshift limits for the object
+            z_max_ssp               = (self.ssp_lib['basesWave_resam'][0] / obs_data['obj_wave_resam'][0]) - 1.0
+            z_min_ssp               = (self.ssp_lib['basesWave_resam'][-1]/ obs_data['obj_wave_resam'][-1]) - 1.0
+            self.z_max_ssp_limit    = round(z_max_ssp - 0.001, 3)
+            self.z_min_ssp_limit    = z_min_ssp
+            print '--z_limits:', z_min_ssp, z_max_ssp
 
-        # Variables to speed up the code
-        self.n_recombLines, self.n_colExcLines = len(self.obj_data['recombLine_labes']), len(self.obj_data['colLine_labes'])
-        self.range_recombLines, self.range_colExcLines =arange(self.n_recombLines), arange(self.n_colExcLines)
-
-        # Readening curves
-        recomblines_xX = self.reddening_Xx(self.obj_data['recombLine_waves'], self.reddedning_curve_model, self.Rv_model)
-        self.obj_data['recombLine_flambda'] = recomblines_xX / self.Hbeta_xX - 1.0
-        colLines_xX = self.reddening_Xx(self.obj_data['colLine_waves'], self.reddedning_curve_model, self.Rv_model)
-        self.obj_data['colLine_flambda'] = colLines_xX / self.Hbeta_xX - 1.0
-
-        # Temperature and density grid parameters #TODO CLEAN add this to conf file
-        min_den, max_den, step_den = 0, 1000, 5
-        min_tem, max_tem, step_tem = 5000, 25000, 10
-
-        # Generate the temperature and density interval
-        self.tem_grid_range = arange(min_tem, max_tem, step_tem)
-        self.den_grid_range = arange(min_den, max_den, step_den)
-        self.den_grid_range[0] = 1 #Change the minimum value for the grid to 1
-
-        # Load Emissivity grids if available or generate them # TODO This code should be able to distinguish if there are missing lines in the grids
-        self.Hbeta_emis_grid = generate_emissivity_grid([4861.0], ['H1'], self.ionDict, self.tem_grid_range, self.den_grid_range)
-
-        if path.isfile(self.paths_dict['recomb_grid']):
-            self.recomb_emis_grid = load_emissivity_grid(self.paths_dict['recomb_grid'])
-        else:
-            self.recomb_emis_grid = generate_emissivity_grid(self.obj_data['recombLine_pynebCode'],
-                                                             self.obj_data['recombLine_ions'], self.ionDict,
-                                                             self.tem_grid_range, self.den_grid_range)
-            save_emissivity_grid(self.paths_dict['recomb_grid'], self.recomb_emis_grid)
-
-
-        if path.isfile(self.paths_dict['collext_grid']):
-            self.metals_emis_grid = load_emissivity_grid(self.paths_dict['collext_grid'])
-        else:
-            self.metals_emis_grid = generate_emissivity_grid(self.obj_data['colLine_pynebCode'],
-                                                             self.obj_data['colLine_ions'], self.ionDict,
-                                                             self.tem_grid_range, self.den_grid_range)
-            save_emissivity_grid(self.paths_dict['collext_grid'], self.metals_emis_grid)
-
-        # Normalize the grids by Hbeta value
-        self.recomb_emis_grid = self.recomb_emis_grid / self.Hbeta_emis_grid
-        self.metals_emis_grid = self.metals_emis_grid / self.Hbeta_emis_grid
-
-        # Establish index of lines which below to high and low ionization zones
-        self.idx_highU = in1d(self.obj_data['colLine_ions'], self.highTemp_ions)
-        self.idx_lowU = ~self.idx_highU
-
-        # Generate an emissivity grid for Hbeta
-        self.Hbeta_emis_grid[:,:,0] = self.ionDict['H1'].getEmissivity(self.tem_grid_range, self.den_grid_range, label = self.Hbeta_pynebCode)
-
-        # Empty Ionic dictionary for the MCMC
-        self.abund_iter_dict = {ion: 0 for ion in obs_ions}
+        # Store the data in the object dictionary
+        # TODO this must each be saved in its own section because not all components are always required
+        # self.obj_data['normFlux_obs']           = obs_data['normFlux_obj']
+        # self.obj_data['obs_wave_resam']         = obs_data['obj_wave_resam']
+        # self.obj_data['obs_flux_resam']         = obs_data['obj_flux_resam']
+        # self.obj_data['obs_flux_norm']          = obs_data['obj_flux_norm']
+        # self.obj_data['int_mask']               = self.obj_data['boolean_mask'] * 1
+        # self.obj_data['obs_flux_norm_masked']   = self.obj_data['obs_flux_norm'] * self.obj_data['int_mask']
+        # self.obj_data['basesWave_resam']        = ssp_data['basesWave_resam']
+        # self.obj_data['bases_flux_norm']        = delete(ssp_data['bases_flux_norm'], self.neglected_populations, axis=0)
+        # self.obj_data['obs_fluxEr_norm']        = 0.05
 
         return
+
+    def calc_emis_spectrum(self, wavelength_range, lines_waves, lines_fluxes, lines_mu, lines_sigma, redshift):
+
+        lines_mu = lines_mu * (1 + redshift)
+
+        A_lines = lines_fluxes / (lines_sigma * self.sqrt2pi)
+
+        wave_matrix = wavelength_range * ones((lines_waves.shape[0], wavelength_range.shape[0]))
+
+        emis_spec_matrix = A_lines[:, None] * exp(
+            -(wave_matrix - lines_mu[:, None]) * (wave_matrix - lines_mu[:, None]) / (2 * lines_sigma * lines_sigma))
+
+        combined_spectrum = emis_spec_matrix.sum(axis=0)
+
+        return combined_spectrum
 
     def gen_synth_obs(self, emission_component = False, nebular_component = True, stellar_component = True,
-                      wavelengh_limits = None, resample_inc = None, norm_interval = None,
-                      obj_properties_file = None, obj_lines_file = None, obj_ssp_coeffs_file = None, obj_mask_file = None,
-                      ssp_type=None, ssp_folder=None, ssp_conf_file=None,
-                      error_recomb_lines = None, error_collexc_lines = None):
+                      wavelengh_limits = None, resample_inc = None, norm_interval = None, norm_factor = None,
+                      obj_properties_file = None, obj_lines_file = None, obj_ssp_coeffs_file = None, obj_mask_file = None, output_folder = None,
+                      error_recomb_lines = None, error_collexc_lines = None, ssp_lib_dict = None, input_ions = None):
 
-        # TODO Can we divide into self parts code and synth_data ?
         # TODO we will need to change to recomb scheme: He1r hence, ion_dict = pn.getAtomDict(atom_list = atoms_list)
 
         # Dictionary to store the data
         synth_data = {}
 
-        #Read simulation data from file # TODO this is what should have all the information
+        # Store input files:
+        synth_data['obj_properties_file']   = obj_properties_file
+        synth_data['obj_lines_file']        = obj_lines_file
+        synth_data['obj_ssp_coeffs_file']   = obj_ssp_coeffs_file
+        synth_data['obj_mask_file']         = obj_mask_file
+        synth_data['output_folder']         = output_folder
+
+        # Read simulation data from file
         obj_prop_df = read_csv(obj_properties_file, delim_whitespace=True, header=0, index_col=0)
 
         #--------Lines calculation
@@ -596,133 +697,62 @@ class SpectrumFitter(Import_model_data, ContinuaComponents, EmissionComponents, 
 
             obj_lines_df = read_csv(obj_lines_file, delim_whitespace=True, header=0, index_col=0)
 
-            # If wavelengths are provided for the observation we use them, else we use the theoretical values
-            if all(obj_lines_df.obs_wavelength.isnull().values):
-                idx_obs_labels = self.lines_df.index.isin(obj_lines_df.index)
-                obj_lines_df['obs_wavelength'] = self.lines_df.loc[idx_obs_labels].wavelength
+            # Prepare data from emission line file
+            self.import_emission_line_data(synth_data, obj_lines_df, input_ions)
 
-            # Sort the dataframe by wavelength in case it isn't
-            obj_lines_df.sort_values(by=['obs_wavelength'], ascending=True, inplace=True)
+            # Create or load emissivity grids
+            self.import_emissivity_grids(synth_data)
 
-            # Get the references for the lines treatment
-            idx_obj_lines                       = self.lines_df.index.isin(obj_lines_df.index)
-            obj_lines_df['emis_type']           = self.lines_df.loc[idx_obj_lines].emis_type.astype(str)
-            obj_lines_df['pynebCode']           = self.lines_df.loc[idx_obj_lines].pyneb_code
-            obj_lines_df['ion']                 = self.lines_df.loc[idx_obj_lines].ion.astype(str)
+            # Reddening parameters
+            self.reddening_parameters(synth_data)
 
-            # Save the data in the dictionary according to recomb or colExt format # TODO Code to change if we remove recomb/colExt dividion
-            idx_recomb = (obj_lines_df.emis_type == 'rec')
-            synth_data['recombLine_ions']       = obj_lines_df.loc[idx_recomb].ion.values
-            synth_data['recombLine_labes']      = obj_lines_df.loc[idx_recomb].index.values
-            synth_data['recombLine_waves']      = obj_lines_df.loc[idx_recomb].obs_wavelength.values
-            synth_data['recombLine_pynebCode']  = obj_lines_df.loc[idx_recomb].pynebCode.values
-            idx_col = (obj_lines_df.emis_type == 'col')
-            synth_data['colLine_ions']          = obj_lines_df.loc[idx_col].ion.values
-            synth_data['colLine_labes']         = obj_lines_df.loc[idx_col].index.values
-            synth_data['colLine_waves']         = obj_lines_df.loc[idx_col].obs_wavelength.values
-            synth_data['colLine_pynebCode']     = obj_lines_df.loc[idx_col].pynebCode.values
+            #Dictionary with synthetic abundances
+            abund_df        = obj_prop_df[obj_prop_df.index.str.contains('_abund')]
+            abund_keys      = abund_df.index.str.rstrip('_abund').astype(str).values
+            abund_values    = abund_df.variable_magnitude.values
+            self.abund_dict = dict(zip(abund_keys, abund_values.T))
 
-            # Parameters to improve calculation speed:
-            self.n_recombLines, self.n_colExcLines = len(synth_data['recombLine_labes']), len(synth_data['colLine_labes'])
-            self.range_recombLines, self.range_colExcLines =arange(self.n_recombLines), arange(self.n_colExcLines)
-
-            # Generate the dictionary with pynebs data
-            self.ionDict = {}
-
-            for raw_idx in obj_lines_df.index:
-                ion = obj_lines_df.loc[raw_idx].ion
-                if ion not in self.ionDict:
-                    element, state = ion[:-1], ion[-1]
-                    if obj_lines_df.loc[raw_idx].emis_type == 'rec':
-                        self.ionDict[ion] = RecAtom(element,state)
-                    elif obj_lines_df.loc[raw_idx].emis_type == 'col':
-                        self.ionDict[ion] = Atom(element,state)
-
-            # Hbeta parameters #TODO This could go into the configuration file (change the normalizing wavelength?)
-            self.Hbeta_xX = self.reddening_Xx(array([self.Hbeta_wave]), self.reddedning_curve_model, self.Rv_model)[0]
-            self.Hbeta_emis_grid = generate_emissivity_grid([4861.0], ['H1'], self.ionDict, self.tem_grid_range, self.den_grid_range)
-
-            # Generate recomb emissivity grids. Check if they are already available from previous run
-            if path.isfile(self.paths_dict['recomb_grid']):
-                self.recomb_emis_grid = load_emissivity_grid(self.paths_dict['recomb_grid'])
-            else:
-                self.recomb_emis_grid = generate_emissivity_grid(synth_data['recombLine_pynebCode'],
-                                                                 synth_data['recombLine_ions'], self.ionDict,
-                                                                 self.tem_grid_range, self.den_grid_range)
-                save_emissivity_grid(self.paths_dict['recomb_grid'], self.recomb_emis_grid)
-
-            # Generate coll emissivity grids. Check if they are already available from previous run
-            if path.isfile(self.paths_dict['collext_grid']):
-                self.metals_emis_grid = load_emissivity_grid(self.paths_dict['collext_grid'])
-            else:
-                self.metals_emis_grid = generate_emissivity_grid(synth_data['colLine_pynebCode'],
-                                                                 synth_data['colLine_ions'], self.ionDict,
-                                                                 self.tem_grid_range, self.den_grid_range)
-                save_emissivity_grid(self.paths_dict['collext_grid'], self.metals_emis_grid)
-
-            # Normalize the grids by Hbeta value
-            self.recomb_emis_grid = self.recomb_emis_grid / self.Hbeta_emis_grid
-            self.metals_emis_grid = self.metals_emis_grid / self.Hbeta_emis_grid
-
-            # Establish index of lines which below to high and low ionization zones #TODO This should also include recomb (unnecesary if we  we remove recomb/colExt dividion)
-            self.idx_highU = in1d(synth_data['colLine_ions'], self.high_temp_ions)
-            self.idx_lowU = ~self.idx_highU
-
-            # Readening curves
-            recomblines_xX = self.reddening_Xx(synth_data['recombLine_waves'], self.reddedning_curve_model, self.Rv_model)
-            colLines_xX = self.reddening_Xx(synth_data['colLine_waves'], self.reddedning_curve_model, self.Rv_model)
-            synth_data['recombLine_flambda'] = recomblines_xX / self.Hbeta_xX - 1.0
-            synth_data['colLine_flambda'] = colLines_xX / self.Hbeta_xX - 1.0
-
-            #Dictionary with the abundances
-            idx_abund = obj_prop_df.index.str.contains('_abund')
-            abund_df = obj_prop_df[obj_prop_df.index.str.contains('_abund')]
-            abund_keys, abund_values = abund_df.index.str.rstrip('_abund').astype(str).values, abund_df.variable_magnitude.values
-            abund_dict = dict(zip(abund_keys, abund_values.T))
-            abund_dict['H1'] = 1.0
-
-            #Assume we are providing T_low
-            obj_prop_df.loc['T_high'] = (1.0807 * obj_prop_df.loc['T_low'][0] / 10000.0 - 0.0846) * 10000.0
+            #Calculate T_high assuming we get T_low
+            synth_data['T_low'] = obj_prop_df.loc['T_low'][0]
+            synth_data['T_high'] = (1.0807 * synth_data['T_low'] / 10000.0 - 0.0846) * 10000.0
 
             # Prepare the lines data
-            self.recomb_fluxes = self.calculate_recomb_fluxes(obj_prop_df.loc['T_high'][0], obj_prop_df.loc['n_e'][0], \
-                                                              obj_prop_df.loc['cHbeta'][0], obj_prop_df.loc['tau'][0], \
-                                                              abund_dict,
-                                                              synth_data['recombLine_labes'],
-                                                              synth_data['recombLine_ions'],
-                                                              synth_data['recombLine_flambda'])
+            synth_data['recomb_fluxes'] = self.calculate_recomb_fluxes(synth_data['T_high'], obj_prop_df.loc['n_e'][0],
+                                                            obj_prop_df.loc['cHbeta'][0], obj_prop_df.loc['tau'][0],
+                                                            self.abund_dict,
+                                                            synth_data['recombLine_labes'],
+                                                            synth_data['recombLine_ions'],
+                                                            synth_data['recombLine_flambda'])
 
-            self.obs_metal_fluxes = self.calculate_colExcit_flux(obj_prop_df.loc['T_low'][0], obj_prop_df.loc['T_high'][0],
-                                                                 obj_prop_df.loc['n_e'][0], obj_prop_df.loc['cHbeta'][0],
-                                                                 abund_dict,
-                                                                 synth_data['colLine_waves'],
-                                                                 synth_data['colLine_ions'],
-                                                                 synth_data['colLine_flambda'])
+            synth_data['obs_metal_fluxes'] = self.calculate_colExcit_flux(synth_data['T_low'], synth_data['T_high'],
+                                                                obj_prop_df.loc['n_e'][0], obj_prop_df.loc['cHbeta'][0],
+                                                                self.abund_dict,
+                                                                synth_data['colLine_waves'],
+                                                                synth_data['colLine_ions'],
+                                                                synth_data['colLine_flambda'])
 
             #Use general error if this is provided
             if error_recomb_lines is not None:
-                self.obs_recomb_err = self.recomb_fluxes * error_recomb_lines
+                synth_data['obs_recomb_err']= synth_data['recomb_fluxes'] * error_recomb_lines
             if error_collexc_lines is not None:
-                self.obs_metal_Error = self.obs_metal_fluxes * error_collexc_lines
-
-            print 'Me sales estas cosas'
-            print 'Tlow', obj_prop_df.loc['T_low']
-            print 'Thigh', obj_prop_df.loc['T_high']
-            for abund in abund_dict:
-                print abund, abund_dict[abund]
-            print 'low ions', synth_data['colLine_ions'][self.idx_lowU]
-            print 'high ions', synth_data['colLine_ions'][self.idx_highU]
+                synth_data['obs_metal_err'] = synth_data['obs_metal_fluxes'] * error_collexc_lines
 
         #--------Nebular calculation
         if nebular_component:
 
-            obs_wave_rest   = arange(float(wavelengh_limits[0]), float(wavelengh_limits[-1]), resample_inc, dtype=float)
+            #Save input conditions:
+            synth_data['z_star'] = obj_prop_df.loc['z_star'][0]
 
-            idx_Halpha      = (synth_data['recombLine_labes'] == 'H1_6563A')
+            # Rest stellar and observed wavelength
+            obj_wave_rest = arange(wavelengh_limits[0], wavelengh_limits[-1], resample_inc, dtype=float)
+            obj_wave_obs = obj_wave_rest * (1.0 + synth_data['z_star']) # TODO we should change this to z_obj
 
-            Halpha_norm     = self.recomb_fluxes[idx_Halpha] * obj_prop_df.loc['Hbeta_Flux'][0] #/ self.stellar_SED['normFlux_stellar']
+            #Get Halpha flux to calibrate
+            idx_Halpha = (synth_data['recombLine_labes'] == 'H1_6563A')
+            Halpha_norm = synth_data['recomb_fluxes'][idx_Halpha] * obj_prop_df.loc['Hbeta_Flux'][0] #/ self.stellar_SED['normFlux_stellar']
 
-            nebular_SED     = self.calculate_nebular_SED(obs_wave_rest,    # TODO We must change this to the function used on the final code
+            #Calculate the nebular continua
+            synth_data['neb_SED'] = self.calculate_nebular_SED(obj_wave_rest, # TODO We must change this to the function used on the final code
                                                      obj_prop_df.loc['z_star'][0],
                                                      obj_prop_df.loc['cHbeta'][0],
                                                      obj_prop_df.loc['T_low'][0],
@@ -730,178 +760,71 @@ class SpectrumFitter(Import_model_data, ContinuaComponents, EmissionComponents, 
                                                      obj_prop_df.loc['He2_abund'][0],
                                                      Halpha_norm)
 
+            synth_data['obj_wave_rest'] = obj_wave_rest
+            synth_data['obj_wave_obs']  = obj_wave_obs
+            synth_data['obj_flux_obs']  = synth_data['neb_SED']['neb_int_norm']
+
         #--------Stellar calculation
         if stellar_component:
 
-            # Load stellar library
-            if ssp_type is not None:
+            #Save input conditions:
+            synth_data['z_star'] = obj_prop_df.loc['z_star'][0]
+            synth_data['Av_star'] = obj_prop_df.loc['Av_star'][0]
+            synth_data['sigma_star'] = obj_prop_df.loc['sigma_star'][0]
 
-                # Load the synthetic observation data from the text files
-                ssp_coeffs_df = read_csv(obj_ssp_coeffs_file, delim_whitespace=True, names=['ssp_index', 'ssp_mag'])
-                obj_mask_df = read_csv(obj_mask_file, delim_whitespace=True, header=0, index_col=0)
+            # Create dictionary with the stellar library configuration which this object will use
+            ssp_lib = ssp_lib_dict.copy()
 
-                #Load stellar database
-                sspLib = self.import_ssp_library(ssp_type, ssp_folder, ssp_conf_file) #This could go out
+            # Trim, resample and normalize and the ssp
+            self.treat_ssp_library(ssp_lib, wavelengh_limits, resample_inc, norm_interval)
 
-                #Resample and normalize the stellar database
-                ssp_lib_dict = self.load_stellar_bases('starlight', default_Starlight_folder, default_Starlight_file, \
-                                                       resample_int=1, resample_range=(3600, 6900),
-                                                       norm_interval=(5100, 5150))
+            # Trim bases flux to include only the stellar spectra contributing in our object
+            self.load_ssp_prefit(obj_ssp_coeffs_file, ssp_dict = ssp_lib)
 
-                #Calculate stellar spectrum # TODO this should be done with the same function as the code
-                self.stellar_SED = self.calculate_synthStellarSED(self.obj_data['Av_star'], self.obj_data['z_star'],
-                                                                  self.obj_data['sigma_star'], \
-                                                                  default_Starlight_coeffs, ssp_lib_dict, (4000, 6900),
-                                                                  mask_dict=self.obj_data['mask_stellar'])
+            # Rest stellar and observed wavelength
+            obj_wave_rest       = arange(wavelengh_limits[0], wavelengh_limits[-1], resample_inc, dtype=float)
+            obj_wave_obs        = obj_wave_rest * (1.0 + synth_data['z_star'])
 
-            # Initial guess number of bases
-            idx_populations = self.stellar_SED['bases_coeff'] > 0.01
-            self.population_limitss = vstack((self.stellar_SED['bases_coeff'][where(idx_populations)] * 0.95,
-                                              self.stellar_SED['bases_coeff'][where(idx_populations)] * 1.05)).T
-            self.nBases = len(where(idx_populations)[0])
-            self.range_bases = arange(self.nBases)
-            columns_to_delete = where(~idx_populations)
+            # SSP library flux at modelled Av, z_star and sigma_star
+            ssp_grid_model      = self.physical_SED_model(ssp_lib['basesWave_resam'], obj_wave_obs, self.onBasesFluxNorm,
+                                            synth_data['Av_star'], synth_data['z_star'], synth_data['sigma_star'],
+                                            Rv_coeff=self.Rv_model)
 
-        return
+            #Normalized object flux
+            obj_flux_norm       = ssp_grid_model.dot(self.sspPrefit_Coeffs)
 
-    def calculate_simObservation(self, model, obs_ions, verbose=True):
+            #Observed object flux
+            obj_flux_resam      = obj_flux_norm * norm_factor
 
-        # Get physical parameters from model HII region
-        self.sort_emission_types(obs_ions)
+            # Generate synth spectrum
+            sigma_err           = 0.01 * median(obj_flux_resam)
+            obs_fluxEr_resam    = random.normal(0.0, sigma_err, len(obj_flux_norm))
+            obs_fluxEr_norm     = 0.02
 
-        # Prepare the emission spectrum data
-        self.ready_emission_data(obs_ions)
+            # Store the data vector
+            synth_data['normFlux_stellar']      = norm_factor
+            synth_data['stellar_flux_True']     = obj_flux_resam
+            synth_data['stellar_flux_norm']     = obj_flux_norm + obs_fluxEr_norm
+            synth_data['stellar_wave_resam']    = obj_wave_obs
+            synth_data['stellar_wave_rest']     = obj_wave_rest
+            synth_data['stellar_flux_resam']    = obj_flux_resam + obs_fluxEr_resam
+            synth_data['stellar_fluxEr_resam']  = obs_fluxEr_resam
+            synth_data['stellar_fluxEr_norm']   = obs_fluxEr_norm
+            synth_data['stellar_one_array']     = ones(self.nBases)
+            synth_data['nObsPix']               = len(obj_flux_resam)
 
-        # Prepare the lines data
-        self.recomb_fluxes = self.calculate_recomb_fluxes(self.obj_data['T_high'], self.obj_data['n_e'],\
-                                                    self.obj_data['cHbeta'], self.obj_data['tau'], \
-                                                    self.obj_data['synth_abund'],
-                                                    self.obj_data['recombLine_waves'],
-                                                    self.obj_data['recombLine_ions'],
-                                                    self.obj_data['recombLine_flambda'])
+            #Save synthetic continua according to the observations
+            if 'obj_flux_obs' not in synth_data:
+                synth_data['obj_flux_obs'] = synth_data['stellar_flux_norm']
+            else:
+                synth_data['obj_flux_obs'] = synth_data['stellar_flux_norm'] + synth_data['obj_flux_obs']
 
-        self.obs_metal_fluxes = self.calculate_colExcit_flux(self.obj_data['T_low'], self.obj_data['T_high'],
-                                                    self.obj_data['n_e'], self.obj_data['cHbeta'],
-                                                    self.obj_data['synth_abund'],
-                                                    self.obj_data['colLine_waves'],
-                                                    self.obj_data['colLine_ions'],
-                                                    self.obj_data['colLine_flambda'])
-
-        #Errors in the lines are calculated as a percentage
-        self.obs_recomb_err = self.recomb_fluxes * 0.02
-        self.obs_metal_Error = self.obs_metal_fluxes * 0.02
-
-        # -------Prepare stellar continua
-        default_Starlight_file = self.paths_dict['stellar_data_folder'] + 'Dani_Bases_Extra_short.txt'
-        default_Starlight_folder = self.paths_dict['stellar_data_folder'] + 'Bases/'
-        default_Starlight_coeffs = self.paths_dict['stellar_data_folder'] + 'Bases/coeffs_sync_short.txt'
-
-        ssp_lib_dict = self.load_stellar_bases('starlight', default_Starlight_folder, default_Starlight_file, \
-                                               resample_int=1, resample_range=(3600, 6900), norm_interval=(5100, 5150))
-
-        self.stellar_SED = self.calculate_synthStellarSED(self.obj_data['Av_star'], self.obj_data['z_star'],
-                                                          self.obj_data['sigma_star'], \
-                                                          default_Starlight_coeffs, ssp_lib_dict, (4000, 6900),
-                                                          mask_dict=self.obj_data['mask_stellar'])
-
-        # Initial guess number of bases
-        idx_populations = self.stellar_SED['bases_coeff'] > 0.01
-        self.population_limitss = vstack((self.stellar_SED['bases_coeff'][where(idx_populations)] * 0.95,
-                                          self.stellar_SED['bases_coeff'][where(idx_populations)] * 1.05)).T
-        self.nBases = len(where(idx_populations)[0])
-        self.range_bases = arange(self.nBases)
-        columns_to_delete = where(~idx_populations)
-
-        # -------Prepare nebular continua
-        self.idx_Halpha = (self.obj_data['recombLine_labes'] == 'H1_6563A')
-
-        self.Halpha_norm = self.recomb_fluxes[self.idx_Halpha][0] * self.obj_data['Hbeta_Flux'] / self.stellar_SED['normFlux_stellar']
-
-        self.nebular_SED = self.calculate_nebular_SED(self.stellar_SED['stellar_wave_resam'],
-                                                      self.obj_data['z_star'],
-                                                      self.obj_data['cHbeta'],
-                                                      self.obj_data['T_low'],
-                                                      self.obj_data['He1_abund'],
-                                                      self.obj_data['He2_abund'],
-                                                      self.Halpha_norm)
-
-        # Redshift limits for the object
-        z_max_ssp = (self.stellar_SED['stellar_wave_resam'][0] / ssp_lib_dict['basesWave_resam'][0]) - 1.0
-        z_min_ssp = (self.stellar_SED['stellar_wave_resam'][-1] / ssp_lib_dict['basesWave_resam'][-1]) - 1.0
-        self.z_max_ssp_limit = round(z_max_ssp - 0.001, 3)
-        self.z_min_ssp_limit = z_min_ssp
-
-        # -------Emission sed from the object
-        H_He_fluxes = self.recomb_fluxes * self.obj_data['Hbeta_Flux'] / self.stellar_SED['normFlux_stellar']
-        self.emission_Spec = self.calc_emis_spectrum(self.stellar_SED['stellar_wave_resam'],
-                                                     self.obj_data['recombLine_waves'], H_He_fluxes, \
-                                                     self.obj_data['recombLine_waves'], self.obj_data['sigma_gas'],
-                                                     self.obj_data['z_star'])
-
-        # Add the components to be considered in the analysis
-        obs_flux_norm = self.stellar_SED['stellar_flux_norm'] + self.nebular_SED['neb_flux_norm'] + self.emission_Spec
-
-        # Store the data in the object dictionary
-        self.obj_data['normFlux_obs'] = self.stellar_SED['normFlux_stellar']
-        self.obj_data['obs_wave_resam'] = self.stellar_SED['stellar_wave_resam']
-        self.obj_data['obs_flux_norm'] = obs_flux_norm
-        self.obj_data['obs_flux_norm_masked'] = self.obj_data['obs_flux_norm'] * self.stellar_SED['int_mask']
-        self.obj_data['basesWave_resam'] = ssp_lib_dict['basesWave_resam']
-        self.obj_data['bases_flux_norm'] = delete(ssp_lib_dict['bases_flux_norm'], columns_to_delete, axis=0)
-        self.obj_data['int_mask'] = self.stellar_SED['int_mask']
-        self.obj_data['obs_fluxEr_norm'] = self.stellar_SED['stellar_fluxEr_norm']
-
-        # Print the model values
-        if verbose:
-            print '\nInput Parameters:'
-            print '-He1_abund', self.obj_data['He1_abund']
-            print '-n_e', self.obj_data['n_e']
-            print '-T_low', self.obj_data['T_low']
-            print '-T_high', self.obj_data['T_high']
-            print '-cHbeta', self.obj_data['cHbeta']
-            print '-tau', self.obj_data['tau']
-            print '-xi', self.obj_data['xi']
-            print '-TOIII', self.obj_data['TSIII'], '+/-', self.obj_data['TSIII_error']
-            print '-nSII', self.obj_data['nSII'], '+/-', self.obj_data['nSII_error']
-            print '\n-S2_abund', self.obj_data['S2_abund']
-            print '-S3_abund', self.obj_data['S3_abund']
-            print '-O2_abund', self.obj_data['O2_abund']
-            print '-O3_abund', self.obj_data['O3_abund']
-
-            print '-N2_abund', self.obj_data['N2_abund']
-            print '-Ar3_abund', self.obj_data['Ar3_abund']
-            print '-Ar4_abund', self.obj_data['Ar4_abund']
-
-            print '\n-z_star', self.obj_data['z_star']
-            print '-sigma_star', self.obj_data['sigma_star']
-            print '-Av_star', self.obj_data['Av_star']
-
-            print '\n-Wavelength ranges:'
-            print '--Observation:', self.obj_data['obs_wave_resam'][0], self.obj_data['obs_wave_resam'][-1]
-            print '--Bases:', ssp_lib_dict['basesWave_resam'][0], ssp_lib_dict['basesWave_resam'][-1]
-            print '--z min:', self.z_min_ssp_limit
-            print '--z max:', self.z_max_ssp_limit
-            print '--z true:', self.obj_data['z_star']
-
-        return
-
-    def calc_emis_spectrum(self, wavelength_range, lines_waves, lines_fluxes, lines_mu, lines_sigma, redshift):
-                
-        lines_mu            = lines_mu * (1 + redshift)
-        
-        A_lines             = lines_fluxes / (lines_sigma * self.sqrt2pi)
-        
-        wave_matrix         = wavelength_range * ones((lines_waves.shape[0], wavelength_range.shape[0]))
-        
-        emis_spec_matrix    = A_lines[:,None] * exp(-(wave_matrix-lines_mu[:,None])*(wave_matrix-lines_mu[:,None])/(2 * lines_sigma * lines_sigma))
-        
-        combined_spectrum   = emis_spec_matrix.sum(axis=0)
-        
-        return combined_spectrum
+        return synth_data
 
 class SpecSynthesizer(SpectrumFitter):
 
-    def __init__(self, atomic_ref=None, nebular_data = None, ssp_type=None, ssp_folder=None, ssp_conf_file=None, temp_grid=None, den_grid=None, high_temp_ions=None, R_v=3.4, reddenig_curve='G03_average'):
+    def __init__(self, atomic_ref=None, nebular_data = None, ssp_type=None, ssp_folder=None, ssp_conf_file=None,
+                 temp_grid=None, den_grid=None, high_temp_ions=None, R_v=3.4, reddenig_curve='G03_average'):
 
         #TODO in here we give the choice: Configuration from text file but it can also be imported from text file create a default conf to upload from there if missing
 
@@ -921,6 +844,9 @@ class SpecSynthesizer(SpectrumFitter):
         self.den_grid_range = arange(den_grid[0], den_grid[1], den_grid[2])
         self.den_grid_range[0] = 1 #Change the minimum value for the grid to 1
 
+
+
+
         # Reddening parameters
         self.Rv_model = R_v
         self.reddedning_curve_model = reddenig_curve
@@ -928,7 +854,26 @@ class SpecSynthesizer(SpectrumFitter):
         # Declare high ionization temperature ions
         self.high_temp_ions = high_temp_ions
 
-    def select_inference_model(self, model):
+    def fit_observation(self, model_name, obs_data, ssp_data, iterations=15000, burn=7000, thin=1, output_folder = None, fitting_components=None, plot_inputs = True, params_list = None, prefit_ssp = True):
+
+        #Prepare data for the MCMC fitting
+        self.ready_simulation(model_name, output_folder, obs_data, ssp_data, fitting_components, prefit_ssp)
+
+        # #Plot input data in input folder
+        # if plot_inputs:
+        #     self.plot_input_data()
+        #
+        # #Select model
+        # self.select_inference_model()
+        #
+        # #Run model
+        # self.run_pymc2(self.output_folder + model_name, iterations=iterations, variables_list=variables_list, prefit=True)
+        #
+        # #Plot output data
+
+        return
+
+    def select_inference_model(self, model = 'default'):
 
         self.inf_dict = self.He_O_S_nebStellar_model()
 
@@ -1225,3 +1170,235 @@ class SpecSynthesizer(SpectrumFitter):
     #         Data_dict[Line] = import_table_data(self.paths_dict['Hydrogen_CollCoeff'], Data_Columns)
     #
     #     return Data_dict
+
+
+
+# def calculate_simObservation(self, model, obs_ions, verbose=True):
+#
+#     # Get physical parameters from model HII region
+#     self.sort_emission_types(obs_ions)
+#
+#     # Prepare the emission spectrum data
+#     self.ready_emission_data(obs_ions)
+#
+#     # Prepare the lines data
+#     self.recomb_fluxes = self.calculate_recomb_fluxes(self.obj_data['T_high'], self.obj_data['n_e'],\
+#                                                 self.obj_data['cHbeta'], self.obj_data['tau'], \
+#                                                 self.obj_data['synth_abund'],
+#                                                 self.obj_data['recombLine_waves'],
+#                                                 self.obj_data['recombLine_ions'],
+#                                                 self.obj_data['recombLine_flambda'])
+#
+#     self.obs_metal_fluxes = self.calculate_colExcit_flux(self.obj_data['T_low'], self.obj_data['T_high'],
+#                                                 self.obj_data['n_e'], self.obj_data['cHbeta'],
+#                                                 self.obj_data['synth_abund'],
+#                                                 self.obj_data['colLine_waves'],
+#                                                 self.obj_data['colLine_ions'],
+#                                                 self.obj_data['colLine_flambda'])
+#
+#     #Errors in the lines are calculated as a percentage
+#     self.obs_recomb_err = self.recomb_fluxes * 0.02
+#     self.obs_metal_Error = self.obs_metal_fluxes * 0.02
+#
+#     # -------Prepare stellar continua
+#     default_Starlight_file = self.paths_dict['stellar_data_folder'] + 'Dani_Bases_Extra_short.txt'
+#     default_Starlight_folder = self.paths_dict['stellar_data_folder'] + 'Bases/'
+#     default_Starlight_coeffs = self.paths_dict['stellar_data_folder'] + 'Bases/coeffs_sync_short.txt'
+#
+#     ssp_lib_dict = self.load_stellar_bases('starlight', default_Starlight_folder, default_Starlight_file, \
+#                                            resample_int=1, resample_range=(3600, 6900), norm_interval=(5100, 5150))
+#
+#     self.stellar_SED = self.calculate_synthStellarSED(self.obj_data['Av_star'], self.obj_data['z_star'],
+#                                                       self.obj_data['sigma_star'], \
+#                                                       default_Starlight_coeffs, ssp_lib_dict, (4000, 6900),
+#                                                       mask_dict=self.obj_data['mask_stellar'])
+#
+#     # Initial guess number of bases
+#     idx_populations = self.stellar_SED['bases_coeff'] > 0.01
+#     self.population_limitss = vstack((self.stellar_SED['bases_coeff'][where(idx_populations)] * 0.95,
+#                                       self.stellar_SED['bases_coeff'][where(idx_populations)] * 1.05)).T
+#     self.nBases = len(where(idx_populations)[0])
+#     self.range_bases = arange(self.nBases)
+#     columns_to_delete = where(~idx_populations)
+#
+#     # -------Prepare nebular continua
+#     self.idx_Halpha = (self.obj_data['recombLine_labes'] == 'H1_6563A')
+#
+#     self.Halpha_norm = self.recomb_fluxes[self.idx_Halpha][0] * self.obj_data['Hbeta_Flux'] / self.stellar_SED['normFlux_stellar']
+#
+#     self.nebular_SED = self.calculate_nebular_SED(self.stellar_SED['stellar_wave_resam'],
+#                                                   self.obj_data['z_star'],
+#                                                   self.obj_data['cHbeta'],
+#                                                   self.obj_data['T_low'],
+#                                                   self.obj_data['He1_abund'],
+#                                                   self.obj_data['He2_abund'],
+#                                                   self.Halpha_norm)
+#
+#     # Redshift limits for the object
+#     z_max_ssp = (self.stellar_SED['stellar_wave_resam'][0] / ssp_lib_dict['basesWave_resam'][0]) - 1.0
+#     z_min_ssp = (self.stellar_SED['stellar_wave_resam'][-1] / ssp_lib_dict['basesWave_resam'][-1]) - 1.0
+#     self.z_max_ssp_limit = round(z_max_ssp - 0.001, 3)
+#     self.z_min_ssp_limit = z_min_ssp
+#
+#     # -------Emission sed from the object
+#     H_He_fluxes = self.recomb_fluxes * self.obj_data['Hbeta_Flux'] / self.stellar_SED['normFlux_stellar']
+#     self.emission_Spec = self.calc_emis_spectrum(self.stellar_SED['stellar_wave_resam'],
+#                                                  self.obj_data['recombLine_waves'], H_He_fluxes, \
+#                                                  self.obj_data['recombLine_waves'], self.obj_data['sigma_gas'],
+#                                                  self.obj_data['z_star'])
+#
+#     # Add the components to be considered in the analysis
+#     obs_flux_norm = self.stellar_SED['stellar_flux_norm'] + self.nebular_SED['neb_flux_norm'] + self.emission_Spec
+#
+#     # Store the data in the object dictionary
+#     self.obj_data['normFlux_obs'] = self.stellar_SED['normFlux_stellar']
+#     self.obj_data['obs_wave_resam'] = self.stellar_SED['stellar_wave_resam']
+#     self.obj_data['obs_flux_norm'] = obs_flux_norm
+#     self.obj_data['obs_flux_norm_masked'] = self.obj_data['obs_flux_norm'] * self.stellar_SED['int_mask']
+#     self.obj_data['basesWave_resam'] = ssp_lib_dict['basesWave_resam']
+#     self.obj_data['bases_flux_norm'] = delete(ssp_lib_dict['bases_flux_norm'], columns_to_delete, axis=0)
+#     self.obj_data['int_mask'] = self.stellar_SED['int_mask']
+#     self.obj_data['obs_fluxEr_norm'] = self.stellar_SED['stellar_fluxEr_norm']
+#
+#     # Print the model values
+#     if verbose:
+#         print '\nInput Parameters:'
+#         print '-He1_abund', self.obj_data['He1_abund']
+#         print '-n_e', self.obj_data['n_e']
+#         print '-T_low', self.obj_data['T_low']
+#         print '-T_high', self.obj_data['T_high']
+#         print '-cHbeta', self.obj_data['cHbeta']
+#         print '-tau', self.obj_data['tau']
+#         print '-xi', self.obj_data['xi']
+#         print '-TOIII', self.obj_data['TSIII'], '+/-', self.obj_data['TSIII_error']
+#         print '-nSII', self.obj_data['nSII'], '+/-', self.obj_data['nSII_error']
+#         print '\n-S2_abund', self.obj_data['S2_abund']
+#         print '-S3_abund', self.obj_data['S3_abund']
+#         print '-O2_abund', self.obj_data['O2_abund']
+#         print '-O3_abund', self.obj_data['O3_abund']
+#
+#         print '-N2_abund', self.obj_data['N2_abund']
+#         print '-Ar3_abund', self.obj_data['Ar3_abund']
+#         print '-Ar4_abund', self.obj_data['Ar4_abund']
+#
+#         print '\n-z_star', self.obj_data['z_star']
+#         print '-sigma_star', self.obj_data['sigma_star']
+#         print '-Av_star', self.obj_data['Av_star']
+#
+#         print '\n-Wavelength ranges:'
+#         print '--Observation:', self.obj_data['obs_wave_resam'][0], self.obj_data['obs_wave_resam'][-1]
+#         print '--Bases:', ssp_lib_dict['basesWave_resam'][0], ssp_lib_dict['basesWave_resam'][-1]
+#         print '--z min:', self.z_min_ssp_limit
+#         print '--z max:', self.z_max_ssp_limit
+#         print '--z true:', self.obj_data['z_star']
+#
+#     return
+#
+# def sort_emission_types(self, obs_ions):
+#
+#     # Loop through the ions and read the lines (this is due to the type I format the synth data)
+#     lines_labes, lines_waves, lines_ions, lines_abund, lines_pynebCode = [], [], [], [], []
+#     abund_dict = {}
+#
+#     for ion in obs_ions:
+#
+#         # Recombination lines
+#         if ion in ['H1', 'He1', 'He2']:
+#             lines_ions += [ion] * len(self.obj_data[ion + '_wave'])
+#             lines_labes += list(self.obj_data[ion + '_labels'])
+#             lines_waves += list(self.obj_data[ion + '_wave'])
+#             lines_pynebCode += list(self.obj_data[ion + '_pyneb_code'])
+#
+#             if ion == 'H1':
+#                 abund_dict[ion] = 1.0
+#             else:
+#                 abund_dict[ion] = self.obj_data[ion + '_abund']
+#
+#         # Collisional excited lines
+#         else:
+#             lines_ions += [ion] * len(self.obj_data[ion + '_wave'])
+#             lines_labes += list(self.obj_data[ion + '_labels'])
+#             lines_waves += list(self.obj_data[ion + '_wave'])
+#             lines_pynebCode += list(self.obj_data[ion + '_pyneb_code'])
+#             abund_dict[ion] = self.obj_data[ion + '_abund']
+#
+#     # Convert lists to numpy arrays
+#     lines_labes, lines_waves, lines_ions = array(lines_labes), array(lines_waves), array(lines_ions)
+#     lines_pynebCode = array(lines_pynebCode)
+#
+#     # Sorting by increasing wavelength and by recombination or collisional excited
+#     idx_sort = argsort(lines_waves)
+#     idx_recomb = in1d(lines_ions[idx_sort], ['H1', 'He1', 'He2'])
+#     idx_metals = ~idx_recomb
+#
+#     # Store the data for later use
+#     self.obj_data['recombLine_ions'] = lines_ions[idx_sort][idx_recomb]
+#     self.obj_data['recombLine_labes'] = lines_labes[idx_sort][idx_recomb]
+#     self.obj_data['recombLine_waves'] = lines_waves[idx_sort][idx_recomb]
+#     self.obj_data['recombLine_pynebCode'] = lines_pynebCode[idx_sort][idx_recomb]
+#
+#     self.obj_data['colLine_ions'] = lines_ions[idx_sort][idx_metals]
+#     self.obj_data['colLine_labes'] = lines_labes[idx_sort][idx_metals]
+#     self.obj_data['colLine_waves'] = lines_waves[idx_sort][idx_metals]
+#     self.obj_data['colLine_pynebCode'] = lines_pynebCode[idx_sort][idx_metals]
+#
+#     self.obj_data['synth_abund'] = abund_dict
+#
+#     return
+#
+#     def ready_emission_data(self, obs_ions, ):
+#
+#         # Variables to speed up the code
+#         self.n_recombLines, self.n_colExcLines = len(self.obj_data['recombLine_labes']), len(self.obj_data['colLine_labes'])
+#         self.range_recombLines, self.range_colExcLines =arange(self.n_recombLines), arange(self.n_colExcLines)
+#
+#         # Readening curves
+#         recomblines_xX = self.reddening_Xx(self.obj_data['recombLine_waves'], self.reddedning_curve_model, self.Rv_model)
+#         self.obj_data['recombLine_flambda'] = recomblines_xX / self.Hbeta_xX - 1.0
+#         colLines_xX = self.reddening_Xx(self.obj_data['colLine_waves'], self.reddedning_curve_model, self.Rv_model)
+#         self.obj_data['colLine_flambda'] = colLines_xX / self.Hbeta_xX - 1.0
+#
+#         # Temperature and density grid parameters #TODO CLEAN add this to conf file
+#         min_den, max_den, step_den = 0, 1000, 5
+#         min_tem, max_tem, step_tem = 5000, 25000, 10
+#
+#         # Generate the temperature and density interval
+#         self.tem_grid_range = arange(min_tem, max_tem, step_tem)
+#         self.den_grid_range = arange(min_den, max_den, step_den)
+#         self.den_grid_range[0] = 1 #Change the minimum value for the grid to 1
+#
+#         # Load Emissivity grids if available or generate them # TODO This code should be able to distinguish if there are missing lines in the grids
+#         self.Hbeta_emis_grid = generate_emissivity_grid([4861.0], ['H1'], self.ionDict, self.tem_grid_range, self.den_grid_range)
+#
+#         if path.isfile(self.paths_dict['recomb_grid']):
+#             self.recomb_emis_grid = load_emissivity_grid(self.paths_dict['recomb_grid'])
+#         else:
+#             self.recomb_emis_grid = generate_emissivity_grid(self.obj_data['recombLine_pynebCode'],
+#                                                              self.obj_data['recombLine_ions'], self.ionDict,
+#                                                              self.tem_grid_range, self.den_grid_range)
+#             save_emissivity_grid(self.paths_dict['recomb_grid'], self.recomb_emis_grid)
+#
+#
+#         if path.isfile(self.paths_dict['collext_grid']):
+#             self.metals_emis_grid = load_emissivity_grid(self.paths_dict['collext_grid'])
+#         else:
+#             self.metals_emis_grid = generate_emissivity_grid(self.obj_data['colLine_pynebCode'],
+#                                                              self.obj_data['colLine_ions'], self.ionDict,
+#                                                              self.tem_grid_range, self.den_grid_range)
+#             save_emissivity_grid(self.paths_dict['collext_grid'], self.metals_emis_grid)
+#
+#         # Normalize the grids by Hbeta value
+#         self.recomb_emis_grid = self.recomb_emis_grid / self.Hbeta_emis_grid
+#         self.metals_emis_grid = self.metals_emis_grid / self.Hbeta_emis_grid
+#
+#         # Establish index of lines which below to high and low ionization zones
+#         self.idx_highU = in1d(self.obj_data['colLine_ions'], self.highTemp_ions)
+#         self.idx_lowU = ~self.idx_highU
+#
+#         # Generate an emissivity grid for Hbeta
+#         self.Hbeta_emis_grid[:,:,0] = self.ionDict['H1'].getEmissivity(self.tem_grid_range, self.den_grid_range, label = self.Hbeta_pynebCode)
+#
+#         # Empty Ionic dictionary for the MCMC
+#         self.abund_iter_dict = {ion: 0 for ion in obs_ions}
+#
+#         return
