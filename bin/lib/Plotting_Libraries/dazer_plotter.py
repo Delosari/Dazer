@@ -230,7 +230,9 @@ class Fig_Conf():
             Axis = self.Axis
             
         Axis.legend(loc = loc, ncol = ncols)
- 
+
+
+
         #Security checks to avoid empty legends
         if Axis.get_legend_handles_labels()[1] != None:
              
@@ -244,39 +246,7 @@ class Fig_Conf():
                 else:
                     Handles_by_Label = OrderedDict(zip(Old_Labels, Old_Handles))
                     Axis.legend(Handles_by_Label.values(), Handles_by_Label.keys(), loc=loc, ncol = ncols)
- 
-        
-#         #Security checks to avoid empty legends
-#         if self.Axis.get_legend_handles_labels()[1] != None:
-#             
-#             if len(self.Axis.get_legend_handles_labels()[1]) != 0:
-#                 Old_Handles, Old_Labels = Axis.get_legend_handles_labels()
-#                 Handles_by_Label = OrderedDict(zip(Old_Labels, Old_Handles))
-#                 
-#                 Hl          = zip(Handles_by_Label.values(), Handles_by_Label.keys())
-#             
-#                 New_Handles, New_labels = zip(*Hl)        
-#     
-#                 myLegend    = Axis.legend(New_Handles, New_labels, loc=loc, prop={'size':12}, scatterpoints=1, numpoints=1)
-#     
-#                 for i in range(len(New_labels)):
-#                     myLegend.legendHandles[i]._sizes = [30]
-#                     
-#                 if fontize != None:
-#     
-#                     Leg_Frame = myLegend.get_frame()
-# #                     Leg_Frame.set_facecolor(self.ColorVector[0])
-# #                     Leg_Frame.set_edgecolor(self.ColorVector[1])
-#         
-#                     for label in myLegend.get_texts():
-#                         label.set_fontsize(fontize)
-#                  
-#                     for label in myLegend.get_lines():
-#                         label.set_linewidth(1.5)
-#                      
-# #                     for text in myLegend.get_texts():
-# #                         text.set_color(self.ColorVector[1])   
-                    
+
         return
 
     def bayesian_legend_conf(self, Axis, loc = 'best', fontize = None, edgelabel = False):

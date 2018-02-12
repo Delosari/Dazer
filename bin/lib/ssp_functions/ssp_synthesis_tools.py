@@ -397,17 +397,17 @@ class ssp_synthesis_importer():
             wave_base_i, flux_base_i = loadtxt(bases_file, unpack=True)
                             
             #Original wavelength range and fluxes from the bases. They may have different wavelength range
-            waveBases_orig.append(wave_base_i)
-            fluxBases_orig.append(flux_base_i)
+            waveBases_orig.append(wave_base_i) #This is not pretty but not other option if bases do not have same length...
+            fluxBases_orig.append(flux_base_i) #This is not pretty but not other option if bases do not have same length...
             
             #Interpolate the bases to observed wavelength resolution (1 angstrom per pixel is the current rule)
             age_vector[i]           = bases_df.iloc[i]['age_yr']
             Z_vector[i]             = bases_df.iloc[i]['z_star']        
 
-        ssp_lib_dict['basesWave']           = waveBases_orig
+        ssp_lib_dict['basesWave']           = waveBases_orig #This is not pretty but not other option if bases do not have same length...
         ssp_lib_dict['nBases']              = nBases        
         ssp_lib_dict['nPixBases_max']       = max_nPixelsBases
-        ssp_lib_dict['fluxBases']           = fluxBases_orig        
+        ssp_lib_dict['fluxBases']           = fluxBases_orig #This is not pretty but not other option if bases do not have same length...
         ssp_lib_dict['ageBases']            = age_vector    
         ssp_lib_dict['zBases']              = Z_vector    
         #ssp_lib_dict['bases_one_array']     = ones(nBases)
@@ -430,7 +430,7 @@ class ssp_fitter(ssp_synthesis_importer):
         # Store stellar base type
         sspLib_dict = {'data_type': ssp_lib_type}
 
-        #Import the base type
+        # Import the base type
         if ssp_lib_type == 'FIT3D':
 
             # Check if more files are being introduced
@@ -450,11 +450,17 @@ class ssp_fitter(ssp_synthesis_importer):
 
         #Trim, resample and normalized the ssp library if required
         if wavelengh_limits or resample_inc or norm_interval:
-            self.treat_ssp_library(sspLib_dict, wavelengh_limits, resample_inc, norm_interval)
+            self.treat_input_spectrum(ssp_lib, ssp_lib['basesWave'], ssp_lib['fluxBases'], wavelengh_limits,
+                                      resample_inc, norm_interval)
 
         return sspLib_dict
 
     def treat_ssp_library(self, ssp_dict, wavelengh_limits=None, resample_inc=None, norm_interval=None):
+
+        #Store input values
+        ssp_dict['wavelengh_limits']    = wavelengh_limits
+        ssp_dict['resample_inc']        = resample_inc
+        ssp_dict['norm_interval']       = norm_interval
 
         # Resampling the bases
         if resample_inc is not None:
@@ -659,7 +665,7 @@ class ssp_fitter(ssp_synthesis_importer):
         kernel          = kernel / norm
          
         #Convove bases with respect to kernel for dispersion velocity calculation
-        bases_grid_convolve = convolve2d(bases_flux, kernel, mode='same', boundary='symm')
+        bases_grid_convolve     = convolve2d(bases_flux, kernel, mode='same', boundary='symm')
 
         #Interpolate bases to wavelength range
         bases_grid_interp       = (interp1d(wave_z, bases_grid_convolve, axis=1, bounds_error=True)(obs_wave)).T
