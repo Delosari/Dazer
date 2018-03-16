@@ -1,4 +1,4 @@
-from os                                     import path, name
+from os                                     import path, name, makedirs
 from sys                                    import argv,exit
 from pyneb                                  import atomicData, RecAtom, Atom
 from collections                            import OrderedDict
@@ -9,7 +9,7 @@ from lib.Astro_Libraries.Reddening_Corrections import ReddeningLaws
 from lib.ssp_functions.ssp_synthesis_tools  import ssp_fitter, ssp_synthesis_importer
 from DZ_LineMesurer                         import LineMesurer_v2
 from numpy import array, loadtxt, genfromtxt, copy, isnan, arange, insert, concatenate, mean, std, power, exp, zeros, \
-    square, empty, percentile, random, median, ones, isnan, sum as np_sum, argsort, vstack, hstack, delete, where, \
+    square, empty, percentile, random, median, ones, isnan, sum as np_sum, transpose, vstack, savetxt, delete, where, \
     searchsorted, in1d, save as np_save, load as np_load
 import pymc as pymc2
 from timeit                                 import default_timer as timer
@@ -17,6 +17,18 @@ from uncertainties import ufloat
 from pandas import read_excel, read_csv
 from bisect import bisect_left
 from lib.Plotting_Libraries.dazer_plotter   import Plot_Conf
+
+def make_folder(folder_path):
+
+    #TODO This one is only valid for 2.7
+    #TODO add this one to your collection
+    try:
+        makedirs(folder_path)
+    except OSError:
+        if not path.isdir(folder_path):
+            raise
+
+    return
 
 def import_table_data(address, columns):
 
@@ -471,8 +483,6 @@ class Import_model_data(ssp_synthesis_importer):
 
             #In case only one dimension
             elif spec_flux.ndim == 1:
-                print spec_wave[0], spec_wave[-1]
-                print wave_resam[0], wave_resam[-1], spec_flux.shape, spec_flux[0].shape
                 flux_resam = interp1d(spec_wave, spec_flux, bounds_error=True)(wave_resam)
 
             output_dict['wave_resam'] = wave_resam
@@ -571,32 +581,6 @@ class ContinuaComponents(ssp_fitter, NebularContinuumCalculator):
                        'flambda_neb': flambda_neb, 'neb_flux_norm': neb_flux_norm}
 
         return nebular_SED
-
-    def ssp_prefit(self):
-
-        # TODO add a true ssp prefits
-        obj_ssp_coeffs_file         = self.obj_data['obj_ssp_coeffs_file']
-        full_ssp_Flux               = self.ssp_lib['flux_resam']
-        full_ssp_FluxNorm           = self.ssp_lib['flux_norm']
-        full_ssp_FluxNormCoeffs     = self.ssp_lib['normFlux_coeff']
-
-        bases_idx, bases_coeff      = loadtxt(obj_ssp_coeffs_file, usecols=[0, 1], unpack=True)
-
-        idx_populations             = bases_coeff >= self.lowlimit_sspContribution # TODO we should check this limit thing
-        neglected_populations       = where(~idx_populations)
-        nBases                      = len(where(idx_populations)[0])
-
-        self.sspPrefit_Idcs         = where(idx_populations)[0]
-        self.sspPrefit_Coeffs       = bases_coeff[idx_populations]
-        self.range_bases            = arange(nBases)
-        self.sspPrefit_Limits       = vstack((self.sspPrefit_Coeffs * 0.8, self.sspPrefit_Coeffs * 1.2)).T
-
-        self.onBasesWave            = self.ssp_lib['wave_resam']
-        self.onBasesFlux            = delete(full_ssp_Flux, neglected_populations, axis=0)
-        self.onBasesFluxNorm        = delete(full_ssp_FluxNorm, neglected_populations, axis=0)
-        self.onBasesFluxNormCoeffs  = delete(full_ssp_FluxNormCoeffs, neglected_populations, axis=0)
-
-        return
 
 class EmissionComponents(LineMesurer_v2):
 
@@ -705,66 +689,6 @@ class SpectrumFitter(Import_model_data, ContinuaComponents, EmissionComponents, 
         #For generating graphs
         Plot_Conf.__init__(self)
 
-    def ready_simulation(self, model_name, output_folder, obs_data, ssp_data, fitting_components, prefit_ssp=True, overwrite_grids=False,
-                         input_ions=None, wavelengh_limits = None, resample_inc=None, norm_interval=None):
-
-        # Dictionary to store the data
-        self.obj_data = obs_data.copy()
-
-        if output_folder is None: # TODO need to establish a global path to save the data
-            self.output_folder = self.obj_data['output_folder']
-
-        # Prepare emission data
-        if 'emission' in fitting_components:
-
-            obj_lines_df = read_csv(obs_data['obj_lines_file'], delim_whitespace=True, header=0, index_col=0)
-
-            #Prepare data from emission line file
-            self.import_emission_line_data(obj_lines_df, input_ions)
-
-            #Create or load emissivity grids
-            self.import_emissivity_grids()
-
-            # Reddening parameters
-            self.reddening_parameters()
-
-        # Prepare stellar data
-        if 'stellar' in fitting_components:
-
-            # Create dictionary with the stellar library configuration which this object will use
-            self.ssp_lib = ssp_data.copy()
-
-            # Trim, resample and normalize according to the input object
-            self.treat_input_spectrum(self.obj_data, self.obj_data['obs_wave'], self.obj_data['obs_flux'], wavelengh_limits,
-                                      resample_inc, norm_interval)
-
-            # Generate object masks:
-            self.generate_object_mask()
-
-            # Stellar data prefit
-            if prefit_ssp:
-                self.ssp_prefit()
-
-        # z_max_ssp                   = (ssp_dict['wave_resam'][0] / obs_data['obs_wave'][0]) - 1.0
-        # z_min_ssp                   = (ssp_dict['wave_resam'][-1] / obs_data['obs_wave'][-1]) - 1.0
-        # self.z_min_ssp_limit        = z_min_ssp
-        # self.z_max_ssp_limit        = round(z_max_ssp - 0.001, 3)
-
-
-        # Store the data in the object dictionary
-        # TODO this must each be saved in its own section because not all components are always required
-        # self.obj_data['normFlux_obs']           = obs_data['normFlux_obj']
-        # self.obj_data['obs_wave_resam']         = obs_data['obj_wave_resam']
-        # self.obj_data['obs_flux_resam']         = obs_data['obj_flux_resam']
-        # self.obj_data['obs_flux_norm']          = obs_data['obj_flux_norm']
-        # self.obj_data['int_mask']               = self.obj_data['boolean_mask'] * 1
-        # self.obj_data['obs_flux_norm_masked']   = self.obj_data['obs_flux_norm'] * self.obj_data['int_mask']
-        # self.obj_data['basesWave_resam']        = ssp_data['basesWave_resam']
-        # self.obj_data['bases_flux_norm']        = delete(ssp_data['bases_flux_norm'], self.neglected_populations, axis=0)
-        # self.obj_data['obs_fluxEr_norm']        = 0.05
-
-        return
-
     def calc_emis_spectrum(self, wavelength_range, lines_waves, lines_fluxes, lines_mu, lines_sigma, redshift):
 
         #TODO This should go into the cinematics class
@@ -865,7 +789,7 @@ class SpectrumFitter(Import_model_data, ContinuaComponents, EmissionComponents, 
 
             #Get Halpha flux to calibrate
             idx_Halpha = (self.obj_data['recombLine_labes'] == 'H1_6563A')
-            Halpha_norm = self.obj_data['recomb_fluxes'][idx_Halpha] * obj_prop_df.loc['flux_hbeta'][0] #/ self.stellar_SED['normFlux_stellar']
+            self.obj_data['flux_halpha'] = self.obj_data['recomb_fluxes'][idx_Halpha] * obj_prop_df.loc['flux_hbeta'][0] #/ self.stellar_SED['normFlux_stellar']
 
             #Calculate the nebular continua
             self.obj_data['neb_SED'] = self.calculate_nebular_SED(obj_wave_rest, # TODO We must change this to the function used on the final code
@@ -874,7 +798,7 @@ class SpectrumFitter(Import_model_data, ContinuaComponents, EmissionComponents, 
                                                      obj_prop_df.loc['T_low'][0],
                                                      obj_prop_df.loc['He1_abund'][0],
                                                      obj_prop_df.loc['He2_abund'][0],
-                                                     Halpha_norm)
+                                                    self.obj_data['flux_halpha'])
 
             self.obj_data['obs_wave_rest'] = obj_wave_rest
             self.obj_data['obs_wave']      = obj_wave_obs
@@ -897,7 +821,9 @@ class SpectrumFitter(Import_model_data, ContinuaComponents, EmissionComponents, 
             self.ssp_lib = self.load_ssp_library(ssp_lib_type, data_folder, data_file, wavelengh_limits, resample_inc, norm_interval)
 
             # Trim bases flux to include only the stellar spectra contributing in our object
-            self.ssp_prefit()
+            zeros_array = ones(10)
+            self.prepare_ssp_data(self.obj_data['obj_ssp_coeffs_file'], obj_wave = ones(10), obj_flux = ones(10),
+                                  obj_flux_err = ones(10), obj_mask = ones(10))
 
             # Rest stellar and observed wavelength
             obj_wave_rest = arange(wavelengh_limits[0], wavelengh_limits[-1], resample_inc, dtype=float)
@@ -907,21 +833,13 @@ class SpectrumFitter(Import_model_data, ContinuaComponents, EmissionComponents, 
             ssp_grid_model_norm = self.physical_SED_model(self.ssp_lib['wave_resam'], obj_wave_obs, self.onBasesFluxNorm,
                                     self.obj_data['Av_star'], self.obj_data['z_star'], self.obj_data['sigma_star'], Rv_coeff=self.Rv_model)
 
-            print 'primera parte', ssp_grid_model_norm
-            print 'primeros coeffs', self.onBasesFluxNormCoeffs
-
-
             #Normalized object flux
             obj_flux_norm = ssp_grid_model_norm.dot(self.sspPrefit_Coeffs)
 
             #Instead of denormalizing the grid we use the Hbeta flux and equivalent width
             #To get a better shape of the nebular and stellar continua
             cont_hbeta  = self.obj_data['flux_hbeta'] / self.obj_data['eqw_hbeta']
-
-            print 'primera normalization', cont_hbeta
-
-            #Observed object flux
-            obj_flux    = obj_flux_norm * cont_hbeta
+            obj_flux = obj_flux_norm * cont_hbeta
 
             # Generate synth error
             sigma_err   = error_stellarContinuum * median(obj_flux) # TODO We should play with this error
@@ -932,6 +850,7 @@ class SpectrumFitter(Import_model_data, ContinuaComponents, EmissionComponents, 
             self.obj_data['obs_wave']              = obj_wave_obs
             self.obj_data['stellar_flux']          = obj_flux
             self.obj_data['stellar_flux_err']      = obj_flux + stellar_err
+            self.obj_data['sigma_continuum']       = 0.02   #TODO put this in the object data
 
             #Save synthetic continua according to the observations
             if 'obs_flux' not in self.obj_data:
@@ -939,116 +858,204 @@ class SpectrumFitter(Import_model_data, ContinuaComponents, EmissionComponents, 
             else:
                 self.obj_data['obs_flux'] = self.obj_data['obs_flux'] + self.obj_data['stellar_flux_err']
 
-            # Store the data vector
-            # synth_data['normFlux_stellar']      = norm_factor
-            # synth_data['stellar_flux_True']     = obj_flux_resam
-            # synth_data['stellar_flux_norm']     = obj_flux_norm + obs_fluxEr_norm
-            # synth_data['stellar_wave_resam']    = obj_wave_obs
-            # synth_data['stellar_wave_rest']     = obj_wave_rest
-            # synth_data['stellar_flux_resam']    = obj_flux_resam + obs_fluxEr_resam
-            # synth_data['stellar_fluxEr_resam']  = obs_fluxEr_resam
-            # synth_data['stellar_fluxEr_norm']   = obs_fluxEr_norm
-            # synth_data['stellar_one_array']     = ones(self.nBases)
-            # synth_data['nObsPix']               = len(obj_flux_resam)
-
         return self.obj_data.copy()
+
+
+    def ready_simulation(self, model_name, output_folder, obs_data, ssp_data, fitting_components, overwrite_grids=False,
+                         input_ions=None, wavelengh_limits = None, resample_inc=None, norm_interval=None):
+
+        # Dictionary to store the data
+        self.obj_data = obs_data.copy()
+
+        if output_folder is None: # TODO need to establish a global path to save the data
+            self.output_folder = self.obj_data['output_folder']
+
+        # Prepare emission data
+        if 'emission' in fitting_components:
+
+            obj_lines_df = read_csv(obs_data['obj_lines_file'], delim_whitespace=True, header=0, index_col=0)
+
+            #Prepare data from emission line file
+            self.import_emission_line_data(obj_lines_df, input_ions)
+
+            #Create or load emissivity grids
+            self.import_emissivity_grids()
+
+            # Reddening parameters
+            self.reddening_parameters()
+
+        # Prepare stellar data
+        if 'stellar' in fitting_components:
+
+            # Create dictionary with the stellar library configuration which this object will use
+            self.ssp_lib = ssp_data.copy()
+
+            # Trim, resample and normalize according to the input object
+            self.treat_input_spectrum(self.obj_data, self.obj_data['obs_wave'], self.obj_data['obs_flux'], wavelengh_limits,
+                                      resample_inc, norm_interval)
+
+            # Generate object masks:
+            self.generate_object_mask()
+
+        return
+
+    def prepare_ssp_data(self, input_data, obj_wave, obj_flux, obj_flux_err, obj_mask):
+
+        #Case of a prefit run
+        if input_data is None:
+
+            #Default parameters for the nebular continuum
+            Te_neb, z_neb, cHbeta_neb = self.conf_dic['Te_neb'], self.conf_dic['z_neb'], self.conf_dic['cHbeta_neb']
+            He1_neb, He2_neb = self.conf_dic['He1_neb'], self.conf_dic['He2_neb']
+
+            #Generate synthetic nebular emission to remove from object
+            self.obj_data['synth_neb_flux'] = self.nebular_Cont(obj_wave, z_neb, cHbeta_neb, Te_neb,
+                                            He1_neb, He2_neb, self.obj_data['flux_halpha'] / self.obj_data['normFlux_coeff'])
+
+            object_continuum = (obj_flux - self.obj_data['synth_neb_flux']) * obj_mask
+
+            idx_populations = ones(self.ssp_lib['flux_resam'].shape[0], dtype=bool)
+
+        else:
+
+            bases_idx, bases_coeff = loadtxt(input_data, usecols=[0, 1], unpack=True)
+
+            idx_populations = bases_coeff >= self.lowlimit_sspContribution # TODO we should check this limit thing currentl it must be 0.001
+
+            object_continuum = obj_flux * obj_mask
+
+            self.sspPrefit_Idcs = where(idx_populations)[0]
+            self.sspPrefit_Coeffs = bases_coeff[idx_populations]
+            self.sspPrefit_Limits = vstack((self.sspPrefit_Coeffs * 0.8, self.sspPrefit_Coeffs * 1.2)).T
+
+        #Object data
+        self.input_continuum        = object_continuum
+        self.input_continuum_er     = obj_flux_err
+        self.input_wave             = obj_wave
+        self.int_mask               = obj_mask
+
+        #Bases parameters
+        neglected_populations       = where(~idx_populations)
+        self.onBasesWave            = self.ssp_lib['wave_resam']
+        self.onBasesFlux            = delete(self.ssp_lib['flux_resam'], neglected_populations, axis=0)
+        self.onBasesFluxNorm        = delete(self.ssp_lib['flux_norm'], neglected_populations, axis=0)
+        self.onBasesFluxNormCoeffs  = delete(self.ssp_lib['normFlux_coeff'], neglected_populations, axis=0)
+        self.range_bases            = arange(self.onBasesFlux.shape[0])
+
+        # Limit for bases
+        z_max_ssp                   = (self.ssp_lib['wave_resam'][0] / obj_wave[0]) - 1.0
+        z_min_ssp                   = (self.ssp_lib['wave_resam'][-1] / obj_wave[-1]) - 1.0
+        self.zMin_SspLimit          = z_min_ssp
+        self.zMax_SspLimit          = round(z_max_ssp - 0.001, 3)
+
+        return
+
+    def save_prefit_data(self):
+
+        #-- Save
+        # Read input data #TODO are an extension/code/folder for each run
+        stellarPrefit_db, stat_db_dict = self.load_pymc_database_manual(self.prefit_db, burning=1000, params_list=['Av_star', 'sigma_star', 'ssp_coefficients'])
+
+        # Save population coefficients
+        sspCoeffs_file = self.input_folder + 'prefit_populations.txt'  # TODO Default files names should go into the configuration
+        coeffs_vector = stat_db_dict['ssp_coefficients']['trace'].mean(axis=0)
+        pops_vector = arange(len(coeffs_vector), dtype=int)
+        savetxt(sspCoeffs_file, transpose(array([pops_vector, coeffs_vector])), fmt="%4i %10.8f")
+
+        # Store prefit data
+        self.ssp_lib['db_sspPrefit']        = stellarPrefit_db
+        self.ssp_lib['dbDict_sspPrefit']    = stat_db_dict
+        self.ssp_lib['Av_sspPrefit']        = stat_db_dict['Av_star']['mean']
+        self.ssp_lib['sigma_sspPrefit']     = stat_db_dict['sigma_star']['mean']
+
+    def load_prefit_data(self, obj_wave):
+
+        #-----Observation versus prefit comparison
+        stellarPrefit_db, stat_db_dict      = self.load_pymc_database_manual(self.prefit_db, burning=300,
+                                              params_list=['Av_star', 'sigma_star', 'ssp_coefficients'])
+
+        self.ssp_lib['Av_sspPrefit']        = stat_db_dict['Av_star']['mean']
+        self.ssp_lib['sigma_sspPrefit']     = stat_db_dict['sigma_star']['mean']
+
+        # Default parameters for the nebular continuum
+        Te_neb, z_neb, cHbeta_neb           = self.conf_dic['Te_neb'], self.conf_dic['z_neb'], self.conf_dic['cHbeta_neb']
+        He1_neb, He2_neb                    = self.conf_dic['He1_neb'], self.conf_dic['He2_neb']
+
+        # Generate synthetic nebular emission to remove from object
+        self.ssp_lib['synth_neb_flux']      = self.nebular_Cont(obj_wave, z_neb, cHbeta_neb, Te_neb, He1_neb, He2_neb,
+                                                    self.obj_data['flux_halpha'] / self.obj_data['normFlux_coeff'])
+
+        return
 
     def plot_input_data(self):
 
-        '''
-        self.onBasesWave: trimmed and resampled wavelength of the ssps bases
-        self.onBasesFluxNorm: these are the bases normalized by wavelength flux, resampled and trimmed
-        self.onBasesFluxNormCoeffs: normalization coefficient of the bases which are contributing to our observation continua according to the ssp prefit
-        self.sspPrefit_Idcs: these are the indices of the bases which are contributing to our observation according to the ssp prefit
-        self.sspPrefit_Coeffs: there are the coefficient by how much some stellar libraries are contributing to the observed continua according to the prefit
-        wave_resam
-        flux_resam
-        flux_norm
-        normFlux_coeff
-        '''
-
-        #Establish plots format
         self.FigConf()
 
-        # #-----Observation versus prefit comparison
-        self.data_plot(self.obj_data['wave_resam'], self.obj_data['obs_flux'], 'Observed spectrum')
-        self.data_plot(self.obj_data['obs_wave'], self.obj_data['stellar_flux'], 'Stellar continuum')
-        #
-        ssp_grid_i_norm = self.physical_SED_model(self.ssp_lib['wave_resam'], self.obj_data['wave_resam'], self.onBasesFluxNorm,
-        self.obj_data['Av_star'], self.obj_data['z_star'], self.obj_data['sigma_star'], self.Rv_model)
+        #----- Prefit comparison
+        # TODO this calculation should not be here... we should be able to change it to prepare_data or somewhere else
+        ssp_grid_i_norm = self.physical_SED_model(self.ssp_lib['wave_resam'], self.obj_data['wave_resam'],self.onBasesFluxNorm,
+                                                  self.ssp_lib['Av_sspPrefit'], 0.0, self.ssp_lib['sigma_sspPrefit'], self.Rv_model)
+        obj_ssp_fit_flux = ssp_grid_i_norm.dot(self.sspPrefit_Coeffs)
 
-        print 'segunda parte', ssp_grid_i_norm.shape
-        print 'segundos coeffs', self.onBasesFluxNormCoeffs
-        print 'segunda normalization', self.obj_data['normFlux_coeff']
-        print 'este factor', self.obj_data['flux_hbeta'] / self.obj_data['eqw_hbeta']
+        self.data_plot(self.input_wave, self.obj_data['flux_norm'], 'Object normed flux')
+        self.data_plot(self.input_wave, self.obj_data['synth_neb_flux'], 'Nebular continuum')
+        self.data_plot(self.input_wave, obj_ssp_fit_flux + self.obj_data['synth_neb_flux'], 'Prefit continuum output', linestyle=':')
 
-        ssp_grid_i          = ssp_grid_i_norm * self.onBasesFluxNormCoeffs
+        self.FigWording(xlabel='Wavelength $(\AA)$', ylabel='Observed flux', title='SSPs continuum prefit')
+        self.savefig(self.input_folder + 'ssp_prefit', resolution=200)
 
-        obj_ssp_fit_flux    = ssp_grid_i_norm.dot(self.sspPrefit_Coeffs) * self.obj_data['flux_hbeta'] / self.obj_data['eqw_hbeta']
-
-        self.data_plot(self.obj_data['wave_resam'], obj_ssp_fit_flux, 'SSP Prefit spectrum', linestyle='--')
-
-        self.FigWording(xlabel='Wavelength $(\AA)$', ylabel = 'Observed flux', title = 'SSPs continuum prefit')
-        self.display_fig()
-        self.savefig(self.output_folder + 'ssp_prefit', resolution=200)
-
-
-        # for i in range(len(self.onBasesFluxNorm)):
-        #     self.data_plot(self.onBasesWave, self.onBasesFluxNorm[i] * self.onBasesFluxNormCoeffs[i], 'norm {}'.format(i))
-        #     self.data_plot(self.onBasesWave, self.onBasesFlux[i], 'Resam {}'.format(i), linestyle='--')
-        #     #self.data_plot(self.ssp_lib['wave_resam'], ssp_grid_i_norm[:,i], 'grid {}'.format(i))
-        #
-        #
-        # self.FigWording(xlabel='Wavelength $(\AA)$', ylabel = 'Observed flux', title = 'SSPs continuum prefit')
-        # self.display_fig()
-
-        #-----Plot input data
-        self.data_plot(self.obj_data['obs_wave'], self.obj_data['obs_flux'], 'Observed spectrum spectrum')
-
-        #In case of a synthetic observation:
-        if 'neb_SED' in self.obj_data:
-            self.data_plot(self.obj_data['obs_wave'], self.obj_data['neb_SED']['neb_int_norm'], 'Nebular continuum')
-            title_label = 'Observed spectrum'
-        if 'stellar_flux' in self.obj_data:
-            self.data_plot(self.obj_data['obs_wave'], self.obj_data['stellar_flux'], 'Stellar continuum')
-            self.data_plot(self.obj_data['obs_wave'], self.obj_data['stellar_flux_err'], 'Stellar continuum with uncertainty', linestyle=':')
-            title_label = 'Synthetic spectrum'
-
-        self.FigWording(xlabel='Wavelength $(\AA)$', ylabel = 'Observed flux', title = title_label)
-        self.savefig(self.output_folder + 'input_spectra', resolution=200)
-
-        #-----Plot masked spectrum
-        self.data_plot(self.obj_data['obs_wave'], self.obj_data['flux_norm'], 'Normalized observation')
-        self.data_plot(self.obj_data['obs_wave'], self.obj_data['flux_norm_mask'], 'Masked observation', linestyle='--')
-        self.FigWording(xlabel='Wavelength $(\AA)$', ylabel = 'Observed flux', title = 'Spectrum masks')
-        self.savefig(self.output_folder + 'spectrum_mask', resolution=200)
-
-        #-----Resampled observation
-        self.data_plot(self.obj_data['obs_wave'], self.obj_data['obs_flux'], 'Observed spectrum')
-        self.data_plot(self.obj_data['wave_resam'], self.obj_data['flux_resam'], 'Resampled spectrum', linestyle='--')
-        self.data_plot(self.obj_data['wave_resam'], self.obj_data['flux_norm'] * self.obj_data['normFlux_coeff'], r'Normalized spectrum $\cdot$ {:.2E}'.format(self.obj_data['normFlux_coeff']), linestyle=':')
-        self.area_fill(self.obj_data['norm_interval'][0], self.obj_data['norm_interval'][1], 'Norm interval: {} - {}'.format(self.obj_data['norm_interval'][0], self.obj_data['norm_interval'][1]), alpha=0.5)
-
-        self.FigWording(xlabel='Wavelength $(\AA)$', ylabel = 'Observed flux', title = 'Resampled observation')
-        self.savefig(self.output_folder + 'resampled_spectra', resolution=200)
-
-        #-----Prefit SSPs norm plot
+        # #-----Prefit SSPs norm plot
         #TODO This function should go to my collection
         ordinal_generator = lambda n: "%d%s" % (n, "tsnrhtdd"[(n / 10 % 10 != 1) * (n % 10 < 4) * n % 10::4])
         ordinal_bases = [ordinal_generator(n) for n in self.sspPrefit_Idcs]
 
         for i in range(len(self.onBasesFluxNorm)):
-            label_i = '{} base: flux coeff {}, norm coeff {:.2E}'.format(ordinal_bases[i], self.sspPrefit_Coeffs[i], self.onBasesFluxNormCoeffs[i])
-            self.data_plot(self.onBasesWave, self.onBasesFluxNorm[i], label_i)
-
+            if self.sspPrefit_Coeffs[i] > 0.01:
+                label_i = '{} base: flux coeff {}, norm coeff {:.2E}'.format(ordinal_bases[i], self.sspPrefit_Coeffs[i], self.onBasesFluxNormCoeffs[i])
+                self.data_plot(self.onBasesWave, self.onBasesFluxNorm[i], label_i)
         self.area_fill(self.ssp_lib['norm_interval'][0], self.ssp_lib['norm_interval'][1], 'Norm interval: {} - {}'.format(self.ssp_lib['norm_interval'][0], self.ssp_lib['norm_interval'][1]), alpha=0.5)
 
         self.FigWording(xlabel='Wavelength $(\AA)$', ylabel = 'Normalized flux', title = 'SSP prefit contributing stellar populations')
+        self.savefig(self.input_folder + 'prefit_NormSsps', resolution=200)
 
-        self.savefig(self.output_folder + 'prefit_NormSsps', resolution=200)
+        # #-----Plot input data
+        self.data_plot(self.input_wave, self.input_continuum, 'Object Input continuum')
+        self.data_plot(self.obj_data['obs_wave'], self.obj_data['synth_neb_flux'], 'synth_neb_flux', linestyle = '--')
+        self.data_plot(self.input_wave, obj_ssp_fit_flux , 'Stellar Prefit continuum output', linestyle=':')
 
+        #In case of a synthetic observation:
+        if 'neb_SED' in self.obj_data:
+            self.data_plot(self.input_wave, self.obj_data['neb_SED']['neb_int_norm'], 'Nebular continuum')
+            title_label = 'Observed spectrum'
+        if 'stellar_flux' in self.obj_data:
+            self.data_plot(self.obj_data['obs_wave'], self.obj_data['stellar_flux']/self.obj_data['normFlux_coeff'], 'Stellar continuum')
+            self.data_plot(self.obj_data['obs_wave'], self.obj_data['stellar_flux_err']/ self.obj_data['normFlux_coeff'], 'Stellar continuum with uncertainty', linestyle=':')
+            title_label = 'Synthetic spectrum'
 
+        self.FigWording(xlabel='Wavelength $(\AA)$', ylabel = 'Observed flux', title = title_label)
+        self.savefig(self.input_folder + 'prefit_components', resolution=200)
 
+        # #-----Plot masked spectrum
+        self.data_plot(self.obj_data['obs_wave'], self.obj_data['flux_norm'], 'Normalized observation')
+        self.data_plot(self.input_wave, self.input_continuum, 'Masked observation', linestyle='--')
+        self.FigWording(xlabel='Wavelength $(\AA)$', ylabel = 'Observed flux', title = 'Spectrum masks')
+        self.savefig(self.input_folder + 'spectrum_mask', resolution=200)
+
+        # #-----Resampled observation
+        self.data_plot(self.obj_data['obs_wave'], self.obj_data['obs_flux'], 'Observed spectrum')
+        self.data_plot(self.obj_data['wave_resam'], self.obj_data['flux_resam'], 'Resampled spectrum', linestyle='--')
+        self.data_plot(self.obj_data['wave_resam'], self.obj_data['flux_norm'] * self.obj_data['normFlux_coeff'], r'Normalized spectrum $\cdot$ {:.2E}'.format(self.obj_data['normFlux_coeff']), linestyle=':')
+        self.area_fill(self.obj_data['norm_interval'][0], self.obj_data['norm_interval'][1], 'Norm interval: {} - {}'.format(self.obj_data['norm_interval'][0], self.obj_data['norm_interval'][1]), alpha=0.5)
+        self.FigWording(xlabel='Wavelength $(\AA)$', ylabel = 'Observed flux', title = 'Resampled observation')
+        self.savefig(self.input_folder + 'resampled_spectra', resolution=200)
+
+        # Stellar prefit Traces
+        self.traces_plot(['Av_star', 'sigma_star'], self.ssp_lib['db_sspPrefit'], self.ssp_lib['dbDict_sspPrefit'])
+        self.save_manager(self.input_folder + 'PrefitTracesPlot', save=True, save_pickle=False)
+
+        # Stellar prefit Posteriors
+        self.posteriors_plot(['Av_star', 'sigma_star'], self.ssp_lib['db_sspPrefit'], self.ssp_lib['dbDict_sspPrefit'])
+        self.save_manager(self.input_folder + 'PrefitPosteriorPlot', save=True, save_pickle=False)
 
 
         return
@@ -1056,7 +1063,7 @@ class SpectrumFitter(Import_model_data, ContinuaComponents, EmissionComponents, 
 class SpecSynthesizer(SpectrumFitter):
 
     def __init__(self, atomic_ref=None, nebular_data = None, ssp_type=None, ssp_folder=None, ssp_conf_file=None,
-                 temp_grid=None, den_grid=None, high_temp_ions=None, R_v=3.4, reddenig_curve='G03_average', lowlimit_sspContribution=None):
+                 temp_grid=None, den_grid=None, high_temp_ions=None, R_v=3.4, reddenig_curve='G03_average', lowlimit_sspContribution=0.0):
 
         #TODO in here we give the choice: Configuration from text file but it can also be imported from text file create a default conf to upload from there if missing
 
@@ -1071,7 +1078,7 @@ class SpecSynthesizer(SpectrumFitter):
         if atomic_ref == 'default':
             atomicData.setDataFile('s_iii_coll_HRS12.dat') #TODO actually this should be uplodaded from a file
 
-        #Temperature and density grid declaration
+        # Temperature and density grid declaration
         self.tem_grid_range = arange(temp_grid[0], temp_grid[1], temp_grid[2])
         self.den_grid_range = arange(den_grid[0], den_grid[1], den_grid[2])
         self.den_grid_range[0] = 1 #Change the minimum value for the grid to 1
@@ -1083,21 +1090,55 @@ class SpecSynthesizer(SpectrumFitter):
         # Declare high ionization temperature ions
         self.high_temp_ions = high_temp_ions
 
-        #Lower accepted limit for ssps
+        # Lower accepted limit for ssps
         self.lowlimit_sspContribution = lowlimit_sspContribution
 
+        # Dictionary to store parameters
+        self.conf_dic = {'Te_neb': 10000.0, 'z_neb': 0.0, 'cHbeta_neb': 0.1, 'He1_neb': 0.085, 'He2_neb': 0.0}
+
     def fit_observation(self, model_name, obs_data, ssp_data, iterations=15000, burn=7000, thin=1, output_folder = None,
-                        fitting_components=None, input_ions=None, params_list = None,
-                        wavelengh_limits = None, resample_inc = None, norm_interval=None,
-                        prefit_ssp = True, plot_inputs = True):
+                        fitting_components=None, input_ions=None, params_list = None, prefit_SSP = True,
+                        wavelengh_limits = None, resample_inc = None, norm_interval=None):
 
         #Prepare data for the MCMC fitting
-        self.ready_simulation(model_name, output_folder, obs_data, ssp_data, fitting_components, prefit_ssp, input_ions=input_ions,
-                              wavelengh_limits=wavelengh_limits,resample_inc=resample_inc,norm_interval=norm_interval)
+        self.ready_simulation(model_name, output_folder, obs_data, ssp_data, fitting_components, input_ions=input_ions,
+                              wavelengh_limits=wavelengh_limits, resample_inc=resample_inc, norm_interval=norm_interval)
 
-        #Plot input data in input folder
-        if plot_inputs:
-            self.plot_input_data()
+        #Folders to store inputs and outputs
+        self.input_folder = output_folder + 'input_data/'
+        self.output_folder = output_folder + 'output_data/'
+        make_folder(self.input_folder)
+        make_folder(self.output_folder)
+
+        #Prefit stellar continua
+        if ('stellar' in fitting_components) and prefit_SSP:
+
+            # Ready data for a prefit on our stellar continua
+            self.prepare_ssp_data(None, obj_wave=self.obj_data['wave_resam'], obj_flux=self.obj_data['flux_norm'],
+                                  obj_flux_err=self.obj_data['sigma_continuum'], obj_mask=self.obj_data['int_mask'])
+
+            # Select model
+            self.select_inference_model('stelar_prefit')
+
+            # Run prefit output #TODO these prefit parameters should go into the master conf
+            self.prefit_db = self.input_folder + 'SSP_prefit_database'
+            self.run_pymc2(self.prefit_db, iterations = 10000, variables_list = ['Av_star', 'sigma_star'], prefit = True)
+
+            # Save prefit data
+            self.save_prefit_data()
+
+        #Load prefit data
+        self.load_prefit_data(self.obj_data['wave_resam'])
+
+        #Ready data for full run
+        self.prepare_ssp_data(self.input_folder + 'prefit_populations.txt',
+                              obj_wave=self.obj_data['wave_resam'], obj_flux=self.obj_data['flux_norm'],
+                              obj_flux_err=self.obj_data['sigma_continuum'], obj_mask=self.obj_data['int_mask'])
+
+        #Plot input simulation data
+        self.plot_input_data()
+
+
 
         # #Select model
         # self.select_inference_model()
@@ -1109,11 +1150,48 @@ class SpecSynthesizer(SpectrumFitter):
 
         return
 
-    def select_inference_model(self, model = 'default'):
+    def select_inference_model(self, model = 'complete'):
 
-        self.inf_dict = self.He_O_S_nebStellar_model()
+        if model == 'complete':
+            self.inf_dict = self.complete_model()
 
-    def He_O_S_nebStellar_model(self):
+        elif model == 'stelar_prefit':
+            print 'Limites', self.zMin_SspLimit, self.zMax_SspLimit
+            self.inf_dict = self.stellarContinua_model()
+
+    def stellarContinua_model(self):
+
+        #Stellar parameters
+        Av_star     = pymc2.Uniform('Av_star', 0.0, 5.00)
+        sigma_star  = pymc2.Uniform('sigma_star', 0.0, 5.00)
+        #z_star      = pymc2.Uniform('z_star', self.z_min_ssp_limit, self.z_max_ssp_limit)
+
+        @pymc2.deterministic #Shift, multiply and convolve by a factor given by the model parameters
+        def ssp_coefficients(z_star=0.0, Av_star=Av_star, sigma_star=sigma_star, input_flux=self.input_continuum):
+
+            ssp_grid_i = self.physical_SED_model(self.onBasesWave, self.input_wave, self.onBasesFluxNorm, Av_star, z_star, sigma_star, self.Rv_model)
+
+            self.ssp_grid_i_masked = (self.int_mask * ssp_grid_i.T).T
+
+            ssp_coeffs_norm = self.ssp_fitting(self.ssp_grid_i_masked, input_flux)
+
+            return ssp_coeffs_norm
+
+        @pymc2.deterministic #Theoretical normalized flux
+        def stellar_continua_calculation(ssp_coeffs=ssp_coefficients):
+
+            flux_sspFit_norm = np_sum(ssp_coeffs.T * self.ssp_grid_i_masked, axis=1)
+
+            return flux_sspFit_norm
+
+        @pymc2.stochastic(observed=True) #Likelihood
+        def likelihood_ssp(value = self.input_continuum, stellarTheoFlux=stellar_continua_calculation, sigmaContinuum=self.input_continuum_er):
+            chi_F = sum(square(stellarTheoFlux - value) / square(sigmaContinuum))
+            return - chi_F / 2
+
+        return locals()
+
+    def complete_model(self):
 
         ne = pymc2.TruncatedNormal('ne', self.obj_data['nSII'], self.obj_data['nSII_error'] ** -2, a=50.0, b=1000.0)
         cHbeta = pymc2.TruncatedNormal('cHbeta', 0.15, 0.05 ** -2, a=0.0, b=3.0)
@@ -1261,8 +1339,6 @@ class SpecSynthesizer(SpectrumFitter):
         #Get statistics from the run
         for i in range(len(traces_list)):
 
-            print i, traces_list[i]
-
             trace               = traces_list[i]
             stats_dic[trace]    = OrderedDict()
             trace_array         = pymc_database.trace(trace)[burning:]
@@ -1286,11 +1362,12 @@ class SpecSynthesizer(SpectrumFitter):
                     if key_true == 'ne':
                         key_true = 'n_e'
 
-                    stats_dic[trace]['true_value'] = self.obj_data[key_true]
+                    if key_true in self.obj_data: #TODO we need a better structure fo this
+                        stats_dic[trace]['true_value'] = self.obj_data[key_true]
 
-                if params_list is not None:
-                    if trace in params_list:
-                        print trace, stats_dic[trace]['mean']
+                # if params_list is not None:
+                #     if trace in params_list:
+                #         print trace, stats_dic[trace]['mean']
 
         #Generate a MCMC object to recover all the data from the run
         dbMCMC = pymc2.MCMC(traces_dic, pymc_database)

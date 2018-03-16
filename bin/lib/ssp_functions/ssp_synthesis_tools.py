@@ -409,7 +409,7 @@ class ssp_synthesis_importer():
         ssp_lib_dict['nPixBases_max']       = max_nPixelsBases
         ssp_lib_dict['fluxBases']           = fluxBases_orig #This is not pretty but not other option if bases do not have same length...
         ssp_lib_dict['ageBases']            = age_vector    
-        ssp_lib_dict['zBases']              = Z_vector    
+        ssp_lib_dict['zBases']              = Z_vector
         #ssp_lib_dict['bases_one_array']     = ones(nBases)
        
         print '--Library imported'
@@ -505,6 +505,7 @@ class ssp_fitter(ssp_synthesis_importer):
         return
 
     def load_stellar_bases(self, ssp_lib_type, data_folder = None, data_file = None, resample_int = None, resample_range = None, norm_interval = (5100, 5150)):
+
         #TODO this library must be divided in two parts: loading ssp files and resampling
         #Store stellar base type
         sspLib_dict = {}

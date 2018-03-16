@@ -913,8 +913,8 @@ class Inference_AbundanceModel(Import_model_data, Collisional_FluxCalibration, R
     def stellar_bayes(self):
                 
         #z_star     =   pymc2.Uniform(    'z_star',             self.z_min_ssp_limit,       self.z_max_ssp_limit)
-        Av_star     =   pymc2.Uniform(    'Av_star',            0.0,                        5.00,                   value=self.obj_data['Av_star'])
-        sigma_star  =   pymc2.Uniform(    'sigma_star',         0.0,                        5.00,                   value=self.obj_data['sigma_star'])
+        Av_star     =   pymc2.Uniform(    'Av_star',            0.0,                        5.00,     value=self.obj_data['Av_star'])
+        sigma_star  =   pymc2.Uniform(    'sigma_star',         0.0,                        5.00,     value=self.obj_data['sigma_star'])
         ssp_coefs   =  [pymc2.Uniform(    'ssp_coefs_%i' % i,   self.population_limitss[i][0],   self.population_limitss[i][1]) for i in self.range_bases]
                 
         @pymc2.deterministic

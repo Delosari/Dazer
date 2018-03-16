@@ -5,24 +5,18 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="f48e4708-58b6-4194-a318-62e678ead6b0" name="Default" comment="">
-      <change type="DELETED" beforePath="$PROJECT_DIR$/../thesis_pipeline/article1_material/Mamandurria1_ionicAbund_table_noPreamble_ONH2.py" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/../thesis_pipeline/article1_material/Mamandurria2_ionicAbund_table_noPreamble_ArS2.py" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/../thesis_pipeline/article1_material/Mamandurria_obsLines_individualTable_noPreamble2.py" afterPath="" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/working_examples/pyCloudy_MarinaExample.py" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/../thesis_pipeline/article1_material/sourceMaterial_Plot_spectra_samples.py" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/../thesis_pipeline/article1_material/sourceMaterial_table_obsLines_individualTable_noPreamble.py" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/../thesis_pipeline/thesis/images/light_elements_fraction.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/bin/lib/Astro_Libraries/Abundances_InferenceModel_Helium_v46_ElDespertar.py" afterPath="$PROJECT_DIR$/bin/lib/Astro_Libraries/Abundances_InferenceModel_Helium_v46_ElDespertar.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/multi_comp_v1.py" afterPath="$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/multi_comp_v1.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/bin/lib/Plotting_Libraries/dazer_plotter.py" afterPath="$PROJECT_DIR$/bin/lib/Plotting_Libraries/dazer_plotter.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/bin/lib/ssp_functions/ssp_synthesis_tools.py" afterPath="$PROJECT_DIR$/bin/lib/ssp_functions/ssp_synthesis_tools.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../thesis_pipeline/article1_material/Plot_Cloudy_plotter.py" afterPath="$PROJECT_DIR$/../thesis_pipeline/article1_material/Plot_Cloudy_plotter.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../thesis_pipeline/article1_material/Plot_J2_MC_LinearRegressions2.py" afterPath="$PROJECT_DIR$/../thesis_pipeline/article1_material/Plot_J2_MC_LinearRegressions2.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../thesis_pipeline/article1_material/Plot_N_O_He_ratio.py" afterPath="$PROJECT_DIR$/../thesis_pipeline/article1_material/Plot_N_O_He_ratio.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../thesis_pipeline/article1_material/Plot_S+3_vs_Temp.py" afterPath="$PROJECT_DIR$/../thesis_pipeline/article1_material/Plot_S+3_vs_Temp.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../thesis_pipeline/article1_material/Plot_population_fractions_SHOC579.py" afterPath="$PROJECT_DIR$/../thesis_pipeline/article1_material/Plot_population_fractions_SHOC579.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../thesis_pipeline/article1_material/Plot_spectra_samples.py" afterPath="$PROJECT_DIR$/../thesis_pipeline/article1_material/Plot_spectra_samples.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../thesis_pipeline/article1_material/Plot_sulfur_vs_oxygen_TIII_comp.py" afterPath="$PROJECT_DIR$/../thesis_pipeline/article1_material/Plot_sulfur_vs_oxygen_TIII_comp.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../thesis_pipeline/article1_material/Plot_telluric_correction_example.py" afterPath="$PROJECT_DIR$/../thesis_pipeline/article1_material/Plot_telluric_correction_example.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../thesis_pipeline/article1_material/ionization_structure.py" afterPath="$PROJECT_DIR$/../thesis_pipeline/article1_material/ionization_structure.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../thesis_pipeline/article1_material/table_Abund_table_noPreamble.py" afterPath="$PROJECT_DIR$/../thesis_pipeline/article1_material/table_Abund_table_noPreamble.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../thesis_pipeline/article1_material/table_ReferenceObjs_Table.py" afterPath="$PROJECT_DIR$/../thesis_pipeline/article1_material/table_ReferenceObjs_Table.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../thesis_pipeline/article1_material/table_obsLines_individualTable_noPreamble.py" afterPath="$PROJECT_DIR$/../thesis_pipeline/article1_material/table_obsLines_individualTable_noPreamble.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../thesis_pipeline/spectrum_fitting/bayes_synth_fitting_v1.py" afterPath="$PROJECT_DIR$/../thesis_pipeline/spectrum_fitting/bayes_synth_fitting_v1.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../thesis_pipeline/spectrum_fitting/synth_objProperties.txt" afterPath="$PROJECT_DIR$/../thesis_pipeline/spectrum_fitting/synth_objProperties.txt" />
     </list>
     <ignored path="Dazer.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -43,34 +37,66 @@
       <content type="file-editors">
         <state>
           <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-            <file leaf-file-name="synth_objProperties.txt" pinned="false" current-in-tab="false">
-              <entry file="file://$PROJECT_DIR$/../thesis_pipeline/spectrum_fitting/synth_objProperties.txt">
+            <file leaf-file-name="multi_comp_v1.py" pinned="false" current-in-tab="true">
+              <entry file="file://$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/multi_comp_v1.py">
                 <provider selected="true" editor-type-id="text-editor">
-                  <state relative-caret-position="22">
-                    <caret line="1" column="16" lean-forward="false" selection-start-line="1" selection-start-column="16" selection-end-line="1" selection-end-column="16" />
-                    <folding />
-                  </state>
-                </provider>
-              </entry>
-            </file>
-            <file leaf-file-name="bayes_synth_fitting_v1.py" pinned="false" current-in-tab="false">
-              <entry file="file://$PROJECT_DIR$/../thesis_pipeline/spectrum_fitting/bayes_synth_fitting_v1.py">
-                <provider selected="true" editor-type-id="text-editor">
-                  <state relative-caret-position="770">
-                    <caret line="37" column="16" lean-forward="false" selection-start-line="37" selection-start-column="2" selection-end-line="37" selection-end-column="16" />
+                  <state relative-caret-position="636">
+                    <caret line="923" column="0" lean-forward="false" selection-start-line="923" selection-start-column="0" selection-end-line="923" selection-end-column="0" />
                     <folding>
-                      <element signature="e#0#18#0" expanded="true" />
-                      <element signature="e#1950#2354#0" expanded="false" />
+                      <element signature="e#0#71#0" expanded="true" />
+                      <element signature="e#1534#1705#0" expanded="false" />
+                      <element signature="e#1755#2020#0" expanded="false" />
+                      <element signature="e#2093#2597#0" expanded="false" />
+                      <element signature="e#2644#2699#0" expanded="false" />
+                      <element signature="e#2752#2791#0" expanded="false" />
+                      <element signature="e#2894#3186#0" expanded="false" />
+                      <element signature="e#3242#3337#1" expanded="false" />
+                      <element signature="e#3373#7057#0" expanded="false" />
+                      <element signature="e#7130#7819#0" expanded="false" />
+                      <element signature="e#7967#17744#0" expanded="false" />
+                      <element signature="e#17822#21052#0" expanded="false" />
+                      <element signature="e#21102#22893#0" expanded="false" />
+                      <element signature="e#24194#26760#0" expanded="false" />
+                      <element signature="e#26807#27756#0" expanded="false" />
+                      <element signature="e#27858#27978#0" expanded="false" />
+                      <element signature="e#28077#28543#0" expanded="false" />
+                      <element signature="e#28651#29335#0" expanded="false" />
+                      <element signature="e#29413#30075#0" expanded="false" />
+                      <element signature="e#30141#30343#0" expanded="false" />
+                      <element signature="e#30476#31464#0" expanded="false" />
+                      <element signature="e#31597#32865#0" expanded="false" />
+                      <element signature="e#32912#33641#0" expanded="false" />
+                      <element signature="e#34189#34691#0" expanded="false" />
+                      <element signature="e#35969#38658#0" expanded="false" />
+                      <element signature="e#38744#40483#0" expanded="false" />
+                      <element signature="e#43881#45158#0" expanded="false" />
+                      <element signature="e#48725#49734#0" expanded="false" />
+                      <element signature="e#55077#56388#0" expanded="false" />
+                      <element signature="e#55077#55236#0" expanded="false" />
+                      <element signature="e#58892#59130#0" expanded="false" />
+                      <element signature="e#59178#60555#0" expanded="false" />
+                      <element signature="e#60596#66122#0" expanded="false" />
+                      <element signature="e#62612#63046#0" expanded="false" />
+                      <element signature="e#63205#63600#0" expanded="false" />
+                      <element signature="e#63831#63986#0" expanded="false" />
+                      <element signature="e#64182#64557#0" expanded="false" />
+                      <element signature="e#64708#65103#0" expanded="false" />
+                      <element signature="e#65323#65507#0" expanded="false" />
+                      <element signature="e#65699#65793#0" expanded="false" />
+                      <element signature="e#65999#66097#0" expanded="false" />
+                      <element signature="e#66228#67403#0" expanded="false" />
+                      <element signature="e#67500#69724#0" expanded="false" />
+                      <element signature="e#69793#86703#0" expanded="false" />
                     </folding>
                   </state>
                 </provider>
               </entry>
             </file>
-            <file leaf-file-name="ssp_synthesis_tools.py" pinned="false" current-in-tab="true">
+            <file leaf-file-name="ssp_synthesis_tools.py" pinned="false" current-in-tab="false">
               <entry file="file://$PROJECT_DIR$/bin/lib/ssp_functions/ssp_synthesis_tools.py">
                 <provider selected="true" editor-type-id="text-editor">
-                  <state relative-caret-position="22">
-                    <caret line="648" column="8" lean-forward="false" selection-start-line="648" selection-start-column="8" selection-end-line="648" selection-end-column="8" />
+                  <state relative-caret-position="2156">
+                    <caret line="649" column="8" lean-forward="false" selection-start-line="649" selection-start-column="8" selection-end-line="649" selection-end-column="8" />
                     <folding>
                       <element signature="e#0#49#0" expanded="true" />
                       <element signature="e#900#1232#0" expanded="false" />
@@ -78,25 +104,29 @@
                       <element signature="e#3699#3908#0" expanded="false" />
                       <element signature="e#3946#4528#0" expanded="false" />
                       <element signature="e#4555#4714#0" expanded="false" />
+                      <element signature="e#4757#22066#0" expanded="false" />
                       <element signature="e#4794#8717#0" expanded="false" />
+                      <element signature="e#4869#7105#0" expanded="false" />
                       <element signature="e#8806#10636#0" expanded="false" />
                       <element signature="e#10718#11655#0" expanded="false" />
                       <element signature="e#11737#14079#0" expanded="false" />
-                      <element signature="e#11950#14025#0" expanded="false" />
-                      <element signature="e#14162#16282#0" expanded="false" />
-                      <element signature="e#16372#17600#0" expanded="false" />
-                      <element signature="e#17675#19679#0" expanded="false" />
-                      <element signature="e#22168#22305#0" expanded="false" />
-                      <element signature="e#22617#22940#0" expanded="false" />
-                      <element signature="e#23600#25876#0" expanded="false" />
-                      <element signature="e#26046#29324#0" expanded="false" />
-                      <element signature="e#29519#32289#0" expanded="false" />
-                      <element signature="e#32377#33184#0" expanded="false" />
-                      <element signature="e#34968#37366#0" expanded="false" />
-                      <element signature="e#37454#37614#0" expanded="false" />
-                      <element signature="e#37758#41632#0" expanded="false" />
-                      <element signature="e#41711#42123#0" expanded="false" />
-                      <element signature="e#42216#42875#0" expanded="false" />
+                      <element signature="e#22456#23480#0" expanded="false" />
+                      <element signature="e#23596#25872#0" expanded="false" />
+                      <element signature="e#26043#29321#0" expanded="false" />
+                      <element signature="e#32374#33181#0" expanded="false" />
+                      <element signature="e#34965#37363#0" expanded="false" />
+                    </folding>
+                  </state>
+                </provider>
+              </entry>
+            </file>
+            <file leaf-file-name="dazer_plotter.py" pinned="false" current-in-tab="false">
+              <entry file="file://$PROJECT_DIR$/bin/lib/Plotting_Libraries/dazer_plotter.py">
+                <provider selected="true" editor-type-id="text-editor">
+                  <state relative-caret-position="11946">
+                    <caret line="553" column="8" lean-forward="false" selection-start-line="553" selection-start-column="8" selection-end-line="553" selection-end-column="8" />
+                    <folding>
+                      <element signature="e#0#13#0" expanded="true" />
                     </folding>
                   </state>
                 </provider>
@@ -114,128 +144,14 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="multi_comp_v1.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/multi_comp_v1.py">
+      <file leaf-file-name="bayes_synth_fitting_v1.py" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/../thesis_pipeline/spectrum_fitting/bayes_synth_fitting_v1.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="11374">
-              <caret line="988" column="106" lean-forward="false" selection-start-line="988" selection-start-column="106" selection-end-line="988" selection-end-column="106" />
+            <state relative-caret-position="22">
+              <caret line="89" column="21" lean-forward="false" selection-start-line="89" selection-start-column="6" selection-end-line="89" selection-end-column="21" />
               <folding>
-                <element signature="e#0#61#0" expanded="true" />
-                <element signature="e#1277#1448#0" expanded="false" />
-                <element signature="e#1498#1763#0" expanded="false" />
-                <element signature="e#1836#2340#0" expanded="false" />
-                <element signature="e#2387#2442#0" expanded="false" />
-                <element signature="e#2495#2534#0" expanded="false" />
-                <element signature="e#2637#2929#0" expanded="false" />
-                <element signature="e#2985#3080#1" expanded="false" />
-                <element signature="e#6873#7562#0" expanded="false" />
-                <element signature="e#7710#17487#0" expanded="false" />
-                <element signature="e#26689#27638#0" expanded="false" />
-                <element signature="e#27740#27860#0" expanded="false" />
-                <element signature="e#27959#28425#0" expanded="false" />
-                <element signature="e#28533#29217#0" expanded="false" />
-                <element signature="e#30618#34875#0" expanded="false" />
-                <element signature="e#30647#31309#0" expanded="false" />
-                <element signature="e#31375#31577#0" expanded="false" />
-                <element signature="e#35018#35300#0" expanded="false" />
-                <element signature="e#35556#38178#0" expanded="false" />
-                <element signature="e#38301#38803#0" expanded="false" />
-                <element signature="e#54560#55716#0" expanded="false" />
-                <element signature="e#56817#56863#0" expanded="false" />
-                <element signature="e#62545#63720#0" expanded="false" />
-                <element signature="e#63817#65977#0" expanded="false" />
-                <element signature="e#66046#82956#0" expanded="false" />
+                <element signature="e#0#31#0" expanded="true" />
               </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="Plot_telluric_correction_example.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/../thesis_pipeline/article1_material/Plot_telluric_correction_example.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1320">
-              <caret line="67" column="65" lean-forward="false" selection-start-line="67" selection-start-column="0" selection-end-line="68" selection-end-column="0" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="Plot_spectra_samples.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/../thesis_pipeline/article1_material/Plot_spectra_samples.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="330">
-              <caret line="21" column="186" lean-forward="false" selection-start-line="21" selection-start-column="186" selection-end-line="21" selection-end-column="186" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="Plot_sulfur_vs_oxygen_TIII_comp.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/../thesis_pipeline/article1_material/Plot_sulfur_vs_oxygen_TIII_comp.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="242">
-              <caret line="15" column="38" lean-forward="false" selection-start-line="15" selection-start-column="38" selection-end-line="15" selection-end-column="38" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="Plot_Cloudy_plotter.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/../thesis_pipeline/article1_material/Plot_Cloudy_plotter.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="2332">
-              <caret line="111" column="161" lean-forward="false" selection-start-line="111" selection-start-column="161" selection-end-line="111" selection-end-column="161" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="Plot_population_fractions_SHOC579.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/../thesis_pipeline/article1_material/Plot_population_fractions_SHOC579.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="2134">
-              <caret line="101" column="139" lean-forward="false" selection-start-line="101" selection-start-column="139" selection-end-line="101" selection-end-column="139" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="Plot_S+3_vs_Temp.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/../thesis_pipeline/article1_material/Plot_S+3_vs_Temp.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1034">
-              <caret line="50" column="139" lean-forward="false" selection-start-line="50" selection-start-column="139" selection-end-line="50" selection-end-column="139" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="Plot_J2_MC_LinearRegressions2.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/../thesis_pipeline/article1_material/Plot_J2_MC_LinearRegressions2.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="7414">
-              <caret line="349" column="0" lean-forward="false" selection-start-line="349" selection-start-column="0" selection-end-line="349" selection-end-column="0" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="Plot_N_O_He_ratio.py" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/../thesis_pipeline/article1_material/Plot_N_O_He_ratio.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="462">
-              <caret line="23" column="0" lean-forward="true" selection-start-line="23" selection-start-column="0" selection-end-line="23" selection-end-column="0" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="interpolate.py" pinned="false" current-in-tab="false">
-        <entry file="file://$USER_HOME$/anaconda/lib/python2.7/site-packages/scipy/interpolate/interpolate.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="8844">
-              <caret line="402" column="8" lean-forward="false" selection-start-line="402" selection-start-column="8" selection-end-line="402" selection-end-column="8" />
-              <folding />
             </state>
           </provider>
         </entry>
@@ -251,25 +167,6 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>low</find>
-      <find>self.idx_lowU</find>
-      <find>.contains</find>
-      <find>self.idx_highU</find>
-      <find>multi_comp_v1</find>
-      <find>linspace</find>
-      <find>multi_comp</find>
-      <find>ready_emission_data</find>
-      <find>obj_mask_file</find>
-      <find>columns_to_delete</find>
-      <find>i</find>
-      <find>mean_coeffs</find>
-      <find>.T</find>
-      <find>que meto</find>
-      <find>seguro, seguro</find>
-      <find>.dot</find>
-      <find>SIV_ICF_literature.xlsx</find>
-      <find>_text</find>
-      <find>font</find>
       <find>WMAP</find>
       <find>FigWording</find>
       <find>ssp_prefit</find>
@@ -281,6 +178,25 @@
       <find>fontsize</find>
       <find>trolean</find>
       <find>size</find>
+      <find>font</find>
+      <find>primera parte</find>
+      <find>self.onBasesFluxNorm</find>
+      <find>self.obj_data['obs_flux']</find>
+      <find>self.obj_data['normFlux_coeff']</find>
+      <find>print</find>
+      <find>nnls</find>
+      <find>stellar_continua_fitting</find>
+      <find>prefit_norm</find>
+      <find>Number of bases</find>
+      <find>obj_data['obs_fluxEr_norm']</find>
+      <find>self.stellar_SED['stellar_fluxEr_norm']</find>
+      <find>normFlux_coeff</find>
+      <find>obs_fluxEr_norm</find>
+      <find>stellar_fluxEr_norm</find>
+      <find>pycloudy</find>
+      <find>prepare_ssp_data</find>
+      <find>lowlimit_sspContribution</find>
+      <find>load_pymc_database_manual</find>
     </findStrings>
     <replaceStrings>
       <replace />
@@ -300,7 +216,6 @@
         <option value="$PROJECT_DIR$/working_examples/pymc2_bayesian_linear_system.py" />
         <option value="$USER_HOME$/anaconda/lib/python2.7/site-packages/pyCloudy/c1d/cloudy_model.py" />
         <option value="$PROJECT_DIR$/../thesis_pipeline/NebularContinuum_project/paschen_jump_spectrum.py" />
-        <option value="$PROJECT_DIR$/../thesis_pipeline/article1_material/table_obsLines_individualTable_noPreamble.py" />
         <option value="$PROJECT_DIR$/../thesis_pipeline/cloudy_workshop/poster/Plot_SHOC579_SpectraComparison.py" />
         <option value="$PROJECT_DIR$/working_examples/calculating_helium_emissivities.py" />
         <option value="$PROJECT_DIR$/bin/lib/Astro_Libraries/Abundances_InferenceModel_Helium_v43.py" />
@@ -314,11 +229,7 @@
         <option value="$PROJECT_DIR$/../thesis_pipeline/spectrum_fitting/synth_objProperties.txt" />
         <option value="$PROJECT_DIR$/../thesis_pipeline/article1_material/Plot_SHOC579_SpectraComparison.py" />
         <option value="$PROJECT_DIR$/../thesis_pipeline/article1_material/Plot_telluric_correction_example.py" />
-        <option value="$PROJECT_DIR$/../thesis_pipeline/article1_material/ionization_structure.py" />
         <option value="$PROJECT_DIR$/bin/lib/Plotting_Libraries/dazer_plotter.py" />
-        <option value="$PROJECT_DIR$/bin/lib/ssp_functions/ssp_synthesis_tools.py" />
-        <option value="$PROJECT_DIR$/../thesis_pipeline/spectrum_fitting/bayes_synth_fitting_v1.py" />
-        <option value="$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/multi_comp_v1.py" />
         <option value="$PROJECT_DIR$/../thesis_pipeline/article1_material/Plot_spectra_samples.py" />
         <option value="$PROJECT_DIR$/../thesis_pipeline/article1_material/Plot_sulfur_vs_oxygen_TIII_comp.py" />
         <option value="$PROJECT_DIR$/../thesis_pipeline/article1_material/Plot_Cloudy_plotter.py" />
@@ -326,13 +237,27 @@
         <option value="$PROJECT_DIR$/../thesis_pipeline/article1_material/Plot_S+3_vs_Temp.py" />
         <option value="$PROJECT_DIR$/../thesis_pipeline/article1_material/Plot_J2_MC_LinearRegressions2.py" />
         <option value="$PROJECT_DIR$/../thesis_pipeline/article1_material/Plot_N_O_He_ratio.py" />
+        <option value="$PROJECT_DIR$/../thesis_pipeline/article1_material/table_obsLines_individualTable_noPreamble.py" />
+        <option value="$PROJECT_DIR$/../thesis_pipeline/article1_material/table_Abund_table_noPreamble.py" />
+        <option value="$PROJECT_DIR$/../thesis_pipeline/article1_material/table_ReferenceObjs_Table.py" />
+        <option value="$PROJECT_DIR$/../thesis_pipeline/article1_material/sourceMaterial_table_obsLines_individualTable_noPreamble.py" />
+        <option value="$PROJECT_DIR$/../thesis_pipeline/article1_material/sourceMaterial_Plot_spectra_samples.py" />
+        <option value="$PROJECT_DIR$/bin/lib/Astro_Libraries/Abundances_InferenceModel_Helium_v46_ElDespertar.py" />
+        <option value="$PROJECT_DIR$/bin/lib/Astro_Libraries/Abundances_InferenceModel_Helium_v20.py" />
+        <option value="$PROJECT_DIR$/bin/lib/ssp_functions/ssp_synthesis_tools.py" />
+        <option value="$PROJECT_DIR$/bin/lib/Astro_Libraries/Abundances_InferenceModel_Helium_v30.py" />
+        <option value="$PROJECT_DIR$/working_examples/pyCloudy_MarinaExample.py" />
+        <option value="$PROJECT_DIR$/../thesis_pipeline/article1_material/ionization_structure.py" />
+        <option value="$PROJECT_DIR$/../thesis_pipeline/thesis/images/light_elements_fraction.py" />
+        <option value="$PROJECT_DIR$/../thesis_pipeline/spectrum_fitting/bayes_synth_fitting_v1.py" />
+        <option value="$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/multi_comp_v1.py" />
       </list>
     </option>
   </component>
-  <component name="ProjectFrameBounds" extendedState="4">
-    <option name="y" value="27" />
-    <option name="width" value="960" />
-    <option name="height" value="1053" />
+  <component name="ProjectFrameBounds" extendedState="6">
+    <option name="x" value="1920" />
+    <option name="width" value="1920" />
+    <option name="height" value="1080" />
   </component>
   <component name="ProjectInspectionProfilesVisibleTreeState">
     <entry key="Project Default">
@@ -355,7 +280,7 @@
   </component>
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectView">
-    <navigator proportions="" version="1">
+    <navigator currentView="ProjectPane" proportions="" version="1">
       <flattenPackages />
       <showMembers />
       <showModules />
@@ -368,7 +293,21 @@
       <manualOrder />
       <foldersAlwaysOnTop value="true" />
     </navigator>
-    <panes />
+    <panes>
+      <pane id="Scratches" />
+      <pane id="ProjectPane">
+        <subPane>
+          <expand>
+            <path>
+              <item name="dazer" type="b2602c69:ProjectViewProjectNode" />
+              <item name="dazer" type="462c0819:PsiDirectoryNode" />
+            </path>
+          </expand>
+          <select />
+        </subPane>
+      </pane>
+      <pane id="Scope" />
+    </panes>
   </component>
   <component name="PropertiesComponent">
     <property name="last_opened_file_path" value="$PROJECT_DIR$/../thesis_pipeline" />
@@ -377,10 +316,10 @@
   </component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
-      <recent name="$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting" />
-      <recent name="$PROJECT_DIR$/../thesis_pipeline/Spectra_Reduction" />
       <recent name="$PROJECT_DIR$/working_examples" />
       <recent name="$PROJECT_DIR$/../thesis_pipeline/article1_material" />
+      <recent name="$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting" />
+      <recent name="$PROJECT_DIR$/../thesis_pipeline/Spectra_Reduction" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/../thesis_pipeline/spectrum_fitting" />
@@ -398,92 +337,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Python.Plot_N_O_He_ratio">
-    <configuration name="Plot_Cloudy_plotter" type="PythonConfigurationType" factoryName="Python" temporary="true">
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/../thesis_pipeline/article1_material" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <module name="Thesis_Pipeline" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/../thesis_pipeline/article1_material/Plot_Cloudy_plotter.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-    </configuration>
-    <configuration name="Plot_J2_MC_LinearRegressions2" type="PythonConfigurationType" factoryName="Python" temporary="true">
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/../thesis_pipeline/article1_material" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <module name="Thesis_Pipeline" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/../thesis_pipeline/article1_material/Plot_J2_MC_LinearRegressions2.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-    </configuration>
-    <configuration name="Plot_N_O_He_ratio" type="PythonConfigurationType" factoryName="Python" temporary="true">
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/../thesis_pipeline/article1_material" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <module name="Thesis_Pipeline" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/../thesis_pipeline/article1_material/Plot_N_O_He_ratio.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-    </configuration>
-    <configuration name="Plot_S+3_vs_Temp" type="PythonConfigurationType" factoryName="Python" temporary="true">
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/../thesis_pipeline/article1_material" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <module name="Thesis_Pipeline" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/../thesis_pipeline/article1_material/Plot_S+3_vs_Temp.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-    </configuration>
-    <configuration name="Plot_population_fractions_SHOC579" type="PythonConfigurationType" factoryName="Python" temporary="true">
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/../thesis_pipeline/article1_material" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <module name="Thesis_Pipeline" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/../thesis_pipeline/article1_material/Plot_population_fractions_SHOC579.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-    </configuration>
+  <component name="RunManager" selected="Python.bayes_synth_fitting_v1">
     <configuration default="true" type="PythonConfigurationType" factoryName="Python">
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -593,20 +447,105 @@
       <option name="_new_target" value="&quot;&quot;" />
       <option name="_new_targetType" value="&quot;PATH&quot;" />
     </configuration>
+    <configuration name="bayes_synth_fitting_v1" type="PythonConfigurationType" factoryName="Python" temporary="true">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/../thesis_pipeline/spectrum_fitting" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="Thesis_Pipeline" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/../thesis_pipeline/spectrum_fitting/bayes_synth_fitting_v1.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+    </configuration>
+    <configuration name="light_elements_fraction" type="PythonConfigurationType" factoryName="Python" temporary="true">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/../thesis_pipeline/thesis/images" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="Thesis_Pipeline" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/../thesis_pipeline/thesis/images/light_elements_fraction.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+    </configuration>
+    <configuration name="sourceMaterial_Plot_spectra_samples" type="PythonConfigurationType" factoryName="Python" temporary="true">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/../thesis_pipeline/article1_material" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="Thesis_Pipeline" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/../thesis_pipeline/article1_material/sourceMaterial_Plot_spectra_samples.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+    </configuration>
+    <configuration name="sourceMaterial_table_obsLines_individualTable_noPreamble" type="PythonConfigurationType" factoryName="Python" temporary="true">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/../thesis_pipeline/article1_material" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="Thesis_Pipeline" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/../thesis_pipeline/article1_material/sourceMaterial_table_obsLines_individualTable_noPreamble.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+    </configuration>
+    <configuration name="table_ReferenceObjs_Table" type="PythonConfigurationType" factoryName="Python" temporary="true">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/../thesis_pipeline/article1_material" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="Thesis_Pipeline" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/../thesis_pipeline/article1_material/table_ReferenceObjs_Table.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+    </configuration>
     <list size="5">
-      <item index="0" class="java.lang.String" itemvalue="Python.Plot_Cloudy_plotter" />
-      <item index="1" class="java.lang.String" itemvalue="Python.Plot_population_fractions_SHOC579" />
-      <item index="2" class="java.lang.String" itemvalue="Python.Plot_S+3_vs_Temp" />
-      <item index="3" class="java.lang.String" itemvalue="Python.Plot_J2_MC_LinearRegressions2" />
-      <item index="4" class="java.lang.String" itemvalue="Python.Plot_N_O_He_ratio" />
+      <item index="0" class="java.lang.String" itemvalue="Python.sourceMaterial_Plot_spectra_samples" />
+      <item index="1" class="java.lang.String" itemvalue="Python.table_ReferenceObjs_Table" />
+      <item index="2" class="java.lang.String" itemvalue="Python.sourceMaterial_table_obsLines_individualTable_noPreamble" />
+      <item index="3" class="java.lang.String" itemvalue="Python.bayes_synth_fitting_v1" />
+      <item index="4" class="java.lang.String" itemvalue="Python.light_elements_fraction" />
     </list>
     <recent_temporary>
       <list size="5">
-        <item index="0" class="java.lang.String" itemvalue="Python.Plot_N_O_He_ratio" />
-        <item index="1" class="java.lang.String" itemvalue="Python.Plot_J2_MC_LinearRegressions2" />
-        <item index="2" class="java.lang.String" itemvalue="Python.Plot_S+3_vs_Temp" />
-        <item index="3" class="java.lang.String" itemvalue="Python.Plot_population_fractions_SHOC579" />
-        <item index="4" class="java.lang.String" itemvalue="Python.Plot_Cloudy_plotter" />
+        <item index="0" class="java.lang.String" itemvalue="Python.bayes_synth_fitting_v1" />
+        <item index="1" class="java.lang.String" itemvalue="Python.light_elements_fraction" />
+        <item index="2" class="java.lang.String" itemvalue="Python.sourceMaterial_Plot_spectra_samples" />
+        <item index="3" class="java.lang.String" itemvalue="Python.sourceMaterial_table_obsLines_individualTable_noPreamble" />
+        <item index="4" class="java.lang.String" itemvalue="Python.table_ReferenceObjs_Table" />
       </list>
     </recent_temporary>
   </component>
@@ -694,7 +633,14 @@
       <option name="project" value="LOCAL" />
       <updated>1516402269770</updated>
     </task>
-    <option name="localTasksCounter" value="11" />
+    <task id="LOCAL-00011" summary="Work 2018/02/12">
+      <created>1518436809055</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1518436809055</updated>
+    </task>
+    <option name="localTasksCounter" value="12" />
     <servers />
   </component>
   <component name="TodoView" selected-index="1">
@@ -707,17 +653,17 @@
     </todo-panel>
   </component>
   <component name="ToolWindowManager">
-    <frame x="0" y="27" width="960" height="1053" extended-state="4" />
+    <frame x="1920" y="0" width="1920" height="1053" extended-state="6" />
     <layout>
-      <window_info id="Project" active="false" anchor="left" auto_hide="true" internal_type="SLIDING" type="SLIDING" visible="false" show_stripe_button="true" weight="0.37259102" sideWeight="0.49614114" order="0" side_tool="false" content_ui="combo" x="821" y="280" width="463" height="608" />
+      <window_info id="Project" active="true" anchor="left" auto_hide="true" internal_type="SLIDING" type="SLIDING" visible="true" show_stripe_button="true" weight="0.37259102" sideWeight="0.49614114" order="0" side_tool="false" content_ui="combo" x="821" y="280" width="463" height="608" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32855567" sideWeight="0.49571735" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3109151" sideWeight="0.30567452" order="7" side_tool="true" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="WINDOWED" visible="false" show_stripe_button="true" weight="0.32820514" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" x="13" y="760" width="1868" height="281" />
-      <window_info id="Version Control" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.31201765" sideWeight="0.6943255" order="8" side_tool="false" content_ui="tabs" />
-      <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.31973538" sideWeight="0.49304068" order="9" side_tool="false" content_ui="tabs" />
-      <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.24270834" sideWeight="0.4829107" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="WINDOWED" visible="false" show_stripe_button="true" weight="0.32820514" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" x="17" y="826" width="1903" height="232" />
+      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.30921054" sideWeight="0.6943255" order="8" side_tool="false" content_ui="tabs" />
+      <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32855567" sideWeight="0.49304068" order="9" side_tool="false" content_ui="tabs" />
+      <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.24250536" sideWeight="0.4829107" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.30871004" sideWeight="0.30299786" order="10" side_tool="true" content_ui="tabs" />
-      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3748622" sideWeight="0.78571427" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.35170892" sideWeight="0.78571427" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.24946466" sideWeight="0.5170893" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Data View" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32976446" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
@@ -805,17 +751,11 @@
     <MESSAGE value="Work 2017/12/06" />
     <MESSAGE value="Work 2017/01/15" />
     <MESSAGE value="Work 2017/01/19" />
-    <option name="LAST_COMMIT_MESSAGE" value="Work 2017/01/19" />
+    <MESSAGE value="Work 2018/02/12" />
+    <option name="LAST_COMMIT_MESSAGE" value="Work 2018/02/12" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/multi_comp_v1.py</url>
-          <line>984</line>
-          <option name="timeStamp" value="129" />
-        </line-breakpoint>
-      </breakpoints>
       <breakpoints-dialog>
         <breakpoints-dialog />
       </breakpoints-dialog>
@@ -826,134 +766,15 @@
           </properties>
         </breakpoint>
       </default-breakpoints>
-      <option name="time" value="130" />
+      <option name="time" value="150" />
     </breakpoint-manager>
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/bin/lib/Astro_Libraries/Abundances_InferenceModel_Helium_v52.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-9443">
-          <caret line="454" column="0" lean-forward="false" selection-start-line="454" selection-start-column="0" selection-end-line="454" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/bin/lib/Astro_Libraries/Abundances_InferenceModel_Helium_v46_ElDespertar.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../thesis_pipeline/Data_Processing/J4_Yp_TripleRegression.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="190">
-          <caret line="10" column="61" lean-forward="true" selection-start-line="10" selection-start-column="61" selection-end-line="10" selection-end-column="61" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/anaconda/lib/python2.7/site-packages/scipy/interpolate/ndgriddata.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="266">
-          <caret line="215" column="33" lean-forward="false" selection-start-line="215" selection-start-column="13" selection-end-line="215" selection-end-column="33" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/working_examples/calculating_helium_emissivities.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-1197">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/anaconda/lib/python2.7/site-packages/pyneb/utils/logging.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2442">
-          <caret line="112" column="0" lean-forward="false" selection-start-line="112" selection-start-column="0" selection-end-line="112" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/anaconda/lib/python2.7/site-packages/pymc/MCMC.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="264">
-          <caret line="24" column="20" lean-forward="false" selection-start-line="24" selection-start-column="20" selection-end-line="24" selection-end-column="20" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/working_examples/Bayesian_HeliumAbundance_synthetic_input_v35_Cleaning.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="264">
-          <caret line="12" column="0" lean-forward="true" selection-start-line="12" selection-start-column="0" selection-end-line="12" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/working_examples/Bayesian_HeliumAbundance_synthetic_input_v34_ElDespertar.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/bin/lib/Astro_Libraries/Abundances_InferenceModel_Helium_v43.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="22">
-          <caret line="14" column="0" lean-forward="true" selection-start-line="0" selection-start-column="0" selection-end-line="1060" selection-end-column="28" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/working_examples/Bayesian_HeliumAbundance_synthetic_input_v31_menosLineas.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="44">
-          <caret line="2" column="77" lean-forward="false" selection-start-line="2" selection-start-column="69" selection-end-line="2" selection-end-column="77" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/anaconda/lib/python2.7/site-packages/pymc/Model.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="4136">
-          <caret line="205" column="28" lean-forward="false" selection-start-line="205" selection-start-column="28" selection-end-line="205" selection-end-column="28" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/bin/lib/Math_Libraries/bces_script.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="88">
-          <caret line="5" column="4" lean-forward="false" selection-start-line="5" selection-start-column="4" selection-end-line="5" selection-end-column="4" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/bin/lib/Math_Libraries/FittingTools.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="237">
-          <caret line="100" column="93" lean-forward="false" selection-start-line="100" selection-start-column="93" selection-end-line="100" selection-end-column="93" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../thesis_pipeline/article1_material/Plot_J2_MC_LinearRegressions_conference.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="341">
-          <caret line="181" column="72" lean-forward="true" selection-start-line="181" selection-start-column="72" selection-end-line="181" selection-end-column="72" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$USER_HOME$/anaconda/lib/python2.7/site-packages/pylatex/table.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="5060">
           <caret line="235" column="26" lean-forward="false" selection-start-line="235" selection-start-column="26" selection-end-line="235" selection-end-column="26" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/working_examples/pyCloudy_heliumEmissivities.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2222">
-          <caret line="187" column="22" lean-forward="false" selection-start-line="187" selection-start-column="22" selection-end-line="187" selection-end-column="22" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../thesis_pipeline/article1_material/table_ReferenceObjs_Table.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1078">
-          <caret line="49" column="4" lean-forward="false" selection-start-line="49" selection-start-column="0" selection-end-line="50" selection-end-column="0" />
         </state>
       </provider>
     </entry>
@@ -1027,13 +848,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$USER_HOME$/anaconda/lib/python2.7/site-packages/lineid_plot.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="196">
-          <caret line="370" column="0" lean-forward="false" selection-start-line="370" selection-start-column="0" selection-end-line="370" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/../thesis_pipeline/spectrum_fitting/synth_objlines.txt">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="44">
@@ -1076,13 +890,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/bin/lib/Plotting_Libraries/dazer_plotter.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1056">
-          <caret line="248" column="0" lean-forward="false" selection-start-line="248" selection-start-column="0" selection-end-line="248" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/bin/dazer_methods.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="264">
@@ -1090,76 +897,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$USER_HOME$/anaconda/lib/python2.7/site-packages/scipy/interpolate/interpolate.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="8844">
-          <caret line="402" column="8" lean-forward="false" selection-start-line="402" selection-start-column="8" selection-end-line="402" selection-end-column="8" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../thesis_pipeline/article1_material/ionization_structure.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="22">
-          <caret line="9" column="186" lean-forward="false" selection-start-line="9" selection-start-column="186" selection-end-line="9" selection-end-column="186" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/multi_comp_v1.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="11374">
-          <caret line="988" column="106" lean-forward="false" selection-start-line="988" selection-start-column="106" selection-end-line="988" selection-end-column="106" />
-          <folding>
-            <element signature="e#0#61#0" expanded="true" />
-            <element signature="e#1277#1448#0" expanded="false" />
-            <element signature="e#1498#1763#0" expanded="false" />
-            <element signature="e#1836#2340#0" expanded="false" />
-            <element signature="e#2387#2442#0" expanded="false" />
-            <element signature="e#2495#2534#0" expanded="false" />
-            <element signature="e#2637#2929#0" expanded="false" />
-            <element signature="e#2985#3080#1" expanded="false" />
-            <element signature="e#6873#7562#0" expanded="false" />
-            <element signature="e#7710#17487#0" expanded="false" />
-            <element signature="e#26689#27638#0" expanded="false" />
-            <element signature="e#27740#27860#0" expanded="false" />
-            <element signature="e#27959#28425#0" expanded="false" />
-            <element signature="e#28533#29217#0" expanded="false" />
-            <element signature="e#30618#34875#0" expanded="false" />
-            <element signature="e#30647#31309#0" expanded="false" />
-            <element signature="e#31375#31577#0" expanded="false" />
-            <element signature="e#35018#35300#0" expanded="false" />
-            <element signature="e#35556#38178#0" expanded="false" />
-            <element signature="e#38301#38803#0" expanded="false" />
-            <element signature="e#54560#55716#0" expanded="false" />
-            <element signature="e#56817#56863#0" expanded="false" />
-            <element signature="e#62545#63720#0" expanded="false" />
-            <element signature="e#63817#65977#0" expanded="false" />
-            <element signature="e#66046#82956#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../thesis_pipeline/article1_material/Plot_telluric_correction_example.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1320">
-          <caret line="67" column="65" lean-forward="false" selection-start-line="67" selection-start-column="0" selection-end-line="68" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../thesis_pipeline/article1_material/Plot_spectra_samples.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="330">
-          <caret line="21" column="186" lean-forward="false" selection-start-line="21" selection-start-column="186" selection-end-line="21" selection-end-column="186" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/../thesis_pipeline/article1_material/Plot_sulfur_vs_oxygen_TIII_comp.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="242">
           <caret line="15" column="38" lean-forward="false" selection-start-line="15" selection-start-column="38" selection-end-line="15" selection-end-column="38" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1167,7 +908,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="2332">
           <caret line="111" column="161" lean-forward="false" selection-start-line="111" selection-start-column="161" selection-end-line="111" selection-end-column="161" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1175,7 +915,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="2134">
           <caret line="101" column="139" lean-forward="false" selection-start-line="101" selection-start-column="139" selection-end-line="101" selection-end-column="139" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1183,15 +922,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="1034">
           <caret line="50" column="139" lean-forward="false" selection-start-line="50" selection-start-column="139" selection-end-line="50" selection-end-column="139" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../thesis_pipeline/article1_material/Plot_J2_MC_LinearRegressions2.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="7414">
-          <caret line="349" column="0" lean-forward="false" selection-start-line="349" selection-start-column="0" selection-end-line="349" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1199,33 +929,182 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="22">
           <caret line="1" column="16" lean-forward="false" selection-start-line="1" selection-start-column="16" selection-end-line="1" selection-end-column="16" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../thesis_pipeline/spectrum_fitting/bayes_synth_fitting_v1.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="770">
-          <caret line="37" column="16" lean-forward="false" selection-start-line="37" selection-start-column="2" selection-end-line="37" selection-end-column="16" />
-          <folding>
-            <element signature="e#0#18#0" expanded="true" />
-            <element signature="e#1950#2354#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/../thesis_pipeline/article1_material/Plot_N_O_He_ratio.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="462">
-          <caret line="23" column="0" lean-forward="true" selection-start-line="23" selection-start-column="0" selection-end-line="23" selection-end-column="0" />
+          <caret line="23" column="0" lean-forward="false" selection-start-line="23" selection-start-column="0" selection-end-line="23" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../thesis_pipeline/article1_material/Plot_telluric_correction_example.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="22">
+          <caret line="67" column="65" lean-forward="false" selection-start-line="67" selection-start-column="0" selection-end-line="68" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../thesis_pipeline/article1_material/table_obsLines_individualTable_noPreamble.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="263">
+          <caret line="87" column="30" lean-forward="false" selection-start-line="87" selection-start-column="30" selection-end-line="87" selection-end-column="30" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../thesis_pipeline/article1_material/table_Abund_table_noPreamble.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="22">
+          <caret line="46" column="0" lean-forward="true" selection-start-line="46" selection-start-column="0" selection-end-line="46" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../thesis_pipeline/article1_material/sourceMaterial_table_obsLines_individualTable_noPreamble.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="396">
+          <caret line="22" column="44" lean-forward="false" selection-start-line="22" selection-start-column="44" selection-end-line="22" selection-end-column="44" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/anaconda/lib/python2.7/site-packages/lineid_plot.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="5434">
+          <caret line="251" column="14" lean-forward="false" selection-start-line="251" selection-start-column="14" selection-end-line="251" selection-end-column="14" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../thesis_pipeline/article1_material/sourceMaterial_Plot_spectra_samples.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="550">
+          <caret line="124" column="25" lean-forward="false" selection-start-line="124" selection-start-column="25" selection-end-line="124" selection-end-column="25" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/anaconda/lib/python2.7/site-packages/scipy/interpolate/interpolate.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="540">
+          <caret line="373" column="34" lean-forward="false" selection-start-line="373" selection-start-column="34" selection-end-line="373" selection-end-column="34" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../thesis_pipeline/article1_material/Plot_spectra_samples.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="286">
+          <caret line="96" column="23" lean-forward="false" selection-start-line="96" selection-start-column="0" selection-end-line="97" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../thesis_pipeline/article1_material/table_ReferenceObjs_Table.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="539">
+          <caret line="37" column="52" lean-forward="false" selection-start-line="37" selection-start-column="52" selection-end-line="37" selection-end-column="52" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/bin/lib/Astro_Libraries/Abundances_InferenceModel_Helium_v46_ElDespertar.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="527">
+          <caret line="916" column="103" lean-forward="false" selection-start-line="916" selection-start-column="103" selection-end-line="916" selection-end-column="136" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/bin/lib/Astro_Libraries/Abundances_InferenceModel_Helium_v12_porsi.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-2209">
+          <caret line="665" column="0" lean-forward="false" selection-start-line="665" selection-start-column="0" selection-end-line="665" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/bin/lib/Astro_Libraries/Abundances_InferenceModel_Helium_v20.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="110">
+          <caret line="5" column="60" lean-forward="false" selection-start-line="5" selection-start-column="50" selection-end-line="5" selection-end-column="60" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/working_examples/pymc2_bayesian_linear_system.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="550">
+          <caret line="27" column="29" lean-forward="false" selection-start-line="27" selection-start-column="29" selection-end-line="27" selection-end-column="29" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/bin/lib/Astro_Libraries/Abundances_InferenceModel_Helium_v18.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="13486">
+          <caret line="619" column="37" lean-forward="false" selection-start-line="619" selection-start-column="37" selection-end-line="619" selection-end-column="37" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/anaconda/lib/python2.7/site-packages/pymc/Model.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="8690">
+          <caret line="412" column="0" lean-forward="false" selection-start-line="412" selection-start-column="0" selection-end-line="412" selection-end-column="0" />
           <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/anaconda/lib/python2.7/site-packages/matplotlib/axes/_base.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="292">
+          <caret line="3246" column="8" lean-forward="false" selection-start-line="3246" selection-start-column="8" selection-end-line="3246" selection-end-column="8" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../thesis_pipeline/article1_material/Plot_J2_MC_LinearRegressions2.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="506">
+          <caret line="53" column="10" lean-forward="false" selection-start-line="53" selection-start-column="3" selection-end-line="53" selection-end-column="10" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/bin/lib/Astro_Libraries/Abundances_InferenceModel_Helium_v30.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="22">
+          <caret line="637" column="73" lean-forward="false" selection-start-line="637" selection-start-column="73" selection-end-line="637" selection-end-column="73" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../thesis_pipeline/thesis/images/light_elements_fraction.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="132">
+          <caret line="6" column="26" lean-forward="true" selection-start-line="6" selection-start-column="26" selection-end-line="6" selection-end-column="26" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/working_examples/pyCloudy_MarinaExample.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="22">
+          <caret line="6" column="0" lean-forward="true" selection-start-line="6" selection-start-column="0" selection-end-line="7" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/working_examples/pyCloudy_heliumEmissivities.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="197">
+          <caret line="189" column="0" lean-forward="true" selection-start-line="189" selection-start-column="0" selection-end-line="189" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../thesis_pipeline/article1_material/ionization_structure.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="374">
+          <caret line="67" column="10" lean-forward="false" selection-start-line="67" selection-start-column="3" selection-end-line="67" selection-end-column="10" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$APPLICATION_HOME_DIR$/helpers/pydev/pydevd.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="31">
+          <caret line="1022" column="0" lean-forward="false" selection-start-line="1022" selection-start-column="0" selection-end-line="1022" selection-end-column="0" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/bin/lib/ssp_functions/ssp_synthesis_tools.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="22">
-          <caret line="648" column="8" lean-forward="false" selection-start-line="648" selection-start-column="8" selection-end-line="648" selection-end-column="8" />
+        <state relative-caret-position="2156">
+          <caret line="649" column="8" lean-forward="false" selection-start-line="649" selection-start-column="8" selection-end-line="649" selection-end-column="8" />
           <folding>
             <element signature="e#0#49#0" expanded="true" />
             <element signature="e#900#1232#0" expanded="false" />
@@ -1233,25 +1112,90 @@
             <element signature="e#3699#3908#0" expanded="false" />
             <element signature="e#3946#4528#0" expanded="false" />
             <element signature="e#4555#4714#0" expanded="false" />
+            <element signature="e#4757#22066#0" expanded="false" />
             <element signature="e#4794#8717#0" expanded="false" />
+            <element signature="e#4869#7105#0" expanded="false" />
             <element signature="e#8806#10636#0" expanded="false" />
             <element signature="e#10718#11655#0" expanded="false" />
             <element signature="e#11737#14079#0" expanded="false" />
-            <element signature="e#11950#14025#0" expanded="false" />
-            <element signature="e#14162#16282#0" expanded="false" />
-            <element signature="e#16372#17600#0" expanded="false" />
-            <element signature="e#17675#19679#0" expanded="false" />
-            <element signature="e#22168#22305#0" expanded="false" />
-            <element signature="e#22617#22940#0" expanded="false" />
-            <element signature="e#23600#25876#0" expanded="false" />
-            <element signature="e#26046#29324#0" expanded="false" />
-            <element signature="e#29519#32289#0" expanded="false" />
-            <element signature="e#32377#33184#0" expanded="false" />
-            <element signature="e#34968#37366#0" expanded="false" />
-            <element signature="e#37454#37614#0" expanded="false" />
-            <element signature="e#37758#41632#0" expanded="false" />
-            <element signature="e#41711#42123#0" expanded="false" />
-            <element signature="e#42216#42875#0" expanded="false" />
+            <element signature="e#22456#23480#0" expanded="false" />
+            <element signature="e#23596#25872#0" expanded="false" />
+            <element signature="e#26043#29321#0" expanded="false" />
+            <element signature="e#32374#33181#0" expanded="false" />
+            <element signature="e#34965#37363#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/bin/lib/Plotting_Libraries/dazer_plotter.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="11946">
+          <caret line="553" column="8" lean-forward="false" selection-start-line="553" selection-start-column="8" selection-end-line="553" selection-end-column="8" />
+          <folding>
+            <element signature="e#0#13#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/multi_comp_v1.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="636">
+          <caret line="923" column="0" lean-forward="false" selection-start-line="923" selection-start-column="0" selection-end-line="923" selection-end-column="0" />
+          <folding>
+            <element signature="e#0#71#0" expanded="true" />
+            <element signature="e#1534#1705#0" expanded="false" />
+            <element signature="e#1755#2020#0" expanded="false" />
+            <element signature="e#2093#2597#0" expanded="false" />
+            <element signature="e#2644#2699#0" expanded="false" />
+            <element signature="e#2752#2791#0" expanded="false" />
+            <element signature="e#2894#3186#0" expanded="false" />
+            <element signature="e#3242#3337#1" expanded="false" />
+            <element signature="e#3373#7057#0" expanded="false" />
+            <element signature="e#7130#7819#0" expanded="false" />
+            <element signature="e#7967#17744#0" expanded="false" />
+            <element signature="e#17822#21052#0" expanded="false" />
+            <element signature="e#21102#22893#0" expanded="false" />
+            <element signature="e#24194#26760#0" expanded="false" />
+            <element signature="e#26807#27756#0" expanded="false" />
+            <element signature="e#27858#27978#0" expanded="false" />
+            <element signature="e#28077#28543#0" expanded="false" />
+            <element signature="e#28651#29335#0" expanded="false" />
+            <element signature="e#29413#30075#0" expanded="false" />
+            <element signature="e#30141#30343#0" expanded="false" />
+            <element signature="e#30476#31464#0" expanded="false" />
+            <element signature="e#31597#32865#0" expanded="false" />
+            <element signature="e#32912#33641#0" expanded="false" />
+            <element signature="e#34189#34691#0" expanded="false" />
+            <element signature="e#35969#38658#0" expanded="false" />
+            <element signature="e#38744#40483#0" expanded="false" />
+            <element signature="e#43881#45158#0" expanded="false" />
+            <element signature="e#48725#49734#0" expanded="false" />
+            <element signature="e#55077#56388#0" expanded="false" />
+            <element signature="e#55077#55236#0" expanded="false" />
+            <element signature="e#58892#59130#0" expanded="false" />
+            <element signature="e#59178#60555#0" expanded="false" />
+            <element signature="e#60596#66122#0" expanded="false" />
+            <element signature="e#62612#63046#0" expanded="false" />
+            <element signature="e#63205#63600#0" expanded="false" />
+            <element signature="e#63831#63986#0" expanded="false" />
+            <element signature="e#64182#64557#0" expanded="false" />
+            <element signature="e#64708#65103#0" expanded="false" />
+            <element signature="e#65323#65507#0" expanded="false" />
+            <element signature="e#65699#65793#0" expanded="false" />
+            <element signature="e#65999#66097#0" expanded="false" />
+            <element signature="e#66228#67403#0" expanded="false" />
+            <element signature="e#67500#69724#0" expanded="false" />
+            <element signature="e#69793#86703#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../thesis_pipeline/spectrum_fitting/bayes_synth_fitting_v1.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="22">
+          <caret line="89" column="21" lean-forward="false" selection-start-line="89" selection-start-column="6" selection-end-line="89" selection-end-column="21" />
+          <folding>
+            <element signature="e#0#31#0" expanded="true" />
           </folding>
         </state>
       </provider>
