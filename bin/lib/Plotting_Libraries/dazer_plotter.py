@@ -92,6 +92,9 @@ class Fig_Conf():
             #This should be the set up for the cycler we just need to add the colors
             #axes.prop_cycle : cycler('color', 'bgrcmyk')
 
+        elif plotStyle == 'colorblind':
+            plt.style.use('seaborn-colorblind')
+
         else:
             plt.style.use(plotStyle)
         
