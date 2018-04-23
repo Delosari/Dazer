@@ -1,7 +1,7 @@
 import corner
 from matplotlib import rcParams
 from matplotlib.mlab import detrend_mean
-from numpy import array, reshape, empty, ceil, percentile, median
+from numpy import array, reshape, empty, ceil, percentile, median, nan
 from lib.Plotting_Libraries.dazer_plotter import Plot_Conf
 from lib.Plotting_Libraries.sigfig import round_sig
 from lib.CodeTools.File_Managing_Tools import Pdf_printer
@@ -14,7 +14,6 @@ def label_formatting(line_label):
     label = '$' + label + '$'
 
     return label
-
 
 class Basic_plots(Plot_Conf):
 
@@ -113,7 +112,7 @@ class Basic_plots(Plot_Conf):
         n_traces = len(traces)
 
         # Declare figure format
-        size_dict = {'figure.figsize': (14, 20), 'axes.labelsize': 12, 'legend.fontsize': 14}
+        size_dict = {'figure.figsize': (14, 20), 'axes.titlesize':26, 'axes.labelsize': 24, 'legend.fontsize': 18}
         self.FigConf(plotSize=size_dict, Figtype='Grid', n_columns=1, n_rows=n_traces)
 
         # Generate the color map
@@ -154,7 +153,7 @@ class Basic_plots(Plot_Conf):
         n_traces = len(traces)
 
         # Declare figure format
-        size_dict = {'figure.figsize': (14, 20), 'axes.labelsize': 20, 'legend.fontsize': 10}
+        size_dict = {'figure.figsize': (14, 20), 'axes.titlesize':22, 'axes.labelsize': 22, 'legend.fontsize': 14}
         self.FigConf(plotSize=size_dict, Figtype='Grid', n_columns=1, n_rows=n_traces)
 
         # Generate the color map
@@ -196,7 +195,7 @@ class Basic_plots(Plot_Conf):
         n_lines = len(lines_list)
 
         # Declare figure format
-        size_dict = {'figure.figsize': (14, 20), 'axes.labelsize': 20, 'legend.fontsize': 10}
+        size_dict = {'figure.figsize': (14, 20), 'axes.titlesize':20, 'axes.labelsize': 20, 'legend.fontsize': 14}
         self.FigConf(plotSize=size_dict, Figtype='Grid', n_columns=1, n_rows=n_lines)
 
         # Generate the color map
@@ -248,7 +247,7 @@ class Basic_plots(Plot_Conf):
         n_traces = len(traces)
 
         # Declare figure format
-        size_dict = {'figure.figsize': (14, 14), 'axes.titlesize': 14, 'legend.fontsize': 10}
+        size_dict = {'figure.figsize': (14, 14), 'axes.titlesize': 20, 'legend.fontsize': 10}
         self.FigConf(plotSize=size_dict, Figtype='Grid', n_columns=n_columns, n_rows=n_rows)
 
         # Generate the color map
@@ -284,9 +283,9 @@ class Basic_plots(Plot_Conf):
         # Set figure conf
         sizing_dict = {}
         sizing_dict['figure.figsize'] = (14, 14)
-        sizing_dict['legend.fontsize'] = 40
-        sizing_dict['axes.labelsize'] = 40
-        sizing_dict['axes.titlesize'] = 12
+        sizing_dict['legend.fontsize'] = 30
+        sizing_dict['axes.labelsize'] = 30
+        sizing_dict['axes.titlesize'] = 15
         sizing_dict['xtick.labelsize'] = 12
         sizing_dict['ytick.labelsize'] = 12
 
@@ -301,19 +300,37 @@ class Basic_plots(Plot_Conf):
             labels_list.append(self.labels_latex_dic[trace_code])
         traces_array = array(list_arrays).T
 
-        # Make
-        if plot_true_values:
 
-            true_values = empty(len(traces))
-            for i in range(len(traces)):
+        true_values = empty(len(traces))
+        for i in range(len(traces)):
+            if 'true_value' in stats_dic[traces[i]]:
                 true_values[i] = stats_dic[traces[i]]['true_value']
+            else:
+                true_values[i] = None
 
-            self.Fig = corner.corner(traces_array[:, :], fontsize=30, labels=labels_list, quantiles=[0.16, 0.5, 0.84],
-                                     show_titles=True, title_args={"fontsize": 200}, truths=true_values,
-                                     title_fmt='0.3f')
-        else:
-            self.Fig = corner.corner(traces_array[:, :], fontsize=30, labels=labels_list, quantiles=[0.16, 0.5, 0.84],
-                                     show_titles=True, title_args={"fontsize": 200}, title_fmt='0.3f')
+        #Generate the plot
+        self.Fig = corner.corner(traces_array[:, :], fontsize=30, labels=labels_list, quantiles=[0.16, 0.5, 0.84],
+                                 show_titles=True, title_args={"fontsize": 200}, truths=true_values,
+                                 title_fmt='0.3f')
+
+
+
+        # # Make
+        # if plot_true_values:
+        #
+        #     true_values = empty(len(traces))
+        #     for i in range(len(traces)):
+        #         if 'true_value' in stats_dic[traces[i]]:
+        #             true_values[i] = stats_dic[traces[i]]['true_value']
+        #         else:
+        #             true_values[i] = None
+        #
+        #     self.Fig = corner.corner(traces_array[:, :], fontsize=30, labels=labels_list, quantiles=[0.16, 0.5, 0.84],
+        #                              show_titles=True, title_args={"fontsize": 200}, truths=true_values,
+        #                              title_fmt='0.3f')
+        # else:
+        #     self.Fig = corner.corner(traces_array[:, :], fontsize=30, labels=labels_list, quantiles=[0.16, 0.5, 0.84],
+        #                              show_titles=True, title_args={"fontsize": 200}, title_fmt='0.3f')
 
         return
 
@@ -438,29 +455,29 @@ class MCMC_printer(Basic_plots, Basic_tables):
     def plot_ouput_data(self, database_address, db, db_dict, params_list):
 
         # Table mean values
-        #self.table_mean_outputs(database_address + '_meanOutput', params_list, db, db_dict)
+        self.table_mean_outputs(database_address + '_meanOutput', params_list, db, db_dict)
 
-        # Table with fitted fluxes
-        #self.table_line_fluxes(database_address + '_RecombFluxesOutput', self.obj_data['recombLine_labes'], 'calc_recomb_fluxes', db, db_dict, true_values=self.recomb_fluxes)
+        # Table with recombination fluxes
+        self.table_line_fluxes(database_address + '_FluxesRecomb', self.obj_data['recombLine_labes'], 'calc_recomb_fluxes', db, db_dict, true_values=self.recomb_fluxes)
 
         # Line fluxes distributions
         self.fluxes_distribution(self.obj_data['recombLine_labes'], 'calc_recomb_fluxes', db, db_dict, true_values=self.recomb_fluxes)
-        self.savefig(database_address + '_RecombFluxes', resolution=200)
+        self.savefig(database_address + '_FluxesRecomb_posteriors', resolution=200)
 
-        # # Traces
-        # self.traces_plot(params_list, db, db_dict)
-        # self.savefig(database_address + '_TracesPlot', resolution=200)
-        #
-        # # Posteriors
-        # self.posteriors_plot(params_list, db, db_dict)
-        # self.savefig(database_address + '_PosteriorPlot', resolution=200)
-        #
-        # # Corner plot
-        # self.corner_plot(params_list, db, db_dict)
-        # self.savefig(database_address + '_CornerPlot', resolution=200)
-        #
-        # # Acorrelation
-        # self.acorr_plot(params_list, db, db_dict, n_columns=4, n_rows=int(ceil(len(params_list)/4.0)))
-        # self.savefig(database_address + '_Acorrelation', resolution=200)
+        # Traces
+        self.traces_plot(params_list, db, db_dict)
+        self.savefig(database_address + '_TracesPlot', resolution=200)
+
+        # Posteriors
+        self.posteriors_plot(params_list, db, db_dict)
+        self.savefig(database_address + '_PosteriorPlot', resolution=200)
+
+        # Corner plot
+        self.corner_plot(params_list, db, db_dict)
+        self.savefig(database_address + '_CornerPlot', resolution=200)
+
+        # Acorrelation
+        self.acorr_plot(params_list, db, db_dict, n_columns=4, n_rows=int(ceil(len(params_list)/4.0)))
+        self.savefig(database_address + '_Acorrelation', resolution=200)
 
         return

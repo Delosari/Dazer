@@ -480,7 +480,9 @@ class Chemical_Analysis_pyneb():
         return
         
     def sulfur_abundance_scheme(self, Tlow, ne, SIII_lines_to_use):
-        
+
+        print 'Metiendo esto', SIII_lines_to_use
+
         #Calculate the S+1 abundance
         S2_lines = ['S2_6716A', 'S2_6731A']
         diagnos_eval, diagnos_mag   = self.check_obsLines(S2_lines)
@@ -494,7 +496,7 @@ class Chemical_Analysis_pyneb():
             print '-- Using SIII lines', diagnos_eval
         
         self.determine_ionic_abundance('SIII_HII', self.S3_atom, diagnos_eval, diagnos_mag, Tlow, ne)
-        
+
         #Calculate the total sulfur abundance
         if set(self.abunData.index) >= {'SII_HII', 'SIII_HII'}:
             
@@ -502,11 +504,34 @@ class Chemical_Analysis_pyneb():
             
             #Add the S+3 component if the argon correction is found
             if set(self.abunData.index) >= {'ArIII_HII', 'ArIV_HII'}:
-            
+
                 logAr2Ar3   = log10(self.abunData['ArIII_HII'] / self.abunData['ArIV_HII'])
                 logSIV      = log10(self.abunData['SIII_HII']) - (logAr2Ar3 - self.n_SIV_correction) / self.m_SIV_correction
-                
-                self.abunData['SIV_HII'] = power(10, logSIV)
+                SIV_HII     = power(10, logSIV)
+
+                # Evaluate the nan array
+                nan_idcs = isnan(SIV_HII)
+                nan_count = np_sum(nan_idcs)
+
+                # Directly save if not nan
+                if nan_count == 0:
+                    self.abunData['SIV_HII'] = SIV_HII
+
+                # Remove the nan entries performing a normal distribution
+                elif nan_count < 0.90 * self.MC_array_len:
+                    mag, error = nanmean(SIV_HII), nanstd(SIV_HII)
+
+                    # Generate truncated array to store the data
+                    a, b = (0 - mag) / error, (1000 * mag - mag) / error
+                    new_samples = truncnorm(a, b, loc=mag, scale=error).rvs(size=nan_count)
+
+                    # Replace nan entries
+                    SIV_HII[nan_idcs] = new_samples
+                    self.abunData['SIV_HII'] = SIV_HII
+
+                    if nan_count > self.MC_warning_limit:
+                        print '-- {} calculated with {}'.format('SIV_HII', nan_count)
+
                 self.abunData['SI_HI']   = self.abunData['SII_HII'] + self.abunData['SIII_HII'] + self.abunData['SIV_HII']
                 self.abunData['ICF_SIV'] = self.abunData['SI_HI'] / (self.abunData['SII_HII'] + self.abunData['SIII_HII'])
         
@@ -579,8 +604,7 @@ class Chemical_Analysis_pyneb():
                 self.abunData['HeI_HI_from_' + metal_ext] = self.abunData[Helium_element_keys[0]] + self.abunData[Helium_element_keys[1]]
             else:
                 self.abunData['HeI_HI_from_' + metal_ext] = self.abunData[Helium_element_keys[0]]
-            
-            
+
             #Proceed to get the Helium mass fraction Y
             Element_abund = metal_ext + 'I_HI'
             Y_fraction, Helium_abund = 'Ymass_' + metal_ext, 'HeI_HI_from_' + metal_ext
@@ -591,14 +615,16 @@ class Chemical_Analysis_pyneb():
                         
         #Store the values using the mean and the std from the array
         for parameter in self.abunData.index:
-            
+
             mean_value, std_value = mean(self.abunData[parameter]), std(self.abunData[parameter])
-                        
+
             if (~isnan(mean_value)) & (~isnan(std_value)):
                 catalogue_df.loc[objCode, parameter + extension] = ufloat(mean_value, std_value)
             else:
                 catalogue_df.loc[objCode, parameter + extension] = np_nan
-        
+
+            print parameter, mean_value, std_value
+
         return
 
     def generate_nan_array(self):

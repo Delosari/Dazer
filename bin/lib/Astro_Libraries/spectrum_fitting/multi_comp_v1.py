@@ -1157,7 +1157,7 @@ class SpecSynthesizer(SpectrumFitter):
 
         # Run model
         output_address = self.output_folder + model_name
-        # self.run_pymc2(output_address, iterations=iterations, variables_list=params_list, prefit=prefit_model)
+        #self.run_pymc2(output_address, iterations=iterations, variables_list=params_list, prefit=prefit_model)
 
         # Load the results
         output_db, output_db_dict = self.load_pymc_database_manual(output_address, burning=burn, params_list=params_list)
@@ -1383,7 +1383,7 @@ class SpecSynthesizer(SpectrumFitter):
         @pymc2.deterministic()
         def calc_abund_dict(He1_abund=He1_abund, S2_abund=S2_abund, S3_abund=S3_abund, O2_abund=O2_abund, O3_abund=O3_abund, N2_abund=N2_abund, Ar3_abund=Ar3_abund, Ar4_abund=Ar4_abund):
 
-            self.abund_iter_dict['H1']  = He1_abund
+            self.abund_iter_dict['H1']  = 1.0
             self.abund_iter_dict['He1'] = He1_abund
             self.abund_iter_dict['S2']  = S2_abund
             self.abund_iter_dict['S3']  = S3_abund
