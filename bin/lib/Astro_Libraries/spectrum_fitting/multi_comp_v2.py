@@ -1,34 +1,31 @@
 from os                                     import path, name, makedirs, environ
 environ["MKL_THREADING_LAYER"] = "GNU"
 import theano
+import theano.tensor as tt
 import ConfigParser
-import pymc3
 import pymc as pymc2
+import pymc3
+from pymc3 import math as pm3_math
 from sys                                    import argv, exit
 from pyneb                                  import atomicData, RecAtom, Atom
 from collections                            import OrderedDict
 from scipy.interpolate import interp1d
-from uncertainties.unumpy                   import nominal_values, std_devs
 from lib.Astro_Libraries.Nebular_Continuum  import NebularContinuumCalculator
 from lib.Astro_Libraries.Reddening_Corrections import ReddeningLaws
 from lib.ssp_functions.ssp_synthesis_tools  import ssp_fitter, ssp_synthesis_importer
 from DZ_LineMesurer                         import LineMesurer_v2
 from numpy import array, savetxt, loadtxt, genfromtxt, copy, isnan, arange, insert, concatenate, mean, std, power, exp, \
-    zeros, \
     square, empty, percentile, random, median, ones, isnan, sum as np_sum, transpose, vstack, delete, where, \
-    searchsorted, in1d, save as np_save, load as np_load, unique, log10, chararray, str_
+    searchsorted, in1d, save as np_save, load as np_load, unique, log10
 from numpy.core import defchararray
 from timeit import default_timer as timer
-from uncertainties import ufloat
-from pandas import read_excel, read_csv, Series
+from pandas import read_excel, read_csv
 from bisect import bisect_left
-from lib.Plotting_Libraries.dazer_plotter   import Plot_Conf
 from plot_tools import MCMC_printer
-import json
 from distutils.util import strtobool
 import matplotlib.pyplot as plt
-import seaborn as sns
 import cPickle as pickle
+from lib.Math_Libraries.functions_for_theano import BilinearInterpTheano
 
 def make_folder(folder_path):
 
@@ -78,6 +75,7 @@ def bilinear_interpolator_axis(x, y, x_range, y_range, data_grid):
                    z21 * (x - x1) * (y2 - y) +
                    z12 * (x2 - x) * (y - y1) +
                    z22 * (x - x1) * (y - y1)) / ((x2 - x1) * (y2 - y1))
+
 
     return inter_value
 
@@ -352,19 +350,6 @@ class Import_model_data(ssp_synthesis_importer):
 
         self.log_recomb_emis_grid = log10(self.recomb_emis_grid)
         self.log_metals_emis_grid = log10(self.metals_emis_grid)
-
-
-        print 'se acabo'
-        from theano.tensor import _shared
-        self.log_recomb_emis_grid_tensor = theano.shared(self.log_recomb_emis_grid)
-        self.log_recomb_emis_grid_tensor2 =_shared(self.log_recomb_emis_grid)
-
-        print type(self.log_recomb_emis_grid_tensor)
-        print type(self.log_recomb_emis_grid_tensor2)
-        print self.log_recomb_emis_grid_tensor[0]
-        print self.log_recomb_emis_grid_tensor2[0,0]
-
-        exit()
 
         return
 
@@ -1084,7 +1069,7 @@ class SpectrumFitter(Import_model_data, ContinuaComponents, EmissionComponents, 
 
         return
 
-class SpecSynthesizer(SpectrumFitter):
+class SpecSynthesizer(SpectrumFitter, BilinearInterpTheano):
 
     def __init__(self, atomic_ref=None, nebular_data = None, ssp_type=None, ssp_folder=None, ssp_conf_file=None,
                  temp_grid=None, den_grid=None, high_temp_ions=None, R_v=3.4, reddenig_curve='G03_average', lowlimit_sspContribution=0.0):
@@ -1093,6 +1078,7 @@ class SpecSynthesizer(SpectrumFitter):
 
         # Import parent classes
         SpectrumFitter.__init__(self)
+        BilinearInterpTheano.__init__(self)
 
         # Load nebular constants data
         if nebular_data is None:
@@ -1582,33 +1568,44 @@ class SpecSynthesizer(SpectrumFitter):
             cHbeta  = pymc3.Uniform('cHbeta', lower=0, upper=2)
 
             # Abundances priors
-            abund_dict = {'S2': pymc3.Uniform('S2_abund', lower=-5, upper=-2),
-                          'S3': pymc3.Uniform('S3_abund', lower=-5, upper=-2),
-                          'O2': pymc3.Uniform('O2_abund', lower=-5, upper=-2),
-                          'O3': pymc3.Uniform('O3_abund', lower=-5, upper=-2)}
+            abund_dict = {'S2': pymc3.Uniform('S2_abund', lower=0, upper=15),
+                          'S3': pymc3.Uniform('S3_abund', lower=0, upper=15),
+                          'O2': pymc3.Uniform('O2_abund', lower=0, upper=15),
+                          'O3': pymc3.Uniform('O3_abund', lower=0, upper=15)}
 
             # Compute higher region temperature
             T_high = (1.0807 * T_low / 10000.0 - 0.0846) * 10000.0
 
             # Temperature dict
-            Temp_dict = {'T_low ':T_low.tag.test_value, 'T_high':T_high.tag.test_value}
+            Temp_dict = {'T_low ':T_low, 'T_high':T_high}
+
+            ne_abs_dif  = pm3_math.abs_(self.den_grid_range - n_e)
+            ne_idx0_tt  = tt.argmin(ne_abs_dif)
+
+            # Get indeces from den and temp value for the emissivity grid
+            ne_idx0     = self.indexing_bilinear_pymc3(self.den_grid_range, n_e)
+            T_low_idx0  = self.indexing_bilinear_pymc3(self.tem_grid_range, T_low)
+            T_high_idx0 = self.indexing_bilinear_pymc3(self.tem_grid_range, T_high)
+
+            # Temperature index dict
+            temp_dict       = {'T_low ':T_low, 'T_high':T_high}
+            temp_idx_dict   = {'T_low ':T_low_idx0, 'T_high':T_high_idx0}
 
             # Loop through the lines to assign the ionic abundances
             log_abund_vector = empty(self.n_colExcLines)
             for i in self.range_colExcLines:
-                line_label = self.obj_data['colLine_labes'][i]
-                ion = self.obj_data['colLine_ions'][i]
-                T_ion = Temp_dict[self.tempRegionCol[i]]
-                abund = abund_dict[ion]
-                ne_ion = n_e.tag.test_value
+                line_label  = self.obj_data['colLine_labes'][i]
+                ion         = self.obj_data['colLine_ions'][i]
+                T_ion       = Temp_dict[self.tempRegionCol[i]]
+                T_ion_idx0  = Temp_dict[self.tempRegionCol[i]]
+                abund       = abund_dict[ion]
 
                 #Interpolate the emissivity
-                emis_ion = bilinear_interpolator_axis(ne_ion, T_ion,
-                                                                            self.den_grid_range,
-                                                                            self.tem_grid_range,
-                                                                            self.log_metals_emis_grid[:, :, i])
+                emis_ion = bilinear_interpolator_axis(n_e, T_ion, ne_idx0, T_ion_idx0,
+                                                        self.den_grid_range,self.tem_grid_range, self.log_metals_emis_grid[:, :, i])
+
                 # Compute synthetic fluxes
-                colExcit_fluxes = abund + emis_ion - cHbeta * self.obj_data['colLine_flambda'][i]
+                colExcit_fluxes = abund + emis_ion - cHbeta * self.obj_data['colLine_flambda'][i] - 12
 
                 # Likelihood
                 chiSq = pymc3.Normal(line_label + '_chiSq', mu=colExcit_fluxes, tau=self.log_colExc_Err[i], observed = self.log_colExc_fluxes[i])
@@ -1624,6 +1621,9 @@ class SpecSynthesizer(SpectrumFitter):
     def chemical_model(self):
 
         with pymc3.Model() as model:
+
+            a_cord = pymc3.Uniform('d_e', lower=1, upper=500)
+            a_idx0 = pymc3.math.argmin(pymc3.math.abs_(a_array-a_cord))
 
             # Physical conditions priors
             T_e   = pymc3.Normal('T_e', mu=self.obj_data['TSIII'], tau=self.obj_data['TSIII_error']**-2)

@@ -6,7 +6,7 @@ from numpy.core                 import defchararray as np_f
 from matplotlib                 import pyplot as plt
 from pylatex                    import Document, Package, Figure, NoEscape
 from collections                import OrderedDict
-from pyfits                     import getheader, getdata
+from astropy.io.fits            import getheader, getdata
 from astropy.wcs                import WCS
 from astropy.io                 import fits
 from astropy.visualization      import ZScaleInterval
@@ -2417,7 +2417,7 @@ class spectra_reduction(fits_plots, pyraf_task_configuration):
         return reduction_dataframe
 
     def declare_catalogue(self, catalogue_address, data_origin = 'WHT', objects_type = 'HII galaxies', verbose = True):
-                
+
         #If you want to treat only one file please add it here
         self.Objects_to_treat = None
 
@@ -2426,31 +2426,31 @@ class spectra_reduction(fits_plots, pyraf_task_configuration):
             self.reduc_RootFolder = catalogue_address
             self.Catalogue_folder = catalogue_address
         else:
-            self.reduc_RootFolder = self.Catalogue_folder 
+            self.reduc_RootFolder = self.Catalogue_folder
 
         #Declare the main dictionary addresses
         self.declare_folde_structre()
 
         #Load the observation characteristics for the reduction from
         self.observation_dict = self.load_observation_dict(self.Catalogue_folder + self.observation_properties_file_name)
-                
+
         #Load objects to treat:
         if self.Objects_to_treat == None:
             self.Objects_to_treat = self.observation_dict['objects'] + self.observation_dict['Standard_stars']
-        
+
         #Load reduction dataframe
         self.reducDf = self.load_reduction_dataframe(catalogue_address)
-        
+
         #Dictionary with the keys which correspond to a given telescope header
         if data_origin == 'WHT':
-            self.columns_reducDf = ['OBJECT', 'OBSTYPE', 'file_name', 'RUN', 'file_location', 'reduc_tag', 'frame_tag', 'ISIARM', 'RA', 'DEC', 'UT', 'EXPTIME', 'AIRMASS', 'ISISLITW'] 
-            
-            #Case this is the first time 
+            self.columns_reducDf = ['OBJECT', 'OBSTYPE', 'file_name', 'RUN', 'file_location', 'reduc_tag', 'frame_tag', 'ISIARM', 'RA', 'DEC', 'UT', 'EXPTIME', 'AIRMASS', 'ISISLITW']
+
+            #Case this is the first time
             if self.reducDf is None:
                 self.reducDf = DataFrame(columns = self.columns_reducDf)
-        if verbose:      
+        if verbose:
             print 'Reduction dataframe {catalogue_address} loaded'.format(catalogue_address = catalogue_address + 'reduction_frame.dz')
-    
+
     def check_rejected_files(self, reduction_dataframe, dataframe_folder, reject_file_name = 'rejected_files.txt'):
         
         #Set all to True

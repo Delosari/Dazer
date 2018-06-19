@@ -187,8 +187,9 @@ class Basic_plots(Plot_Conf):
             #Add true value if available
             if 'true_value' in stats_dic[trace_code]:
                 value_true = stats_dic[trace_code]['true_value']
-                label_true = 'True value {:.3e}'.format(value_true)
-                self.Axis[i].axvline(x=value_true, label=label_true, color='black', linestyle='solid')
+                if value_true is not None:
+                    label_true = 'True value {:.3e}'.format(value_true)
+                    self.Axis[i].axvline(x=value_true, label=label_true, color='black', linestyle='solid')
 
             # Figure wording
             self.Axis[i].set_ylabel(self.labels_latex_dic[trace_code])
@@ -461,42 +462,48 @@ class MCMC_printer(Basic_plots, Basic_tables):
 
         print '-Printing output data:'
 
-        # Table mean values
-        print '--Model parameters table'
-        self.table_mean_outputs(database_address + '_meanOutput', params_list, db, db_dict)
+        if 'pymc3' in self.model_type:
 
-        # Recombination fluxes
-        if 'recomb_lines' in self.fitting_components:
-            print '--Recombination lines table'
-            self.table_line_fluxes(database_address + '_FluxesRecomb', self.obj_data['recombLine_labes'], 'calc_recomb_fluxes', db, db_dict, true_values=self.recomb_fluxes)
-            self.fluxes_distribution(self.obj_data['recombLine_labes'], 'calc_recomb_fluxes', db, db_dict, true_values=self.recomb_fluxes)
-            self.savefig(database_address + '_FluxesRecomb_posteriors', resolution=200)
+            print 'hi'
 
-        # Collisional excited fluxes
-        if 'colExcited_lines' in self.fitting_components:
-            print '--Colisional lines table:'
-            self.table_line_fluxes(database_address + '_FluxesColExc', self.obj_data['colLine_labes'], 'calc_colExcit_fluxes', db, db_dict, true_values=self.colExc_fluxes)
-            self.fluxes_distribution(self.obj_data['colLine_labes'], 'calc_colExcit_fluxes', db, db_dict, true_values=self.colExc_fluxes)
-            self.savefig(database_address + '_FluxesColExc_posteriors', resolution=200)
+        else:
 
-        # Traces
-        print '--Traces diagram'
-        self.traces_plot(params_list, db, db_dict)
-        self.savefig(database_address + '_TracesPlot', resolution=200)
+            # Table mean values
+            print '--Model parameters table'
+            self.table_mean_outputs(database_address + '_meanOutput', params_list, db, db_dict)
 
-        # Posteriors
-        print '--Model parameters posterior diagram'
-        self.posteriors_plot(params_list, db, db_dict)
-        self.savefig(database_address + '_PosteriorPlot', resolution=200)
+            # Recombination fluxes
+            if 'recomb_lines' in self.fitting_components:
+                print '--Recombination lines table'
+                self.table_line_fluxes(database_address + '_FluxesRecomb', self.obj_data['recombLine_labes'], 'calc_recomb_fluxes', db, db_dict, true_values=self.recomb_fluxes)
+                self.fluxes_distribution(self.obj_data['recombLine_labes'], 'calc_recomb_fluxes', db, db_dict, true_values=self.recomb_fluxes)
+                self.savefig(database_address + '_FluxesRecomb_posteriors', resolution=200)
 
-        # Corner plot
-        print '--Scatter plot matrix'
-        self.corner_plot(params_list, db, db_dict)
-        self.savefig(database_address + '_CornerPlot', resolution=200)
+            # Collisional excited fluxes
+            if 'colExcited_lines' in self.fitting_components:
+                print '--Colisional lines table:'
+                self.table_line_fluxes(database_address + '_FluxesColExc', self.obj_data['colLine_labes'], 'calc_colExcit_fluxes', db, db_dict, true_values=self.colExc_fluxes)
+                self.fluxes_distribution(self.obj_data['colLine_labes'], 'calc_colExcit_fluxes', db, db_dict, true_values=self.colExc_fluxes)
+                self.savefig(database_address + '_FluxesColExc_posteriors', resolution=200)
 
-        # Acorrelation
-        print '--Acorrelation plot'
-        self.acorr_plot(params_list, db, db_dict, n_columns=4, n_rows=int(ceil(len(params_list)/4.0)))
-        self.savefig(database_address + '_Acorrelation', resolution=200)
+            # Traces
+            print '--Traces diagram'
+            self.traces_plot(params_list, db, db_dict)
+            self.savefig(database_address + '_TracesPlot', resolution=200)
+
+            # Posteriors
+            print '--Model parameters posterior diagram'
+            self.posteriors_plot(params_list, db, db_dict)
+            self.savefig(database_address + '_PosteriorPlot', resolution=200)
+
+            # Corner plot
+            print '--Scatter plot matrix'
+            self.corner_plot(params_list, db, db_dict)
+            self.savefig(database_address + '_CornerPlot', resolution=200)
+
+            # Acorrelation
+            print '--Acorrelation plot'
+            self.acorr_plot(params_list, db, db_dict, n_columns=4, n_rows=int(ceil(len(params_list)/4.0)))
+            self.savefig(database_address + '_Acorrelation', resolution=200)
 
         return

@@ -9,7 +9,8 @@ from subprocess                     import Popen, PIPE, STDOUT
 from sys                            import argv, exit, stdout
 from numpy                          import isnan, percentile, loadtxt, savetxt, where, zeros, searchsorted, ndarray, in1d, array, transpose, empty, nan as np_nan, float64 as np_float64, float32 as np_float32, full
 from pandas                         import read_csv, DataFrame, read_pickle, ExcelFile, concat, ExcelWriter
-from pyfits                         import Column, ColDefs, open as pyfits_open, TableHDU, getdata
+#from pyfits                         import Column, ColDefs, open as pyfits_open, TableHDU, getdata
+from astropy.io.fits                import Column, ColDefs, open as pyfits_open, TableHDU, getdata
 from pylatex                        import Document, Figure, NewPage, NoEscape, Package, Tabular, Section, Tabu, Table, LongTable
 from scipy                          import linspace
 from scipy.interpolate              import interp1d
