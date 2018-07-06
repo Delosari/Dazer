@@ -1,8 +1,3 @@
-'''
-Created on Jul 23, 2015
-
-@author: vital
-'''
 from sys                            import exit
 from pyneb                          import RecAtom
 from scipy.interpolate              import interp1d
@@ -232,19 +227,6 @@ class ReddeningLaws():
 
         return flux_range_red
 
-       
-#         if (cHbeta != None) and (cHbeta > 0):
-#             f_wave              = self.Reddening_f(Spectrum_WavelengthRange, 3.2)
-#             f_Hbeta             = self.Reddening_f(array([4862.683]), 3.2)
-#             
-#             Power_Coeff         = cHbeta * (1 + f_wave - f_Hbeta)
-#             
-#             Spectrum_flux       = Spectrum_Int * np_power(10, -Power_Coeff)
-#         
-#         else:
-#             print '- WARNING: c(Hbeta) is less than zero'
-#             Spectrum_flux        = Spectrum_Int
-                       
     def Ebv_from_cHbeta(self, cHbeta, reddening_curve, R_v):
 
         if cHbeta == None:
@@ -338,9 +320,9 @@ class ReddeningLaws():
         x = 1.0 / (self.wavelength_rc / 10000.0)
                 
         #This file format has 1/um in column 0 and A_x/A_V in column 1
-        file_data = loadtxt(self.red_laws_folder + '/bin/lib/Astro_Libraries/gordon_2003_LMC_average.txt')
+        file_data = loadtxt(self.red_laws_folder + 'bin/lib/Astro_Libraries/literature_data/gordon_2003_LMC_average.txt')
 
-        #This file has column        
+        #This file has column
         Xx_interpolator = interp1d(file_data[:, 0], file_data[:, 1])
         X_x = R_v * Xx_interpolator(x)
         return X_x

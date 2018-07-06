@@ -1,5 +1,5 @@
-from Abundances_Class               import Chemical_Analysis
-from Abundances_Class               import Parametrized_Emissivities
+from lib.Astro_Libraries.Abundances_Class import Chemical_Analysis
+from lib.Astro_Libraries.Abundances_Class import Parametrized_Emissivities
 
 
 #Declare code classes

@@ -1,6 +1,10 @@
+import numpy as np
 import corner
+import matplotlib.pyplot as plt
+from matplotlib import cm
 from matplotlib import rcParams
 from matplotlib.mlab import detrend_mean
+from mpl_toolkits.mplot3d import Axes3D
 from numpy import array, reshape, empty, ceil, percentile, median, nan
 from lib.Plotting_Libraries.dazer_plotter import Plot_Conf
 from lib.Plotting_Libraries.sigfig import round_sig
@@ -103,6 +107,81 @@ class Basic_plots(Plot_Conf):
         self.area_fill(self.obj_data['norm_interval'][0], self.obj_data['norm_interval'][1], 'Norm interval: {} - {}'.format(self.obj_data['norm_interval'][0], self.obj_data['norm_interval'][1]), alpha=0.5)
 
         self.FigWording(xlabel='Wavelength $(\AA)$', ylabel = 'Observed flux', title = 'Resampled observation')
+
+        return
+
+    def emissivitySurfaceFit_2D(self, line_label, emisCoeffs, emisGrid, funcEmis, te_ne_grid):
+
+        # Plot format
+        size_dict = {'figure.figsize': (20, 14),  'axes.titlesize': 16, 'axes.labelsize': 16, 'legend.fontsize': 18}
+        rcParams.update(size_dict)
+
+        # Generate figure
+        fig, ax = plt.subplots(1, 1)
+
+        # Generate fitted surface points
+        matrix_edge = int(np.sqrt(te_ne_grid[0].shape[0]))
+        surface_points = funcEmis(te_ne_grid, *emisCoeffs)
+
+        # Plot plane
+        plt.imshow(surface_points.reshape((matrix_edge, matrix_edge)), aspect=0.03,
+                   extent=(te_ne_grid[1].min(), te_ne_grid[1].max(), te_ne_grid[0].min(), te_ne_grid[0].max()))
+
+        # Compare pyneb values with values from fitting
+        percentage_difference = (1 - surface_points/emisGrid.flatten()) * 100
+
+        # Points with error below 1.0 are transparent:
+        idx_interest = percentage_difference < 1.0
+        x_values, y_values = te_ne_grid[1][idx_interest], te_ne_grid[0][idx_interest]
+        ax.scatter(x_values, y_values, c="None", edgecolors='black', linewidths=0.35, label='Error below 1%')
+
+        if idx_interest.sum() < emisGrid.size:
+
+            # Plot grid points
+            plt.scatter(te_ne_grid[1][~idx_interest], te_ne_grid[0][~idx_interest], c=percentage_difference[~idx_interest],
+                        edgecolors='black', linewidths=0.1, cmap=cm.OrRd , label='Error above 1%')
+
+            # Color bar
+            cbar = plt.colorbar()
+            cbar.ax.set_ylabel('% difference', rotation=270, fontsize=15)
+
+        #Trim the axis
+        ax.set_xlim(te_ne_grid[1].min(), te_ne_grid[1].max())
+        ax.set_ylim(te_ne_grid[0].min(), te_ne_grid[0].max())
+
+        # Add labels
+        ax.update({'xlabel': 'Density ($cm^{-3}$)', 'ylabel': 'Temperature $(K)$', 'title': line_label})
+
+        return
+
+    def emissivitySurfaceFit_3D(self, line_label, emisCoeffs, emisGrid, funcEmis, te_ne_grid):
+
+        # Plot format
+        size_dict = {'figure.figsize': (20, 14), 'axes.titlesize': 16, 'axes.labelsize': 16, 'legend.fontsize': 18}
+        rcParams.update(size_dict)
+
+        # Plot the grid points
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+
+        # Plot the grid points
+        ax.scatter(te_ne_grid[0], te_ne_grid[1], emisGrid, color='r', alpha=0.5)
+
+        # Generate fitted surface points
+        matrix_edge = int(np.sqrt(te_ne_grid[0].shape[0]))
+        surface_points = funcEmis(te_ne_grid, *emisCoeffs).reshape((matrix_edge, matrix_edge))
+
+        # surface_epm = (0.745-5.1e-5*te_ne_grid[1]) * np.power(te_ne_grid[0]/10000.0, 0.226-0.0011*te_ne_grid[1])
+        # surface_aver = (0.754) * np.power(te_ne_grid[0]/10000.0, 0.212-0.00051*te_ne_grid[1])
+        # ax.scatter(te_ne_grid[0], te_ne_grid[1], surface_epm, color='blue', alpha=0.5)
+        # ax.scatter(te_ne_grid[0], te_ne_grid[1], surface_aver, color='green', alpha=0.5)
+
+        #Plot surface
+        x_values, y_values = te_ne_grid[0].reshape((matrix_edge, matrix_edge)), te_ne_grid[1].reshape((matrix_edge, matrix_edge))
+        ax.plot_surface(x_values, y_values, surface_points, rstride=1, cstride=1, color='g', alpha=0.5)
+
+        # Add labels
+        ax.update({'xlabel': 'Density ($cm^{-3}$)', 'ylabel': 'Temperature $(K)$', 'title': line_label})
 
         return
 
@@ -419,6 +498,42 @@ class MCMC_printer(Basic_plots, Basic_tables):
         # Supporting classes
         Basic_plots.__init__(self)
         Basic_tables.__init__(self)
+
+    def plot_emisFits(self, linelabels, emisCoeffs_dict, emisGrid_array, output_folder):
+
+        # Temperature and density meshgrids
+        X, Y = np.meshgrid(self.tem_grid_range, self.den_grid_range)
+        XX, YY = X.flatten(), Y.flatten()
+        te_ne_grid = (XX, YY)
+
+        # lineLabel = 'S3_9531A'
+        # i = np.where(self.obj_data['lineLabels']==lineLabel)[0][0]
+        #
+        #
+        # # 2D Comparison between PyNeb values and the fitted equation
+        # self.emissivitySurfaceFit_2D(lineLabel, emisCoeffs_dict[lineLabel], emisGrid_array[:,i], self.ionEmisEq[lineLabel], te_ne_grid)
+        #
+
+        for i in range(linelabels.size):
+
+            lineLabel = linelabels[i]
+            print '--Fitting surface', lineLabel
+
+            # 2D Comparison between PyNeb values and the fitted equation
+            self.emissivitySurfaceFit_2D(lineLabel, emisCoeffs_dict[lineLabel], emisGrid_array[:,i], self.ionEmisEq[lineLabel], te_ne_grid)
+
+            output_address = '{}{}_{}'.format(output_folder,'emissivityTeDe2D',lineLabel)
+            self.savefig(output_address, resolution=200)
+            plt.clf()
+
+            # # 3D Comparison between PyNeb values and the fitted equation
+            # self.emissivitySurfaceFit_3D(lineLabel, emisCoeffs_dict[lineLabel], emisGrid_array[:,i], self.ionEmisEq[lineLabel], te_ne_grid)
+            #
+            # output_address = '{}{}_{}'.format(output_folder,'emissivityTeDe3D',lineLabel)
+            # self.savefig(output_address, resolution=200)
+            # plt.clf()
+
+        return
 
     def plot_prefit_data(self):
 

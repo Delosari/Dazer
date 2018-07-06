@@ -871,7 +871,7 @@ class SpectrumFitter(Import_model_data, ContinuaComponents, EmissionComponents, 
         # Dictionary to store the data
         self.obj_data = obs_data.copy()
 
-        self.fitting_components = fitting_components #TODO I could change this one locaation
+        self.fitting_components = fitting_components #TODO I could change this one location
 
         if output_folder is None: # TODO need to establish a global path to save the data
             self.output_folder = self.obj_data['output_folder']
