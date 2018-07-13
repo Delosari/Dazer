@@ -2,8 +2,7 @@ from collections import OrderedDict
 from scipy.signal.signaltools import convolve2d
 from scipy.interpolate.interpolate import interp1d
 from scipy.optimize import nnls
-from numpy import power, searchsorted, loadtxt, empty, sum as np_sum, square, ones, \
-    median, arange, exp, zeros, transpose,  diag, linalg, dot, outer, random, int64
+from numpy import power, max, square, ones, arange, exp, zeros, transpose,  diag, linalg, dot, outer, empty, ceil
 
 
 
@@ -16,10 +15,8 @@ def CCM89_Bal07(Rv, wave):
     idcs = x > 1.1
     y = (x[idcs] - 1.82)
 
-    ax[
-        idcs] = 1 + 0.17699 * y - 0.50447 * y ** 2 - 0.02427 * y ** 3 + 0.72085 * y ** 4 + 0.01979 * y ** 5 - 0.77530 * y ** 6 + 0.32999 * y ** 7
-    bx[
-        idcs] = 1. * y + 2.28305 * y ** 2 + 1.07233 * y ** 3 - 5.38434 * y ** 4 - 0.62251 * y ** 5 + 5.30260 * y ** 6 - 2.09002 * y ** 7
+    ax[idcs] = 1 + 0.17699 * y - 0.50447 * y ** 2 - 0.02427 * y ** 3 + 0.72085 * y ** 4 + 0.01979 * y ** 5 - 0.77530 * y ** 6 + 0.32999 * y ** 7
+    bx[idcs] = 1. * y + 2.28305 * y ** 2 + 1.07233 * y ** 3 - 5.38434 * y ** 4 - 0.62251 * y ** 5 + 5.30260 * y ** 6 - 2.09002 * y ** 7
     ax[~idcs] = 0.574 * x[~idcs] ** 1.61
     bx[~idcs] = -0.527 * x[~idcs] ** 1.61
 
@@ -38,31 +35,28 @@ class SspFitter():
         # Calculate wavelength at object z
         wave_z = bases_wave_rest * (1 + z_star)
 
-        # Calculate stellar broadening kernel
-        r_sigma = sigma_star / (wave_z[1] - wave_z[0])
-
-        box = int64(3 * r_sigma) if int64(3 * r_sigma) < 3 else 3
+        # Kernel matrix
+        box = int(ceil(max(3 * sigma_star)))
         kernel_len = 2 * box + 1
-        kernel = zeros((1, kernel_len))
         kernel_range = arange(0, 2 * box + 1)
+        kernel = empty((1, kernel_len))
 
-        # Generating the kernel with sigma (the norm factor is the sum of the gaussian)
-        kernel[0, :] = exp(-0.5 * ((square(kernel_range - box) / r_sigma)))
-        norm = np_sum(kernel[0, :])
-        kernel = kernel / norm
+        # Filling gaussian values (the norm factor is the sum of the gaussian)
+        kernel[0, :] = exp(-0.5 * (square((kernel_range - box) / sigma_star)))
+        kernel /= sum(kernel[0, :])
 
         # Convove bases with respect to kernel for dispersion velocity calculation
-        bases_grid_convolve = convolve2d(bases_flux, kernel, mode='same', boundary='symm')
+        basesGridConvolved = convolve2d(bases_flux, kernel, mode='same', boundary='symm')
 
         # Interpolate bases to wavelength range
-        bases_grid_interp = (interp1d(wave_z, bases_grid_convolve, axis=1, bounds_error=True)(obs_wave)).T
+        basesGridInterp = (interp1d(wave_z, basesGridConvolved, axis=1, bounds_error=True)(obs_wave)).T
 
         # Generate final flux model including reddening
-        Av_vector = Av_star * ones(bases_grid_interp.shape[1])
+        Av_vector = Av_star * ones(basesGridInterp.shape[1])
         obs_wave_resam_rest = obs_wave / (1 + z_star)
         Xx_redd = CCM89_Bal07(Rv_coeff, obs_wave_resam_rest)
         dust_attenuation = power(10, -0.4 * outer(Xx_redd, Av_vector))
-        bases_grid_redd = bases_grid_interp * dust_attenuation
+        bases_grid_redd = basesGridInterp * dust_attenuation
 
         return bases_grid_redd
 

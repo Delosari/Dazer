@@ -505,14 +505,14 @@ class ImportModelData(SspSynthesisImporter):
             self.paths_dict['emisGridsPath']        = 'C:/Users/lativ/git/dazer/bin/lib/Astro_Libraries/spectrum_fitting/'
 
         # Import database with lines labels information
-        self.lines_df = read_excel(self.paths_dict['lines_data_file'], sheetname=0, header=0, index_col=0)
+        self.linesDb = read_excel(self.paths_dict['lines_data_file'], sheetname=0, header=0, index_col=0)
 
         # Additional code to adapt to old lines log labelling
-        self.lines_df['pyneb_code'] = self.lines_df['pyneb_code'].astype(str)
-        idx_numeric_pynebCode = ~self.lines_df['pyneb_code'].str.contains('A+')
-        self.lines_df.loc[idx_numeric_pynebCode, 'pyneb_code'] = self.lines_df.loc[
+        self.linesDb['pyneb_code'] = self.linesDb['pyneb_code'].astype(str)
+        idx_numeric_pynebCode = ~self.linesDb['pyneb_code'].str.contains('A+')
+        self.linesDb.loc[idx_numeric_pynebCode, 'pyneb_code'] = self.linesDb.loc[
             idx_numeric_pynebCode, 'pyneb_code'].astype(int)
-        self.lines_df['ion'].apply(str)
+        self.linesDb['ion'].apply(str)
 
     def import_optical_depth_coeff_table(self):
 
@@ -532,8 +532,7 @@ class ImportModelData(SspSynthesisImporter):
         list_parameters     = ['obs_wavelength', 'obs_flux', 'wavelengh_limits', 'norm_interval'] #also all 'param_prior'
         boolean_parameters  = ['Normalized_by_Hbeta']
         string_parameters   = ['address_lines_log', 'address_spectrum', 'address_obs_mask', 'obsFile', 'objName']
-        print '-Reading observation {} {}'.format(obsFile if obsFile is not None else '',
-                                                  ' for object ' + objName if objName is not None else '')
+        print '-Reading observation {} {}'.format(obsFile if obsFile is not None else '', ' for object ' + objName if objName is not None else '')
 
         # ----Load the obj data
         if obsFile is not None:
@@ -677,23 +676,52 @@ class ImportModelData(SspSynthesisImporter):
 
         return
 
-    def generate_object_mask(self):
+    def generate_object_mask(self, linesDf, wavelength):
 
-        # TODO We need to adapt this from the lick indeces system to a mask_label wmin wmax (or viceversa)
-        # TODO If not mask is included generate one from emission lines
-        # TODO if not mask is applied mask = all True
-        obj_mask_df = read_csv(self.obj_data['obs_mask_address'], delim_whitespace=True, header=0, index_col=0)
+        # TODO This will not work for a redshifted lines log
 
-        boolean_mask = np.ones(len(self.obj_data['wave_resam']), dtype=bool)
+        idcs_lineMasks = linesDf.index.isin(self.linesDb.index)
+        idcs_spectrumMasks = ~linesDf.index.isin(self.linesDb.index)
 
-        for mask_label in obj_mask_df.index:
-            wmin, wmax = obj_mask_df.loc[mask_label, 'wmin'], obj_mask_df.loc[mask_label, 'wmax']
-            idx_cur_spec_mask = (self.obj_data['wave_resam'] > wmin) & (self.obj_data['wave_resam'] < wmax)
-            boolean_mask = boolean_mask & ~idx_cur_spec_mask
+        # Matrix mask for integring the emission lines
+        n_lineMasks = idcs_lineMasks.sum()
+        self.boolean_matrix = np.zeros((n_lineMasks, wavelength.size), dtype=bool)
 
-        self.obj_data['boolean_mask'] = boolean_mask
-        self.obj_data['int_mask'] = boolean_mask * 1
+        # Total mask for valid regions in the spectrum
+        n_objMasks = idcs_spectrumMasks.sum()
+        self.int_mask = np.ones(wavelength.size, dtype=bool)
 
-        self.obj_data['flux_norm_mask'] = self.obj_data['flux_norm'] * self.obj_data['int_mask']
+        # Loop through the emission lines
+        wmin, wmax = linesDf['w3'].loc[idcs_lineMasks].values, linesDf['w4'].loc[idcs_lineMasks].values
+        for i in range(n_lineMasks):
+            idx_currentMask = (wavelength > wmin[i]) & (wavelength < wmax[i])
+            self.boolean_matrix[i,:] = idx_currentMask
+            self.int_mask = self.int_mask & ~idx_currentMask
+
+        # Loop through the object masks
+        wmin, wmax = linesDf['w3'].loc[idcs_spectrumMasks].values, linesDf['w4'].loc[idcs_spectrumMasks].values
+        print n_objMasks
+        for i in range(n_objMasks):
+            idx_currentMask = (wavelength > wmin[i]) & (wavelength < wmax[i])
+            self.int_mask = self.int_mask & ~idx_currentMask
+
+
+        # self.obj_data['int_mask'] = boolean_mask * 1
+        # self.obj_data['boolean_mask'] = boolean_mask
+        # self.obj_data['flux_norm_mask'] = self.obj_data['flux_norm'] * self.obj_data['int_mask']
+        #
+        # Plot input data
+        # import matplotlib.pyplot as plt
+        # fig, ax = plt.subplots(1, 1, figsize=(8, 6))
+        # #ax.plot(self.obj_data['wave_resam'], self.obj_data['flux_norm'],label='Model spectrum')
+        # for i in range(n_lineMasks):
+        #     ax.plot(self.obj_data['wave_resam'], self.obj_data['flux_norm'] * self.boolean_matrix[i,:], label=linesDf.index.values[i])
+        # #ax.plot(self.obj_data['wave_resam'], self.obj_data['flux_norm']*self.int_mask,label='Model spectrum')
+        # ax.update({'xlabel': 'Wavelength (nm)', 'ylabel': 'Flux (normalised)'})
+        # ax.legend()
+        # plt.show()
+        #
+        #
+        # exit()
 
         return

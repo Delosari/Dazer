@@ -1,8 +1,5 @@
 from string import split
-from numpy import sum as np_sum, square, mean, array, power, log10, linspace, exp, zeros, ceil, interp, isnan, \
-    searchsorted, median, argmin, concatenate, invert, argwhere, diff, r_, std, empty, \
-    loadtxt, nonzero, flatnonzero, copy, where, arange, invert, logical_not, digitize
-from lib.Math_Libraries.fitting_methods import Python_linfit
+from numpy import power, log10, exp, zeros, ceil, interp, loadtxt, digitize
 from scipy import interpolate
 
 
@@ -182,7 +179,6 @@ class NebularContinuaCalculator():
     def gContCalib(self, wave, Te, flux_Emline, gNeb_cont_nu, lambda_EmLine=6562.819):
 
         # Zanstra like calibration for the continuum
-
         t4 = Te / 10000.0
 
         # Pequignot et al. 1991
@@ -192,63 +188,3 @@ class NebularContinuaCalculator():
         fNeb_cont_lambda = gNeb_cont_nu * lambda_EmLine * flux_Emline / (alfa_eff_alpha * self.nebConst['h'] * wave * wave)
 
         return fNeb_cont_lambda
-
-    # def Calculate_Nebular_gamma(self):
-    #
-    #     Frac = 1 + self.HeII_HII * 4 + self.HeIII_HII * 4
-    #
-    #     Gamma_2q = self.TwoPhotonContinuum()
-    #
-    #     Gamma_FF_HI = self.FreeFreeContinuum("HI")
-    #     Gamma_FF = Frac * Gamma_FF_HI
-    #
-    #     Gamma_FB_HI = self.FreeBoundContinuum_EP("HI")
-    #     Gamma_FB_HeI = self.FreeBoundContinuum_EP("HeI")
-    #     Gamma_FB_HeII = self.FreeBoundContinuum_EP("HeII")
-    #     Gamma_FB = self.HII_HI * Gamma_FB_HI + self.HeII_HII * Gamma_FB_HeI + self.HeIII_HII * Gamma_FB_HeII
-    #
-    #     Gamma_Total = Gamma_FB + Gamma_FF + Gamma_2q
-    #
-    #     c_AperS = 2.99792458e18  # A / s
-    #     Gamma_lambda = Gamma_Total * (c_AperS / power(self.Wavelength_Range, 2))
-    #
-    #     return Gamma_Total, Gamma_lambda, Gamma_FB_HI, Gamma_FB_HeI, Gamma_FB_HeII, Gamma_2q, Gamma_FF
-
-    # def Calculate_Nebular_gamma(self):
-    #
-    #     Frac = 1 + self.HeII_HII * 4 + self.HeIII_HII * 4
-    #
-    #     Gamma_2q = self.TwoPhotonContinuum()
-    #
-    #     Gamma_FF_HI = self.FreeFreeContinuum("HI")
-    #     Gamma_FF = Frac * Gamma_FF_HI
-    #
-    #     Gamma_FB_HI = self.FreeBoundContinuum_EP("HI")
-    #     Gamma_FB_HeI = self.FreeBoundContinuum_EP("HeI")
-    #     Gamma_FB_HeII = self.FreeBoundContinuum_EP("HeII")
-    #     Gamma_FB = self.HII_HI * Gamma_FB_HI + self.HeII_HII * Gamma_FB_HeI + self.HeIII_HII * Gamma_FB_HeII
-    #
-    #     Gamma_Total = Gamma_FB + Gamma_FF + Gamma_2q
-    #
-    #     c_AperS = 2.99792458e18  # A / s
-    #     Gamma_lambda = Gamma_Total * (c_AperS / power(self.Wavelength_Range, 2))
-    #
-    #     return Gamma_Total, Gamma_lambda, Gamma_FB_HI, Gamma_FB_HeI, Gamma_FB_HeII, Gamma_2q, Gamma_FF
-
-    # def calculate_nebular_SED(self, wave_obs, z, cHbeta, Te, He1_abund, He2_abund, Halpha_Flux):
-    #
-    #     wave_obs_rest   = wave_obs / (1.0 + z)
-    #
-    #     neb_gCont       = self.calculate_neb_gCont(wave_obs_rest, Te, He1_abund, He2_abund)
-    #
-    #     neb_int_norm    = self.gCont_calibration(wave_obs_rest, Te, Halpha_Flux, neb_gCont)
-    #
-    #     neb_xX          = self.reddening_Xx(wave_obs_rest, 'G03_average', 3.4) #TODO Change by global gas reddening law
-    #     flambda_neb     = neb_xX/self.Hbeta_xX - 1.0
-    #
-    #     neb_flux_norm   = neb_int_norm * power(10, -1 * flambda_neb * cHbeta)
-    #
-    #     nebular_SED = {'neb_gCont': neb_gCont, 'neb_int_norm': neb_int_norm, 'neb_xX': neb_xX,
-    #                    'flambda_neb': flambda_neb, 'neb_flux_norm': neb_flux_norm}
-    #
-    #     return nebular_SED

@@ -32,7 +32,7 @@ class Basic_plots(Plot_Conf):
         self.FigConf(plotSize=size_dict)
 
         self.data_plot(self.input_wave, self.input_continuum, 'Object Input continuum')
-        self.data_plot(self.obj_data['obs_wave'], self.obj_data['synth_neb_flux'], 'synth_neb_flux', linestyle = '--')
+        self.data_plot(self.input_wave, self.obj_data['synth_neb_flux'], 'synth_neb_flux', linestyle = '--')
         self.data_plot(self.input_wave, obj_ssp_fit_flux , 'Stellar Prefit continuum output', linestyle=':')
 
         #In case of a synthetic observation:
@@ -44,7 +44,7 @@ class Basic_plots(Plot_Conf):
             self.data_plot(self.obj_data['obs_wave'], self.obj_data['stellar_flux_err']/ self.obj_data['normFlux_coeff'], 'Stellar continuum with uncertainty', linestyle=':')
             title_label = 'Synthetic spectrum'
 
-        self.FigWording(xlabel='Wavelength $(\AA)$', ylabel = 'Observed flux', title = title_label)
+        self.FigWording(xlabel='Wavelength $(\AA)$', ylabel = 'Observed flux', title = 'Observed spectrum')
 
         return
 
@@ -89,7 +89,7 @@ class Basic_plots(Plot_Conf):
         size_dict = {'figure.figsize': (20, 14), 'axes.labelsize': 16, 'legend.fontsize': 18}
         self.FigConf(plotSize=size_dict)
 
-        self.data_plot(self.obj_data['obs_wave'], self.obj_data['flux_norm'], 'Normalized observation')
+        self.data_plot(self.obj_data['wave_resam'], self.obj_data['flux_norm'], 'Normalized observation')
         self.data_plot(self.input_wave, self.input_continuum, 'Masked observation', linestyle='--')
 
         self.FigWording(xlabel='Wavelength $(\AA)$', ylabel = 'Observed flux', title = 'Spectrum masks')
@@ -101,7 +101,7 @@ class Basic_plots(Plot_Conf):
         size_dict = {'figure.figsize': (20, 14), 'axes.labelsize': 16, 'legend.fontsize': 18}
         self.FigConf(plotSize=size_dict)
 
-        self.data_plot(self.obj_data['obs_wave'], self.obj_data['obs_flux'], 'Observed spectrum')
+        self.data_plot(self.obj_data['obs_wavelength'], self.obj_data['obs_flux'], 'Observed spectrum')
         self.data_plot(self.obj_data['wave_resam'], self.obj_data['flux_resam'], 'Resampled spectrum', linestyle='--')
         self.data_plot(self.obj_data['wave_resam'], self.obj_data['flux_norm'] * self.obj_data['normFlux_coeff'], r'Normalized spectrum $\cdot$ {:.2E}'.format(self.obj_data['normFlux_coeff']), linestyle=':')
         self.area_fill(self.obj_data['norm_interval'][0], self.obj_data['norm_interval'][1], 'Norm interval: {} - {}'.format(self.obj_data['norm_interval'][0], self.obj_data['norm_interval'][1]), alpha=0.5)
@@ -164,24 +164,19 @@ class Basic_plots(Plot_Conf):
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
 
-        # Plot the grid points
-        ax.scatter(te_ne_grid[0], te_ne_grid[1], emisGrid, color='r', alpha=0.5)
-
         # Generate fitted surface points
         matrix_edge = int(np.sqrt(te_ne_grid[0].shape[0]))
-        surface_points = funcEmis(te_ne_grid, *emisCoeffs).reshape((matrix_edge, matrix_edge))
 
-        # surface_epm = (0.745-5.1e-5*te_ne_grid[1]) * np.power(te_ne_grid[0]/10000.0, 0.226-0.0011*te_ne_grid[1])
-        # surface_aver = (0.754) * np.power(te_ne_grid[0]/10000.0, 0.212-0.00051*te_ne_grid[1])
-        # ax.scatter(te_ne_grid[0], te_ne_grid[1], surface_epm, color='blue', alpha=0.5)
-        # ax.scatter(te_ne_grid[0], te_ne_grid[1], surface_aver, color='green', alpha=0.5)
-
-        #Plot surface
+        # Plotting pyneb emissivities
         x_values, y_values = te_ne_grid[0].reshape((matrix_edge, matrix_edge)), te_ne_grid[1].reshape((matrix_edge, matrix_edge))
-        ax.plot_surface(x_values, y_values, surface_points, rstride=1, cstride=1, color='g', alpha=0.5)
+        ax.plot_surface(x_values, y_values, emisGrid.reshape((matrix_edge, matrix_edge)), color='g', alpha=0.5)
+
+        # Plotting emissivity parametrization
+        fit_points = funcEmis(te_ne_grid, *emisCoeffs)
+        ax.scatter(te_ne_grid[0], te_ne_grid[1], fit_points, color='r', alpha=0.5)
 
         # Add labels
-        ax.update({'xlabel': 'Density ($cm^{-3}$)', 'ylabel': 'Temperature $(K)$', 'title': line_label})
+        ax.update({'ylabel': 'Density ($cm^{-3}$)', 'xlabel': 'Temperature $(K)$', 'title': line_label})
 
         return
 
@@ -505,14 +500,6 @@ class MCMC_printer(Basic_plots, Basic_tables):
         X, Y = np.meshgrid(self.tem_grid_range, self.den_grid_range)
         XX, YY = X.flatten(), Y.flatten()
         te_ne_grid = (XX, YY)
-
-        # lineLabel = 'S3_9531A'
-        # i = np.where(self.obj_data['lineLabels']==lineLabel)[0][0]
-        #
-        #
-        # # 2D Comparison between PyNeb values and the fitted equation
-        # self.emissivitySurfaceFit_2D(lineLabel, emisCoeffs_dict[lineLabel], emisGrid_array[:,i], self.ionEmisEq[lineLabel], te_ne_grid)
-        #
 
         for i in range(linelabels.size):
 
