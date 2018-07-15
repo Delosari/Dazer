@@ -579,7 +579,7 @@ class ImportModelData(SspSynthesisImporter):
             #     print 'WARNING: Parameter {} in {} not recognize. Exiting code'.format(key, obsFile)
             #     exit()
 
-        # ----Load the obj spectrum
+        # ----Load the obj spectrum, #TODO read this one using pandas and that way you can chek if there  is a third column for the error
         obj_data['obs_wavelength'], obj_data['obs_flux'] = loadtxt(obj_data['address_spectrum'], usecols=(0, 1), unpack=True)
 
         # ----Load obj lines log # TODO update code to use address_lines_log

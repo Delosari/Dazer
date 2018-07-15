@@ -171,7 +171,7 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
         flux_hbeta = obj_prop_df.loc['flux_hbeta'][0]
         eqw_hbeta = obj_prop_df.loc['eqw_hbeta'][0]
 
-        #Getting all the fluxes to analyse the data
+        #Get populations for the stellar continua
         bases_idx, bases_coeff, bases_coeff_err = np.loadtxt(self.obj_data['obj_ssp_coeffs_file'], usecols=[0, 1, 2], unpack=True)
 
         # SSP library flux at modelled Av, z_star and sigma_star
@@ -202,33 +202,33 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
             synth_spectrum_address = '{}{}_spectrum.txt'.format(output_folder, obs_name)
             np.savetxt(synth_spectrum_address, np.transpose(np.array([obj_WaveObs, self.obj_data['obsFlux']])), fmt="%7.1f %10.4e")
 
-        # #Store synthetic object data log # TODO Add here the comments of the function
-        # obj_dict = OrderedDict()
-        # obj_dict['address_lines_log']   = synth_lines_log
-        # obj_dict['address_spectrum']    = synth_spectrum_address
-        # obj_dict['flux_hbeta']          = flux_hbeta
-        # obj_dict['flux_halpha']         = flux_halpha
-        # obj_dict['Normalized_by_Hbeta'] = True
-        # obj_dict['eqw_hbeta']           = eqw_hbeta
-        # obj_dict['sigma_gas']           = obj_prop_df.loc['sigma_gas'][0]
-        # obj_dict['T_low']               = T_low
-        # obj_dict['T_high']              = T_high
-        # obj_dict['n_e']                 = n_e
-        # obj_dict['cHbeta']              = cHbeta
-        # obj_dict['Av_star']             = Av_star
-        # obj_dict['sigma_star']          = sigma_star
-        # obj_dict['z_obj']               = z_obj
-        # obj_dict['continuum_sigma']     = error_stellarContinuum
-        # obj_dict['resample_inc']        = resample_inc
-        # obj_dict['wavelengh_limits']    = wavelengh_limits
-        # obj_dict['norm_interval']       = norm_interval
-        # obj_dict['Te_prior']            = [10000.0, 1000.0]
-        # obj_dict['ne_prior']            = [80, 50]
-        # obj_dict['cHbeta_prior']        = [0.125, 0.02]
-        #
-        # #Save the data into an "ini" configuration file
-        # conf_address = '{}{}_objParams.txt'.format(output_folder, obs_name)
-        # parse_synth_objData(conf_address, obs_name, obj_dict)
+        #Store synthetic object data log # TODO Add here the comments of the function
+        obj_dict = OrderedDict()
+        obj_dict['address_lines_log']   = synth_lines_log
+        obj_dict['address_spectrum']    = synth_spectrum_address
+        obj_dict['flux_hbeta']          = flux_hbeta
+        obj_dict['flux_halpha']         = flux_halpha
+        obj_dict['Normalized_by_Hbeta'] = True
+        obj_dict['eqw_hbeta']           = eqw_hbeta
+        obj_dict['sigma_gas']           = obj_prop_df.loc['sigma_gas'][0]
+        obj_dict['T_low']               = T_low
+        obj_dict['T_high']              = T_high
+        obj_dict['n_e']                 = n_e
+        obj_dict['cHbeta']              = cHbeta
+        obj_dict['Av_star']             = Av_star
+        obj_dict['sigma_star']          = sigma_star
+        obj_dict['z_obj']               = z_obj
+        obj_dict['continuum_sigma']     = error_stellarContinuum
+        obj_dict['resample_inc']        = resample_inc
+        obj_dict['wavelengh_limits']    = wavelengh_limits
+        obj_dict['norm_interval']       = norm_interval
+        obj_dict['Te_prior']            = [10000.0, 1000.0]
+        obj_dict['ne_prior']            = [80, 50]
+        obj_dict['cHbeta_prior']        = [0.125, 0.02]
+
+        #Save the data into an "ini" configuration file
+        conf_address = '{}{}_objParams.txt'.format(output_folder, obs_name)
+        parse_synth_objData(conf_address, obs_name, obj_dict)
 
         return
 
@@ -296,50 +296,51 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
         self.ready_simulation(output_folder, obs_data, ssp_data, spectra_components, input_lines=input_lines,
                               wavelengh_limits=wavelengh_limits, resample_inc=resample_inc, norm_interval=norm_interval)
 
-        # Prefit stellar continua
-        if 'stellar' in self.spectra_components:
-
-            self.stellarCheck = True
-
-            # Run prefit output #TODO these prefit parameters should go into the master conf
-            self.prefit_db = self.input_folder + 'SSP_prefit_database'
-
-            # Perform a new SPP synthesis otherwise use available data
-            if prefit_ssp:
-
-                # Ready data for a prefit on our stellar continua
-                self.prepare_ssp_data(None, obj_wave=self.obj_data['wave_resam'], obj_flux=self.obj_data['flux_norm'],
-                                      obj_flux_err=self.obj_data['continuum_sigma'], obj_mask=self.int_mask)
-
-                # Select model
-                self.select_inference_model('stelar_prefit')
-
-                # Run stellar continua prefit and store the results
-                self.run_pymc(self.prefit_db, iterations = 5000, variables_list = ['Av_star', 'sigma_star'], prefit = True)
-                self.save_prefit_data(self.obj_data['wave_resam'])
-
-                # Plot input simulation data
-                self.plot_prefit_data()
-
-            # Load prefit data
-            self.load_prefit_data(self.obj_data['wave_resam'])
-
-            # Ready stellar
-            self.prepare_ssp_data(self.input_folder + 'prefit_populations.txt',
-                                  obj_wave=self.obj_data['wave_resam'], obj_flux=self.obj_data['flux_norm'],
-                                  obj_flux_err=self.obj_data['continuum_sigma'], obj_mask=self.int_mask)
-
-        else:
-            self.stellarCheck = False
-
-        # Ready gas data
-        if 'emission' in self.spectra_components:
-            self.emissionCheck = True
-            self.prepare_gas_data()
-        else:
-            self.emissionCheck = False
-
-        return
+        # # Prefit stellar continua
+        # if 'stellar' in self.spectra_components:
+        #
+        #     self.stellarCheck = True
+        #
+        #     # Run prefit output #TODO these prefit parameters should go into the master conf
+        #     self.prefit_db = self.input_folder + 'SSP_prefit_database'
+        #
+        #     # Perform a new SPP synthesis otherwise use available data
+        #     if prefit_ssp:
+        #
+        #         # Ready data for a prefit on our stellar continua
+        #         self.prepare_ssp_data(None, obj_wave=self.obj_data['wave_resam'], obj_flux=self.obj_data['flux_norm'],
+        #                               obj_flux_err=self.obj_data['continuum_sigma'], obj_mask=self.int_mask)
+        #
+        #         # Select model
+        #         self.select_inference_model('stelar_prefit')
+        #
+        #         # Run stellar continua prefit and store the results
+        #         self.run_pymc(self.prefit_db, iterations = 5000, variables_list = ['Av_star', 'sigma_star'], prefit = True)
+        #         self.save_prefit_data(self.obj_data['wave_resam'])
+        #
+        #         # Plot input simulation data
+        #         self.plot_prefit_data()
+        #
+        #     # Load prefit data
+        #     self.load_prefit_data(self.obj_data['wave_resam'])
+        #
+        #     # Ready stellar
+        #     self.prepare_ssp_data(self.input_folder + 'prefit_populations.txt',
+        #                           obj_wave=self.obj_data['wave_resam'], obj_flux=self.obj_data['flux_norm'],
+        #                           obj_flux_err=self.obj_data['continuum_sigma'], obj_mask=self.int_mask)
+        #
+        # else:
+        #     self.stellarCheck = False
+        #
+        # # Ready gas data
+        # if 'emission' in self.spectra_components:
+        #     self.emissionCheck = True
+        #     self.prepare_gas_data()
+        #
+        # else:
+        #     self.emissionCheck = False
+        #
+        # return
 
     def prepare_gas_data(self):
 
@@ -360,6 +361,57 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
 
         # Variables to make the iterations simpler
         self.gasSamplerVariables(self.lineIons, self.high_temp_ions)
+
+        return
+
+    def prepareContinuaData(self, basesWave, basesFlux, basesFluxCoeffs, obsWave, obsFlux, obsFluxEr, objMask, nebularFlux = None, mainPopulationsFile = None):
+
+        # Remove nebular contribution from observed continuum
+        if nebularFlux is not None:
+            inputContinuum = obsFlux - nebularFlux
+        else:
+            inputContinuum = obsFlux
+
+        # Trim the total SSP library to the main populations stored in a text file
+        if mainPopulationsFile is not None:
+
+            #Three column file with idcs populations, weight and mainPopulationsFile
+            bases_idx, bases_coeff, bases_coeff_err = np.loadtxt(mainPopulationsFile, usecols=[0, 1, 2], unpack=True)
+
+            #Include ssps above minimum value TODO we should check this limit thing currentl it must be 0.001
+            idx_populations = bases_coeff >= self.lowlimit_sspContribution
+
+        else:
+            bases_idx = np.arange(basesFlux.shape[0])
+            bases_coeff = np.ones(basesFlux.shape[0], dtype=bool)
+            bases_coeff_err = np.zeros(basesFlux.shape[0], dtype=bool)
+            idx_populations = np.ones(basesFlux.shape[0], dtype=bool)
+
+        # Input Object data
+        self.inputContinuum         = inputContinuum * objMask
+        self.inputContinuumEr       = obsFluxEr # TODO this will not work if the error is a single file.. need to rethink
+        self.inputWave              = obsWave
+
+        # Populations parameters
+        self.sspPrefitIdcs          = np.where(idx_populations)[0]
+        self.sspPrefitCoeffs        = bases_coeff[idx_populations]
+        self.sspPrefitErr           = bases_coeff_err[idx_populations]
+        self.sspPrefitLimits        = np.vstack((self.sspPrefitCoeffs * 0.8, self.sspPrefitCoeffs * 1.2)).T # Theoretical limits
+
+        #Bases parameters
+        neglected_populations       = np.where(~idx_populations)
+        self.onBasesWave            = basesWave
+        self.onBasesFluxNorm        = np.delete(basesFlux, neglected_populations, axis=0)
+        self.onBasesFluxNormCoeffs  = np.delete(basesFluxCoeffs, neglected_populations, axis=0)
+        self.nBases                 = self.onBasesFluxNorm.shape[0] #self.onBasesFlux.shape[0]
+        self.range_bases            = np.arange(self.nBases)
+
+        # Limit for bases
+        self.zMin_SspLimit          = np.around((obsWave[-1] / basesWave[-1]), decimals=2)
+        self.zMax_SspLimit          = np.around((obsWave[0] / basesWave[0]), decimals=2)
+
+        # Static reddening curve for the stellar continuum
+        self.Xx_stellar             = CCM89_Bal07(self.Rv_model, basesWave)
 
         return
 
