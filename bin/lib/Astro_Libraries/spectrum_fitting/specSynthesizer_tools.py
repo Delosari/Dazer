@@ -282,7 +282,7 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
                         prefit_ssp = True, prefit_data = False, wavelengh_limits = None, resample_inc = None, norm_interval=None):
 
         # Store components fit
-        self.spectra_components = spectra_components
+        self.spectraComponents = spectra_components
 
         # Folders to store inputs and outputs
         self.input_folder = output_folder + 'input_data/'
@@ -296,51 +296,51 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
         self.ready_simulation(output_folder, obs_data, ssp_data, spectra_components, input_lines=input_lines,
                               wavelengh_limits=wavelengh_limits, resample_inc=resample_inc, norm_interval=norm_interval)
 
-        # # Prefit stellar continua
-        # if 'stellar' in self.spectra_components:
-        #
-        #     self.stellarCheck = True
-        #
-        #     # Run prefit output #TODO these prefit parameters should go into the master conf
-        #     self.prefit_db = self.input_folder + 'SSP_prefit_database'
-        #
-        #     # Perform a new SPP synthesis otherwise use available data
-        #     if prefit_ssp:
-        #
-        #         # Ready data for a prefit on our stellar continua
-        #         self.prepare_ssp_data(None, obj_wave=self.obj_data['wave_resam'], obj_flux=self.obj_data['flux_norm'],
-        #                               obj_flux_err=self.obj_data['continuum_sigma'], obj_mask=self.int_mask)
-        #
-        #         # Select model
-        #         self.select_inference_model('stelar_prefit')
-        #
-        #         # Run stellar continua prefit and store the results
-        #         self.run_pymc(self.prefit_db, iterations = 5000, variables_list = ['Av_star', 'sigma_star'], prefit = True)
-        #         self.save_prefit_data(self.obj_data['wave_resam'])
-        #
-        #         # Plot input simulation data
-        #         self.plot_prefit_data()
-        #
-        #     # Load prefit data
-        #     self.load_prefit_data(self.obj_data['wave_resam'])
-        #
-        #     # Ready stellar
-        #     self.prepare_ssp_data(self.input_folder + 'prefit_populations.txt',
-        #                           obj_wave=self.obj_data['wave_resam'], obj_flux=self.obj_data['flux_norm'],
-        #                           obj_flux_err=self.obj_data['continuum_sigma'], obj_mask=self.int_mask)
-        #
-        # else:
-        #     self.stellarCheck = False
-        #
-        # # Ready gas data
-        # if 'emission' in self.spectra_components:
-        #     self.emissionCheck = True
-        #     self.prepare_gas_data()
-        #
-        # else:
-        #     self.emissionCheck = False
-        #
-        # return
+        # Prefit stellar continua
+        if 'stellar' in self.spectraComponents:
+
+            self.stellarCheck = True
+
+            # Run prefit output #TODO these prefit parameters should go into the master conf
+            self.prefit_db = self.input_folder + 'SSP_prefit_database'
+
+            # Perform a new SPP synthesis otherwise use available data
+            if prefit_ssp:
+
+                # Ready data for a prefit on our stellar continua
+                self.prepare_ssp_data(None, obj_wave=self.obj_data['wave_resam'], obj_flux=self.obj_data['flux_norm'],
+                                      obj_flux_err=self.obj_data['continuum_sigma'], obj_mask=self.int_mask)
+
+                # Select model
+                self.select_inference_model('stelar_prefit')
+
+                # Run stellar continua prefit and store the results
+                self.run_pymc(self.prefit_db, iterations = 5000, variables_list = ['Av_star', 'sigma_star'], prefit = True)
+                self.save_prefit_data(self.obj_data['wave_resam'])
+
+                # Plot input simulation data
+                self.plot_prefit_data()
+
+            # Load prefit data
+            self.load_prefit_data(self.obj_data['wave_resam'])
+
+            # Ready stellar
+            self.prepare_ssp_data(self.input_folder + 'prefit_populations.txt',
+                                  obj_wave=self.obj_data['wave_resam'], obj_flux=self.obj_data['flux_norm'],
+                                  obj_flux_err=self.obj_data['continuum_sigma'], obj_mask=self.int_mask)
+
+        else:
+            self.stellarCheck = False
+
+        # Ready gas data
+        if 'emission' in self.spectraComponents:
+            self.emissionCheck = True
+            self.prepare_gas_data()
+
+        else:
+            self.emissionCheck = False
+
+        return
 
     def prepare_gas_data(self):
 

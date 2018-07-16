@@ -56,29 +56,36 @@ class SpectraSynthesizer(ModelIngredients):
 
         with pymc3.Model() as model:
 
-            if ('nebular' in self.fitting_parameters) or ('emission' in self.fitting_parameters):
+            if ('nebular' in self.spectraComponents) or ('emission' in self.spectraComponents):
 
                 # Gas Physical conditions priors
                 T_low = pymc3.Normal('T_low', mu=self.Te_prior[0], sd=self.Te_prior[1])
-                cHbeta = pymc3.Uniform('cHbeta', lower=0, upper=3)
+                cHbeta = pymc3.Lognormal('cHbeta', mu=0, sd=1)
                 #cHbeta  = pymc3.Uniform('cHbeta', lower=self.cHbeta_prior[0], upper=self.cHbeta_prior[1])
 
                 # High temperature
                 T_high = TOIII_TSIII_relation(T_low)
 
-                if 'emission' in self.fitting_parameters:
+                if 'emission' in self.spectraComponents:
 
                     # Emission lines density
                     n_e = pymc3.Normal('n_e', mu=self.ne_prior[0], sd=self.ne_prior[1])
 
                     # Helium abundance priors
                     if self.He1rCheck:
-                        tau = pymc3.Uniform('tau', lower=0, upper=5)
+                        tau = pymc3.Lognormal('tau', mu=0, sd=1)
 
                     # Composition priors
                     abund_dict = {'H1r':1.0}
                     for j in self.rangeObsAtoms:
-                        abund_dict[self.obsAtoms[j]] = pymc3.Uniform(self.obsAtoms[j], lower=0, upper=10)
+                        if self.obsAtoms[j] == 'He1r':
+                            abund_dict[self.obsAtoms[j]] =  pymc3.Lognormal(self.obsAtoms[j], mu=0, sd=1)#pymc3.Uniform(self.obsAtoms[j], lower=0, upper=1)
+                        elif self.obsAtoms[j] == 'He2r':
+                            abund_dict[self.obsAtoms[j]] =  pymc3.Lognormal(self.obsAtoms[j], mu=0, sd=1)#pymc3.Uniform(self.obsAtoms[j], lower=0, upper=1)
+                        else:
+                            abund_dict[self.obsAtoms[j]] = pymc3.Normal(self.obsAtoms[j], mu=5, sd=5)
+
+                        #abund_dict[self.obsAtoms[j]] = pymc3.Normal(self.obsAtoms[j], mu=5, sd=5)
 
                     # Loop through the lines
                     for i in self.rangeLines:
@@ -119,7 +126,7 @@ class SpectraSynthesizer(ModelIngredients):
                 #     abund_dict = {'He1r': pymc3.Uniform('He1r', lower=0, upper=10),
                 #                   'He2r': pymc3.Uniform('He2r', lower=0, upper=10)}
 
-            if 'stellar' in self.fitting_parameters:
+            if 'stellar' in self.spectraComponents:
 
                 # Stellar continuum priors
                 Av_star = pymc3.Uniform('Av_star', lower=0, upper=3)
@@ -133,13 +140,16 @@ class SpectraSynthesizer(ModelIngredients):
                 basesTreated = self.onBasesFluxNorm * dust_attenuation
 
                 # Compute synthetic spectrum
-                fit_continuum = basesTreated.dot(popCoeffs) + nebular_flux
+                #fit_continuum = basesTreated.dot(popCoeffs) + nebular_flux
 
             for RV in model.basic_RVs:
                 print(RV.name, RV.logp(model.test_point))
 
+
+            start= pymc3.find_MAP()
+            print start
             # Launch model
-            trace = pymc3.sample(iterations, tune=tuning)
+            trace = pymc3.sample(iterations, tune=tuning, start=start)
 
             print pymc3.summary(trace)
             pymc3.traceplot(trace)
