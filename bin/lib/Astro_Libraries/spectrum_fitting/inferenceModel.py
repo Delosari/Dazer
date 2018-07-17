@@ -146,10 +146,10 @@ class SpectraSynthesizer(ModelIngredients):
                 print(RV.name, RV.logp(model.test_point))
 
 
-            start= pymc3.find_MAP()
-            print start
+            # start= pymc3.find_MAP()
+            # print start
             # Launch model
-            trace = pymc3.sample(iterations, tune=tuning, start=start)
+            trace = pymc3.sample(iterations, tune=tuning)
 
             print pymc3.summary(trace)
             pymc3.traceplot(trace)

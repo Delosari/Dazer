@@ -79,7 +79,7 @@ def check_missing_flux_values(flux):
 
 
 # Function to import configuration data
-def parse_synth_objData(file_address, objName, objData):
+def parseObjData(file_address, objName, objData):
 
     # json.dump(obj_data, open('/home/vital/PycharmProjects/thesis_pipeline/spectrum_fitting/synth_objProperties_json.txt', 'w'),
     # indent=4, sort_keys=True)

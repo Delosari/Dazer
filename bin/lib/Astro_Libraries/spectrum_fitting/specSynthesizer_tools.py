@@ -2,7 +2,7 @@ import numpy as np
 from pandas import read_csv
 from plot_tools import MCMC_printer
 from collections import OrderedDict
-from import_functions import ImportModelData, parse_synth_objData, make_folder
+from import_functions import ImportModelData, parseObjData, make_folder
 from starContinuum_functions import SspFitter, CCM89_Bal07
 from gasContinuum_functions import NebularContinuaCalculator
 from gasEmission_functions import TOIII_TSIII_relation, EmissionComponents
@@ -228,7 +228,7 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
 
         #Save the data into an "ini" configuration file
         conf_address = '{}{}_objParams.txt'.format(output_folder, obs_name)
-        parse_synth_objData(conf_address, obs_name, obj_dict)
+        parseObjData(conf_address, obs_name, obj_dict)
 
         return
 
@@ -311,6 +311,9 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
                 self.prepare_ssp_data(None, obj_wave=self.obj_data['wave_resam'], obj_flux=self.obj_data['flux_norm'],
                                       obj_flux_err=self.obj_data['continuum_sigma'], obj_mask=self.int_mask)
 
+                self.prepareContinuaData(self.)
+                basesWave, basesFlux, basesFluxCoeffs, obsWave, obsFlux, obsFluxEr, objMask, nebularFlux = None, mainPopulationsFile = None
+
                 # Select model
                 self.select_inference_model('stelar_prefit')
 
@@ -346,7 +349,6 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
 
         self.Te_prior           = np.array(self.obj_data['Te_prior'])
         self.ne_prior           = np.array(self.obj_data['ne_prior'])
-        self.cHbeta_prior       = np.array(self.obj_data['cHbeta_prior'])
 
         # Emission line fluxes and errors #TODO Add normalization check here
         self.obsLineFluxes      = self.obj_data['lineFluxes']
