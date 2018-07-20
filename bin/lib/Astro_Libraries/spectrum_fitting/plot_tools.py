@@ -5,7 +5,7 @@ from matplotlib import cm
 from matplotlib import rcParams
 from matplotlib.mlab import detrend_mean
 from mpl_toolkits.mplot3d import Axes3D
-from numpy import array, reshape, empty, ceil, percentile, median, nan
+from numpy import array, reshape, empty, ceil, percentile, median, nan, flatnonzero, core
 from lib.Plotting_Libraries.dazer_plotter import Plot_Conf
 from lib.Plotting_Libraries.sigfig import round_sig
 from lib.CodeTools.File_Managing_Tools import Pdf_printer
@@ -26,25 +26,30 @@ class Basic_plots(Plot_Conf):
         # Class with plotting tools
         Plot_Conf.__init__(self)
 
-    def prefit_output(self, obj_ssp_fit_flux):
+    def prefit_input(self):
 
         size_dict = {'figure.figsize': (20, 14), 'axes.labelsize': 16, 'legend.fontsize': 18}
         self.FigConf(plotSize=size_dict)
 
-        self.data_plot(self.input_wave, self.input_continuum, 'Object Input continuum')
-        self.data_plot(self.input_wave, self.obj_data['synth_neb_flux'], 'synth_neb_flux', linestyle = '--')
-        self.data_plot(self.input_wave, obj_ssp_fit_flux , 'Stellar Prefit continuum output', linestyle=':')
+        #Input continuum
+        self.data_plot(self.inputWave, self.inputContinuum, 'Input object continuum')
 
-        #In case of a synthetic observation:
-        if 'neb_SED' in self.obj_data:
-            self.data_plot(self.input_wave, self.obj_data['neb_SED']['neb_int_norm'], 'Nebular continuum')
-            title_label = 'Observed spectrum'
-        if 'stellar_flux' in self.obj_data:
-            self.data_plot(self.obj_data['obs_wave'], self.obj_data['stellar_flux']/self.obj_data['normFlux_coeff'], 'Stellar continuum')
-            self.data_plot(self.obj_data['obs_wave'], self.obj_data['stellar_flux_err']/ self.obj_data['normFlux_coeff'], 'Stellar continuum with uncertainty', linestyle=':')
-            title_label = 'Synthetic spectrum'
+        #Observed continuum
+        self.data_plot(self.obj_data['wave_resam'], self.obj_data['flux_norm'], 'Observed spectrum', linestyle=':')
 
-        self.FigWording(xlabel='Wavelength $(\AA)$', ylabel = 'Observed flux', title = 'Observed spectrum')
+        # Nebular contribution removed if available
+        self.data_plot(self.nebDefault['wave_neb'], self.nebDefault['synth_neb_flux'], 'Nebular contribution removed', linestyle = '--')
+
+        # #In case of a synthetic observation:
+        # if 'neb_SED' in self.obj_data:
+        #     self.data_plot(self.input_wave, self.obj_data['neb_SED']['neb_int_norm'], 'Nebular continuum')
+        #     title_label = 'Observed spectrum'
+        # if 'stellar_flux' in self.obj_data:
+        #     self.data_plot(self.obj_data['obs_wave'], self.obj_data['stellar_flux']/self.obj_data['normFlux_coeff'], 'Stellar continuum')
+        #     self.data_plot(self.obj_data['obs_wave'], self.obj_data['stellar_flux_err']/ self.obj_data['normFlux_coeff'], 'Stellar continuum with uncertainty', linestyle=':')
+        #     title_label = 'Synthetic spectrum'
+
+        self.FigWording(xlabel='Wavelength $(\AA)$', ylabel = 'Observed flux', title = 'Observed spectrum and prefit input continuum')
 
         return
 
@@ -53,46 +58,55 @@ class Basic_plots(Plot_Conf):
         size_dict = {'figure.figsize': (20, 14), 'axes.labelsize': 16, 'legend.fontsize': 18}
         self.FigConf(plotSize=size_dict)
 
-        self.data_plot(self.input_wave, self.obj_data['flux_norm'], 'Object normed flux')
-        self.data_plot(self.input_wave, self.obj_data['synth_neb_flux'], 'Nebular continuum')
-        self.data_plot(self.input_wave, obj_ssp_fit_flux + self.obj_data['synth_neb_flux'], 'Prefit continuum output', linestyle=':')
-
+        self.data_plot(self.inputWave, self.obj_data['flux_norm'], 'Object normed flux')
+        self.data_plot(self.inputWave, self.nebDefault['synth_neb_flux'], 'Nebular continuum')
+        self.data_plot(self.inputWave, obj_ssp_fit_flux + self.nebDefault['synth_neb_flux'], 'Prefit continuum output', linestyle=':')
+        self.Axis.set_yscale('log')
         self.FigWording(xlabel='Wavelength $(\AA)$', ylabel='Observed flux', title='SSPs continuum prefit')
 
         return
 
-    def prefit_ssps(self):
+    def prefit_ssps(self, sspPrefitCoeffs):
 
         size_dict = {'figure.figsize': (20, 14), 'axes.labelsize': 16, 'legend.fontsize': 18}
         self.FigConf(plotSize=size_dict)
 
         #TODO This function should go to my collection
         ordinal_generator = lambda n: "%d%s" % (n, "tsnrhtdd"[(n / 10 % 10 != 1) * (n % 10 < 4) * n % 10::4])
-        ordinal_bases = [ordinal_generator(n) for n in range(len(self.sspPrefit_Coeffs))]
+        ordinal_bases = [ordinal_generator(n) for n in range(len(sspPrefitCoeffs))]
 
         counter = 0
         for i in range(len(self.onBasesFluxNorm)):
-            if self.sspPrefit_Coeffs[i] > self.lowlimit_sspContribution:
+            if sspPrefitCoeffs[i] > self.lowlimit_sspContribution:
                 counter += 1
-                label_i = '{} base: flux coeff {}, norm coeff {:.2E}'.format(ordinal_bases[i], self.sspPrefit_Coeffs[i], self.onBasesFluxNormCoeffs[i])
+                label_i = '{} base: flux coeff {}, norm coeff {:.2E}'.format(ordinal_bases[i], sspPrefitCoeffs[i], self.onBasesFluxNormCoeffs[i])
                 self.data_plot(self.onBasesWave, self.onBasesFluxNorm[i], label_i)
 
         self.area_fill(self.ssp_lib['norm_interval'][0], self.ssp_lib['norm_interval'][1], 'Norm interval: {} - {}'.format(self.ssp_lib['norm_interval'][0], self.ssp_lib['norm_interval'][1]), alpha=0.5)
 
-        title = 'SSP prefit contributing stellar populations {}/{}'.format((self.sspPrefit_Coeffs > self.lowlimit_sspContribution).sum(), len(self.onBasesFluxNorm))
+        title = 'SSP prefit contributing stellar populations {}/{}'.format((sspPrefitCoeffs > self.lowlimit_sspContribution).sum(), len(self.onBasesFluxNorm))
         self.FigWording(xlabel='Wavelength $(\AA)$', ylabel = 'Normalized flux', title = title)
 
         return
 
     def masked_observation(self):
 
-        size_dict = {'figure.figsize': (20, 14), 'axes.labelsize': 16, 'legend.fontsize': 18}
+        size_dict = {'figure.figsize': (20, 14), 'axes.labelsize': 16, 'legend.fontsize': 16}
         self.FigConf(plotSize=size_dict)
 
-        self.data_plot(self.obj_data['wave_resam'], self.obj_data['flux_norm'], 'Normalized observation')
-        self.data_plot(self.input_wave, self.input_continuum, 'Masked observation', linestyle='--')
+        nLineMasks = self.boolean_matrix.shape[0]
+        inputContinuum = self.obj_data['flux_norm'] - self.nebDefault['synth_neb_flux']
+        self.data_plot(self.inputWave, inputContinuum, 'Unmasked input continuum')
+        self.data_plot(self.inputWave, inputContinuum*np.invert(self.object_mask), 'Object mask', linestyle=':')
 
-        self.FigWording(xlabel='Wavelength $(\AA)$', ylabel = 'Observed flux', title = 'Spectrum masks')
+        for i in range(nLineMasks):
+            self.data_plot(self.inputWave, inputContinuum * self.boolean_matrix[i,:], 'Line mask ' + self.obj_data['lineLabels'][i], linestyle='--')
+
+        self.Axis.set_xlabel('Wavelength $(\AA)$')
+        self.Axis.set_ylabel('Observed flux')
+        self.Axis.set_title('Spectrum masks')
+        self.Axis.set_xscale('log')
+        self.Axis.legend(bbox_to_anchor = (0.95, 1), loc = 2, borderaxespad = 0.)
 
         return
 
@@ -180,7 +194,10 @@ class Basic_plots(Plot_Conf):
 
         return
 
-    def traces_plot(self, traces, database, stats_dic):
+    def traces_plot(self, traces_list, stats_dic):
+
+        #Remove operations from the parameters list
+        traces = traces_list[[i for i, v in enumerate(traces_list) if '_Op' not in v]]
 
         # Number of traces to plot
         n_traces = len(traces)
@@ -221,7 +238,64 @@ class Basic_plots(Plot_Conf):
 
         return
 
-    def posteriors_plot(self, traces, database, stats_dic):
+    def tracesPosteriorPlot(self, traces_list, stats_dic):
+
+        #Remove operations from the parameters list
+        traces = traces_list[[i for i, v in enumerate(traces_list) if '_Op' not in v]]
+
+        # Number of traces to plot
+        n_traces = len(traces)
+
+        # Declare figure format
+        size_dict = {'figure.figsize': (10, 16), 'axes.titlesize':20, 'axes.labelsize': 20, 'legend.fontsize': 14}
+        self.FigConf(plotSize=size_dict, Figtype='tracePosterior', n_columns=2, n_rows=n_traces)
+
+        # Generate the color map
+        self.gen_colorList(0, n_traces)
+
+        # Plot individual traces
+        for i in range(n_traces):
+
+            # Current trace
+            trace_code = traces[i]
+            trace_array = stats_dic[trace_code]['trace']
+
+            # Label for the plot
+            mean_value = stats_dic[trace_code]['mean']
+            std_dev = stats_dic[trace_code]['standard deviation']
+            if mean_value > 0.001:
+                label = r'{} = ${}$ $\pm${}'.format(self.labels_latex_dic[trace_code], round_sig(mean_value, 4),
+                                                    round_sig(std_dev, 4))
+            else:
+                label = r'{} = ${:.3e}$ $\pm$ {:.3e}'.format(self.labels_latex_dic[trace_code], mean_value, std_dev)
+
+            # Plot the traces
+            self.Axis[i,0].plot(trace_array, label=label, color=self.get_color(i))
+            self.Axis[i, 0].axhline(y=mean_value, color=self.get_color(i), linestyle='--')
+            self.Axis[i, 0].set_ylabel(self.labels_latex_dic[trace_code])
+
+            #Plot the histograms
+            #self.Axis[i,1].hist(trace_array, histtype='stepfilled', bins=35, alpha=.7, color=self.get_color(i), normed=False)
+            self.Axis[i,1].hist(trace_array, bins=35,  histtype='bar', color=self.get_color(i), align = 'left')
+            self.Axis[i,1].set_xlim(np.min(trace_array) - 0.5, np.max(trace_array) + 0.5)
+            # self.Axis[i, 1].axis('scaled')
+            # self.Axis[i, 1].set(adjustable='datalim', aspect=1)
+            #Add true value if available
+
+            if i < n_traces - 1:
+                self.Axis[i, 0].set_xticklabels([])
+
+            # Add legend
+            self.legend_conf(self.Axis[i,0], loc=2)
+
+            plt.tight_layout()
+
+        return
+
+    def posteriors_plot(self, traces_list, stats_dic):
+
+        #Remove operations from the parameters list
+        traces = traces_list[[i for i, v in enumerate(traces_list) if '_Op' not in v]]
 
         # Number of traces to plot
         n_traces = len(traces)
@@ -269,7 +343,7 @@ class Basic_plots(Plot_Conf):
             self.Axis[i].set_ylabel(self.labels_latex_dic[trace_code])
             self.legend_conf(self.Axis[i], loc=2)
 
-    def fluxes_distribution(self, lines_list, function_key, db, db_dict, true_values = None):
+    def fluxes_distribution(self, lines_list, function_key, db_dict, true_values = None):
 
         # Number of traces to plot
         n_lines = len(lines_list)
@@ -321,7 +395,10 @@ class Basic_plots(Plot_Conf):
 
         return
 
-    def acorr_plot(self, traces, database, stats_dic, n_columns=4, n_rows=2):
+    def acorr_plot(self, traces_list, stats_dic, n_columns=4, n_rows=2):
+
+        #Remove operations from the parameters list
+        traces = traces_list[[i for i, v in enumerate(traces_list) if '_Op' not in v]]
 
         # Number of traces to plot
         n_traces = len(traces)
@@ -358,7 +435,13 @@ class Basic_plots(Plot_Conf):
 
         return
 
-    def corner_plot(self, traces, database, stats_dic, plot_true_values=False):
+    def corner_plot(self, traces_list, stats_dic, plot_true_values=False):
+
+        #Remove operations from the parameters list
+        traces = traces_list[[i for i, v in enumerate(traces_list) if '_Op' not in v]]
+
+        # Number of traces to plot
+        n_traces = len(traces)
 
         # Set figure conf
         sizing_dict = {}
@@ -421,7 +504,7 @@ class Basic_tables(Pdf_printer):
         # Class with pdf tools
         Pdf_printer.__init__(self)
 
-    def table_mean_outputs(self, table_address, parameters_list, db, db_dict, true_values = None):
+    def table_mean_outputs(self, table_address, parameters_list, db_dict, true_values = None):
 
         # Table headers
         headers = ['Parameter', 'True value', 'Mean', 'Standard deviation', 'Number of points', 'Median', r'$16^{th}$ $percentil$', r'$84^{th}$ $percentil$']
@@ -433,27 +516,29 @@ class Basic_tables(Pdf_printer):
         #Loop around the parameters
         for param in parameters_list:
 
-            # Label for the plot
-            label       = self.labels_latex_dic[param]
-            mean_value  = db_dict[param]['mean']
-            std         = db_dict[param]['standard deviation']
-            n_traces    = db_dict[param]['n']
-            median      = db_dict[param]['median']
-            p_16th      = db_dict[param]['16th_p']
-            p_84th      = db_dict[param]['84th_p']
+            if '_Op' not in param:
 
-            if 'true_value' in db_dict[param]:
-                true_value = db_dict[param]['true_value']
-            else:
-                true_value = 'None'
+                # Label for the plot
+                label       = self.labels_latex_dic[param]
+                mean_value  = db_dict[param]['mean']
+                std         = db_dict[param]['standard deviation']
+                n_traces    = db_dict[param]['n']
+                median      = db_dict[param]['median']
+                p_16th      = db_dict[param]['16th_p']
+                p_84th      = db_dict[param]['84th_p']
 
-            self.addTableRow([label, true_value, mean_value, std, n_traces, median, p_16th, p_84th], last_row=False if parameters_list[-1] != param else True)
+                if 'true_value' in db_dict[param]:
+                    true_value = db_dict[param]['true_value']
+                else:
+                    true_value = 'None'
+
+                self.addTableRow([label, true_value, mean_value, std, n_traces, median, p_16th, p_84th], last_row=False if parameters_list[-1] != param else True)
 
         self.generate_pdf(clean_tex=True)
 
         return
 
-    def table_line_fluxes(self, table_address, lines_list, function_key, db, db_dict, true_values = None):
+    def table_line_fluxes(self, table_address, lines_list, function_key, db_dict, true_values = None):
 
         # Generate pdf
         self.create_pdfDoc(table_address, pdf_type='table')
@@ -522,90 +607,79 @@ class MCMC_printer(Basic_plots, Basic_tables):
 
         return
 
-    def plot_prefit_data(self):
-
-        # TODO this calculation should not be here... we should be able to change it to prepare_data or somewhere else
-        ssp_grid_i_norm = self.physical_SED_model(self.ssp_lib['wave_resam'], self.obj_data['wave_resam'],
-                self.onBasesFluxNorm, self.ssp_lib['Av_sspPrefit'], 0.0, self.ssp_lib['sigma_sspPrefit'], self.Rv_model)
-
-        obj_ssp_fit_flux = ssp_grid_i_norm.dot(self.sspPrefit_Coeffs)
-
-        # Continua components from ssp prefit
-        self.prefit_comparison(obj_ssp_fit_flux)
-        self.savefig(self.input_folder + 'prefit_prefitOutput', resolution=200)
-
-        # Prefit SSPs norm plot
-        self.prefit_ssps()
-        self.savefig(self.input_folder + 'prefit_NormSsps', resolution=200)
+    def plotInputSSPsynthesis(self):
 
         # Plot input data
-        self.prefit_output(obj_ssp_fit_flux)
-        self.savefig(self.input_folder + 'prefit_components', resolution=200)
+        self.prefit_input()
+        self.savefig(self.input_folder + self.objName + '_prefit_input', resolution=200)
+
+        # Plot resampling
+        self.resampled_observation()
+        self.savefig(self.input_folder + self.objName + '_resampled_spectra', resolution=200)
 
         # Spectrum masking
         self.masked_observation()
-        self.savefig(self.input_folder + 'spectrum_mask', resolution=200)
-
-        # Spectrum resampling
-        self.resampled_observation()
-        self.savefig(self.input_folder + 'resampled_spectra', resolution=200)
-
-        # Stellar prefit Traces
-        self.traces_plot(['Av_star', 'sigma_star'], self.ssp_lib['db_sspPrefit'], self.ssp_lib['dbDict_sspPrefit'])
-        self.save_manager(self.input_folder + 'PrefitTracesPlot', save=True, save_pickle=False)
-
-        # Stellar prefit Posteriors
-        self.posteriors_plot(['Av_star', 'sigma_star'], self.ssp_lib['db_sspPrefit'], self.ssp_lib['dbDict_sspPrefit'])
-        self.save_manager(self.input_folder + 'PrefitPosteriorPlot', save=True, save_pickle=False)
+        self.savefig(self.input_folder + self.objName + '_spectrum_mask', resolution=200)
 
         return
 
-    def plot_ouput_data(self, database_address, db, db_dict, params_list):
+    def plotOutputSSPsynthesis(self, pymc2_dbPrefit, pymc2_db_dictPrefit, obj_ssp_fit_flux = None, sspPrefitCoeffs=None):
 
-        print '-Printing output data:'
+        # Continua components from ssp prefit
+        if obj_ssp_fit_flux is not None:
+            self.prefit_comparison(obj_ssp_fit_flux)
+            self.savefig(self.input_folder + self.objName + '_prefit_Output', resolution=200)
 
-        if 'pymc3' in self.model_type:
+        # Prefit SSPs norm plot
+        if sspPrefitCoeffs is not None:
+            self.prefit_ssps(sspPrefitCoeffs)
+            self.savefig(self.input_folder + self.objName + '_prefit_NormSsps', resolution=200)
 
-            print 'hi'
+        # Stellar prefit Traces
+        self.traces_plot(['Av_star', 'sigma_star'], pymc2_dbPrefit, pymc2_db_dictPrefit)
+        self.save_manager(self.input_folder + self.objName + '_PrefitTracesPlot', save=True, save_pickle=False)
 
-        else:
+        # Stellar prefit Posteriors
+        self.posteriors_plot(['Av_star', 'sigma_star'], pymc2_dbPrefit, pymc2_db_dictPrefit)
+        self.save_manager(self.input_folder + self.objName + '_PrefitPosteriorPlot', save=True, save_pickle=False)
 
-            # Table mean values
-            print '--Model parameters table'
-            self.table_mean_outputs(database_address + '_meanOutput', params_list, db, db_dict)
+        return
 
-            # Recombination fluxes
-            if 'recomb_lines' in self.fitting_components:
-                print '--Recombination lines table'
-                self.table_line_fluxes(database_address + '_FluxesRecomb', self.obj_data['recombLine_labes'], 'calc_recomb_fluxes', db, db_dict, true_values=self.recomb_fluxes)
-                self.fluxes_distribution(self.obj_data['recombLine_labes'], 'calc_recomb_fluxes', db, db_dict, true_values=self.recomb_fluxes)
-                self.savefig(database_address + '_FluxesRecomb_posteriors', resolution=200)
+    def plotOuputData(self, database_address, db, db_dict, params_list):
 
-            # Collisional excited fluxes
-            if 'colExcited_lines' in self.fitting_components:
-                print '--Colisional lines table:'
-                self.table_line_fluxes(database_address + '_FluxesColExc', self.obj_data['colLine_labes'], 'calc_colExcit_fluxes', db, db_dict, true_values=self.colExc_fluxes)
-                self.fluxes_distribution(self.obj_data['colLine_labes'], 'calc_colExcit_fluxes', db, db_dict, true_values=self.colExc_fluxes)
-                self.savefig(database_address + '_FluxesColExc_posteriors', resolution=200)
+        # Posteriors
+        print '--Model parameters posterior diagram'
+        self.tracesPosteriorPlot(params_list, db_dict)
+        plt.show()
 
-            # Traces
-            print '--Traces diagram'
-            self.traces_plot(params_list, db, db_dict)
-            self.savefig(database_address + '_TracesPlot', resolution=200)
-
-            # Posteriors
-            print '--Model parameters posterior diagram'
-            self.posteriors_plot(params_list, db, db_dict)
-            self.savefig(database_address + '_PosteriorPlot', resolution=200)
-
-            # Corner plot
-            print '--Scatter plot matrix'
-            self.corner_plot(params_list, db, db_dict)
-            self.savefig(database_address + '_CornerPlot', resolution=200)
-
-            # Acorrelation
-            print '--Acorrelation plot'
-            self.acorr_plot(params_list, db, db_dict, n_columns=4, n_rows=int(ceil(len(params_list)/4.0)))
-            self.savefig(database_address + '_Acorrelation', resolution=200)
+        # # # Table mean values
+        # print '--Model parameters table'
+        # self.table_mean_outputs(database_address + '_meanOutput', params_list, db_dict, true_values = None)
+        #
+        # # # Line fluxes values
+        # print '--Line fluxes table' # TODO divide in two
+        # self.table_line_fluxes(database_address + '_LineFluxes', self.lineLabels, 'calcFluxes_Op', db_dict, true_values=self.obsLineFluxes)
+        # self.fluxes_distribution(self.lineLabels, 'calcFluxes_Op', db_dict, true_values=self.obsLineFluxes)
+        # self.savefig(database_address + '_LineFluxesPosteriors', resolution=200)
+        #
+        # # Traces
+        # print '--Traces diagram'
+        # self.traces_plot(params_list, db_dict)
+        # self.savefig(database_address + '_TracesPlot', resolution=200)
+        #
+        # # Posteriors
+        # print '--Model parameters posterior diagram'
+        # self.posteriors_plot(params_list, db_dict)
+        # self.savefig(database_address + '_PosteriorPlot', resolution=200)
+        #
+        # # Acorrelation
+        # print '--Acorrelation plot'
+        # self.acorr_plot(params_list, db_dict, n_columns=4, n_rows=int(ceil(len(params_list)/4.0)))
+        # self.savefig(database_address + '_Acorrelation', resolution=200)
+        #
+        # # Corner plot
+        # print '--Scatter plot matrix'
+        # self.corner_plot(params_list, db_dict)
+        # self.savefig(database_address + '_CornerPlot', resolution=200)
 
         return

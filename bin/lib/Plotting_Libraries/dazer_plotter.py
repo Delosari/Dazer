@@ -186,8 +186,11 @@ class Fig_Conf():
             if (n_rows * n_columns) != 1:
                 self.Axis = self.Axis.ravel()
             else:
-                self.Axis = [self.Axis]  
-                  
+                self.Axis = [self.Axis]
+
+        elif Figtype == 'tracePosterior':
+            self.Fig, self.Axis = plt.subplots(n_rows, n_columns)
+
         elif Figtype == 'Grid':
             frame1 = plt.gca()
             frame1.axes.xaxis.set_visible(False)
@@ -372,6 +375,17 @@ class Plot_Conf(Fig_Conf):
                                     'N2_abund':r'$N^{+}$',
                                     'Ar3_abund':r'$Ar^{2+}$',
                                     'Ar4_abund':r'$Ar^{3+}$',
+                                    'S2': r'$S^{+}$',
+                                    'S3': r'$S^{2+}$',
+                                    'O2': r'$O^{+}$',
+                                    'O3': r'$O^{2+}$',
+                                    'S3': r'$S^{2+}$',
+                                    'O2': r'$O^{+}$',
+                                    'O3': r'$O^{2+}$',
+                                    'N2': r'$N^{+}$',
+                                    'Ar3': r'$Ar^{2+}$',
+                                    'Ar4': r'$Ar^{3+}$',
+                                    'calcFluxes_Op': 'Line fluxes',
                                     'z_star':r'$z_{\star}$',
                                     'sigma_star':r'$\sigma_{\star}$',
                                     'Av_star':r'$Av_{\star}$',

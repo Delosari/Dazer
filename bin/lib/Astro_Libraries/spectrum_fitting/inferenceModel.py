@@ -6,10 +6,11 @@ import cPickle as pickle
 import theano
 import theano.tensor as tt
 from collections import OrderedDict
-from numpy import mean, std, square, empty, percentile, median, sum as np_sum, abs
+from numpy import mean, std, square, empty, percentile, median, sum as np_sum, abs, array
 from lib.Astro_Libraries.spectrum_fitting.specSynthesizer_tools import ModelIngredients
 from gasEmission_functions import TOIII_TSIII_relation
 import matplotlib.pyplot as plt
+from import_functions import ImportModelData, parseObjData, make_folder
 
 # Line to avoid the compute_test_value error
 theano.config.compute_test_value = "ignore"
@@ -26,15 +27,65 @@ class SpectraSynthesizer(ModelIngredients):
         self.select_inference_model(model = hammer)
 
         # Run the sampler
-        self.run_pymc(db_address = output_folder + model_name,iterations=iterations, tuning=tuning, model_type=hammer)
+        db_address = output_folder + model_name + '.db' # TODO Deberiamos poder quitar este .db
+        #self.run_pymc(db_address, iterations=iterations, tuning=tuning, model_type=hammer)
 
         # # Load the results
-        # output_db, output_db_dict = self.load_pymc_database_manual(output_address, burning=burn, params_list=params_list)
-        #
-        # # Plot output data
-        # self.plot_ouput_data(output_address, output_db, output_db_dict, params_list)
+        inferenceTrace, interenceParamsDict = self.load_pymc_database_manual(db_address, sampler='pymc3')
+
+        pymc3.traceplot(inferenceTrace)
+
+        # # # Plot output data
+        self.plotOuputData(self.output_folder + self.objName, inferenceTrace, interenceParamsDict, array(interenceParamsDict.keys()))
+
+        # print pymc3.summary(interence_trace)
+        # pymc3.traceplot(interence_trace)
+        # plt.show()
 
         return
+
+    def run_pymc(self, db_address, iterations = 10000, tuning = 0, variables_list = None, prefit = True, model_type = 'pymc2'):
+
+        if 'nuts' not in model_type:
+
+            # Define MCMC model
+            MAP_Model = pymc2.MAP(self.inf_dict)
+
+            # Prefit:
+            if prefit is not False:
+                fit_method = prefit if prefit is str else 'fmin_powell'
+                print '\n--Starting {} prefit'.format(fit_method)
+                MAP_Model.fit(method = fit_method)
+
+            # Print prefit data
+            print 'Initial conditions:'
+            self.display_run_data(MAP_Model, variables_list)
+
+            # Launch sample
+            print '\nInitiating fit:'
+            self.pymc2_M = pymc2.MCMC(MAP_Model.variables, db = 'pickle', dbname =  db_address)
+            self.pymc2_M.sample(iter=iterations)
+
+            # Save the output csv mean data
+            if variables_list != None:
+                print '--Saving results in csv'
+                csv_address = db_address + '_Parameters'
+                self.pymc2_M.write_csv(csv_address, variables=variables_list)
+
+            #Print again the output prediction for the entire trace
+            self.display_run_data(MAP_Model, variables_list)
+
+            #Close the database
+            self.pymc2_M.db.close()
+
+        else:
+            print '-- Starting sampling'
+            # Launch sample
+            trace, model = self.inf_dict(iterations, tuning)
+
+            # Save the data
+            with open(db_address, 'wb') as trace_pickle:
+                pickle.dump({'model': model, 'trace': trace}, trace_pickle)
 
     def select_inference_model(self, model = 'nuts', params_list = None):
 
@@ -59,7 +110,7 @@ class SpectraSynthesizer(ModelIngredients):
             if ('nebular' in self.spectraComponents) or ('emission' in self.spectraComponents):
 
                 # Gas Physical conditions priors
-                T_low = pymc3.Normal('T_low', mu=self.Te_prior[0], sd=self.Te_prior[1])
+                T_low = pymc3.Normal('T_low', mu=self.Te_prior[0], sd=1000.0)
                 cHbeta = pymc3.Lognormal('cHbeta', mu=0, sd=1)
                 #cHbeta  = pymc3.Uniform('cHbeta', lower=self.cHbeta_prior[0], upper=self.cHbeta_prior[1])
 
@@ -84,8 +135,6 @@ class SpectraSynthesizer(ModelIngredients):
                             abund_dict[self.obsAtoms[j]] =  pymc3.Lognormal(self.obsAtoms[j], mu=0, sd=1)#pymc3.Uniform(self.obsAtoms[j], lower=0, upper=1)
                         else:
                             abund_dict[self.obsAtoms[j]] = pymc3.Normal(self.obsAtoms[j], mu=5, sd=5)
-
-                        #abund_dict[self.obsAtoms[j]] = pymc3.Normal(self.obsAtoms[j], mu=5, sd=5)
 
                     # Loop through the lines
                     for i in self.rangeLines:
@@ -117,14 +166,11 @@ class SpectraSynthesizer(ModelIngredients):
                         # Store in container
                         lineFlux_tt = tt.inc_subtensor(lineFlux_tt[i], flux_i)
 
+                    lineFlux_ttarray = pymc3.Deterministic('calcFluxes_Op',lineFlux_tt)
                     # Global normal Likelihood for all lines
-                    Y = pymc3.Normal('Y', mu=lineFlux_tt, sd=self.obsLineFluxErr, observed=self.obsLineFluxes)
-
-                # else:
-                #
-                #     #He+ and He2+ abundance for the nebular continuum computation
-                #     abund_dict = {'He1r': pymc3.Uniform('He1r', lower=0, upper=10),
-                #                   'He2r': pymc3.Uniform('He2r', lower=0, upper=10)}
+                    # err_lines = pymc3.HalfNormal('err_lines', sd=0.05, shape=self.lineLabels.size)
+                    # Y = pymc3.Normal('Y', mu=lineFlux_tt, sd=err_lines, observed=self.obsLineFluxes)
+                    Y = pymc3.Normal('Y', mu=lineFlux_ttarray, sd=self.obsLineFluxErr, observed=self.obsLineFluxes)
 
             if 'stellar' in self.spectraComponents:
 
@@ -145,17 +191,14 @@ class SpectraSynthesizer(ModelIngredients):
             for RV in model.basic_RVs:
                 print(RV.name, RV.logp(model.test_point))
 
-
+            # Provide starting points
             # start= pymc3.find_MAP()
             # print start
+
             # Launch model
-            trace = pymc3.sample(iterations, tune=tuning)
+            trace = pymc3.sample(iterations, tune=tuning, nchains=2, njobs=2)
 
-            print pymc3.summary(trace)
-            pymc3.traceplot(trace)
-            plt.show()
-
-        return
+        return trace, model
 
     def stellarContinua_model(self):
 
@@ -164,10 +207,11 @@ class SpectraSynthesizer(ModelIngredients):
         sigma_star  = pymc2.Uniform('sigma_star', 0.0, 5.00)
         #z_star      = pymc2.Uniform('z_star', self.z_min_ssp_limit, self.z_max_ssp_limit)
 
-        @pymc2.deterministic #Shift, multiply and convolve by a factor given by the model parameters
-        def ssp_coefficients(z_star=0.0, Av_star=Av_star, sigma_star=sigma_star, input_flux=self.input_continuum):
+        # Shift, multiply and convolve by a factor given by the model parameters
+        @pymc2.deterministic
+        def ssp_coefficients(z_star=0.0, Av_star=Av_star, sigma_star=sigma_star, input_flux=self.inputContinuum):
 
-            ssp_grid_i = self.physical_SED_model(self.onBasesWave, self.input_wave, self.onBasesFluxNorm, Av_star, z_star, sigma_star, self.Rv_model)
+            ssp_grid_i = self.physical_SED_model(self.onBasesWave, self.inputWave, self.onBasesFluxNorm, Av_star, z_star, sigma_star, self.Rv_model)
 
             self.ssp_grid_i_masked = (self.int_mask * ssp_grid_i.T).T
 
@@ -175,15 +219,17 @@ class SpectraSynthesizer(ModelIngredients):
 
             return ssp_coeffs_norm
 
-        @pymc2.deterministic # Theoretical normalized flux
+        # Theoretical normalized flux
+        @pymc2.deterministic
         def stellar_continua_calculation(ssp_coeffs=ssp_coefficients):
 
             flux_sspFit_norm = np_sum(ssp_coeffs.T * self.ssp_grid_i_masked, axis=1)
 
             return flux_sspFit_norm
 
-        @pymc2.stochastic(observed=True) # Likelihood
-        def likelihood_ssp(value = self.input_continuum, stellarTheoFlux=stellar_continua_calculation, sigmaContinuum=self.input_continuum_er):
+        # Likelihood
+        @pymc2.stochastic(observed=True)
+        def likelihood_ssp(value = self.inputContinuum, stellarTheoFlux=stellar_continua_calculation, sigmaContinuum=self.inputContinuumEr):
             chi_F = sum(square(stellarTheoFlux - value) / square(sigmaContinuum))
             return - chi_F / 2
 
@@ -313,106 +359,77 @@ class SpectraSynthesizer(ModelIngredients):
 
         return locals()
 
-    def run_pymc(self, db_address, iterations = 10000, tuning = 0, variables_list = None, prefit = True, model_type = 'pymc2'):
+    def load_pymc_database_manual(self, db_address, burning = 0, params_list = None, sampler = 'pymc2'):
 
-        if 'nuts' not in model_type:
+        if sampler is 'pymc3':
 
-            # Define MCMC model
-            self.MAP_Model = pymc2.MAP(self.inf_dict)
+            # Restore the trace
+            with open(db_address, 'rb') as trace_restored:
+                data = pickle.load(trace_restored)
+            basic_model, trace = data['model'], data['trace']
 
-            # Prefit:
-            if prefit is not False:
-                fit_method = prefit if prefit is str else 'fmin_powell'
-                print '\n--Starting {} prefit'.format(fit_method)
-                self.MAP_Model.fit(method = fit_method)
+            # Save the parameters you want in a dictionary of dicts
+            param_dict, stats_dict = OrderedDict(), OrderedDict()
+            for parameter in trace.varnames:
+                if ('_log__' not in parameter) and ('interval' not in parameter):
 
-            # Print prefit data
-            print 'Initial conditions:'
-            self.display_run_data(self.MAP_Model, variables_list)
+                    trace_i = trace[parameter]
+                    stats_dict[parameter] = OrderedDict()
+                    param_dict[parameter] = array([trace[parameter].mean(), trace[parameter].std()])
 
-            # Launch sample
-            print '\nInitiating fit:'
-            self.pymc2_M = pymc2.MCMC(self.MAP_Model.variables, db = 'pickle', dbname =  db_address)
-            self.pymc2_M.sample(iter=iterations)
+                    stats_dict[parameter]['mean']                    = mean(trace_i)
+                    stats_dict[parameter]['median']                  = median(trace_i)
+                    stats_dict[parameter]['standard deviation']      = std(trace_i)
+                    stats_dict[parameter]['n']                       = trace_i.size
+                    stats_dict[parameter]['16th_p']                  = percentile(trace_i, 16)
+                    stats_dict[parameter]['84th_p']                  = percentile(trace_i, 84)
+                    stats_dict[parameter]['95% HPD interval']        = (stats_dict[parameter]['16th_p'], stats_dict[parameter]['84th_p'])
+                    stats_dict[parameter]['trace']                   = trace_i
 
-            # Save the output csv mean data
-            if variables_list != None:
-                print '--Saving results in csv'
-                self.csv_address = db_address + '_Parameters'
-                self.pymc2_M.write_csv(self.csv_address, variables=variables_list)
+            # Save parameters into the object log
+            parseObjData(self.configFile, self.objName + '_results', param_dict)
 
-            #Print again the output prediction for the entire trace
-            self.display_run_data(self.MAP_Model, variables_list)
-
-            #Close the database
-            self.pymc2_M.db.close()
+            return trace, stats_dict
 
         else:
-            # Address to store the pickle
-            model_address = db_address + '.pkl'
 
-            # Launch sample
-            self.inf_dict(iterations, tuning)
+            #Load the pymc output textfile database
+            pymc_database = pymc2.database.pickle.load(db_address)
 
-            #trace, pymc3_model = self.pymc3_model2()
+            #Create a dictionaries with the traces and statistics
+            traces_dic = {}
+            stats_dic = OrderedDict()
+            stats_dic['true_values'] = empty(len(params_list))
 
-            # # Load he data
-            # with open(model_address, 'rb') as buff:
-            #     pickleData = pickle.load(buff)
-            #
-            # pymc3_model, trace = pickleData['model'], pickleData['trace']
+            #This variable contains all the traces from the MCMC (stochastic and deterministic)
+            traces_list = pymc_database.trace_names[0]
 
-            #Save the data
-            # print pymc3.summary(trace)
-            # print model_address
-            # pymc3.traceplot(trace)
-            #
-            # plt.show()
-            #
-            # # Save the data
-            # with open(model_address, 'wb') as trace_pickle:
-            #     pickle.dump({'model': pymc3_model, 'trace': trace}, trace_pickle)
+            #Get statistics from the run
+            for i in range(len(traces_list)):
+                trace               = traces_list[i]
+                stats_dic[trace]    = OrderedDict()
+                trace_array         = pymc_database.trace(trace)[burning:]
+                traces_dic[trace]   = trace_array
 
-    def load_pymc_database_manual(self, db_address, burning = 0, params_list = None):
+                if 'dict' not in trace:
+                    stats_dic[trace]['mean']                    = mean(trace_array)
+                    stats_dic[trace]['median']                  = median(trace_array)
+                    stats_dic[trace]['standard deviation']      = std(trace_array)
+                    stats_dic[trace]['n']                       = trace_array.shape[0]
+                    stats_dic[trace]['16th_p']                  = percentile(trace_array, 16)
+                    stats_dic[trace]['84th_p']                  = percentile(trace_array, 84)
+                    stats_dic[trace]['95% HPD interval']        = (stats_dic[trace]['16th_p'], stats_dic[trace]['84th_p'])
+                    stats_dic[trace]['trace']                   = trace_array
 
-        #Load the pymc output textfile database
-        pymc_database = pymc2.database.pickle.load(db_address)
+                    if trace in params_list:
 
-        #Create a dictionaries with the traces and statistics
-        traces_dic = {}
-        stats_dic = OrderedDict()
-        stats_dic['true_values'] = empty(len(params_list))
+                        if trace in self.obj_data: #TODO we need a better structure fo this
+                            stats_dic[trace]['true_value'] = self.obj_data[trace]
 
-        #This variable contains all the traces from the MCMC (stochastic and deterministic)
-        traces_list = pymc_database.trace_names[0]
+            #Generate a pymc2 database to recover all the data from the run
+            dbMCMC = pymc2.MCMC(traces_dic, pymc_database)
 
-        #Get statistics from the run
-        for i in range(len(traces_list)):
-
-            trace               = traces_list[i]
-            stats_dic[trace]    = OrderedDict()
-            trace_array         = pymc_database.trace(trace)[burning:]
-            traces_dic[trace]   = trace_array
-
-            if 'dict' not in trace:
-                stats_dic[trace]['mean']                    = mean(trace_array)
-                stats_dic[trace]['median']                  = median(trace_array)
-                stats_dic[trace]['standard deviation']      = std(trace_array)
-                stats_dic[trace]['n']                       = trace_array.shape[0]
-                stats_dic[trace]['16th_p']                  = percentile(trace_array, 16)
-                stats_dic[trace]['84th_p']                  = percentile(trace_array, 84)
-                stats_dic[trace]['95% HPD interval']        = (stats_dic[trace]['16th_p'], stats_dic[trace]['84th_p'])
-                stats_dic[trace]['trace']                   = trace_array
-
-                if trace in params_list:
-
-                    if trace in self.obj_data: #TODO we need a better structure fo this
-                        stats_dic[trace]['true_value'] = self.obj_data[trace]
-
-        #Generate a MCMC object to recover all the data from the run
-        dbMCMC = pymc2.MCMC(traces_dic, pymc_database)
-
-        return dbMCMC, stats_dic
+            return dbMCMC, stats_dic
 
     def display_run_data(self, database, variables_list):
 

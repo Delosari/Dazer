@@ -79,36 +79,35 @@ def check_missing_flux_values(flux):
 
 
 # Function to import configuration data
-def parseObjData(file_address, objName, objData):
+def parseObjData(file_address, sectionName, objData):
 
     # json.dump(obj_data, open('/home/vital/PycharmProjects/thesis_pipeline/spectrum_fitting/synth_objProperties_json.txt', 'w'),
     # indent=4, sort_keys=True)
 
     parser = ConfigParser.SafeConfigParser()
     parser.optionxform = str
-    parser.add_section(objName)
+
+    if os.path.isfile(file_address):
+        parser.read(file_address)
+
+    if not parser.has_section(sectionName):
+        parser.add_section(sectionName)
 
     for key in objData.keys():
         value = objData[key]
         if value is not None:
-            if isinstance(value, list):
+            if isinstance(value, list) or isinstance(value, np.ndarray):
                 value = ','.join(str(x) for x in value)
             else:
                 value = str(value)
         else:
             value = ''
 
-        parser.set(objName, key, value)
+        parser.set(sectionName, key, value)
 
     with open(file_address, 'w') as f:
         parser.write(f)
 
-    # parser2 = ConfigParser.SafeConfigParser()
-    # parser2.read('/home/vital/PycharmProjects/thesis_pipeline/spectrum_fitting/synth_objProperties_config_parser.txt')
-    #
-    # print 'Aqui'
-    # print parser2.options(parser2.sections()[0])
-    # print 'hola', parser2.get('Object-Info', 'flux_hbeta') == ''
 
     return
 
@@ -449,20 +448,6 @@ class SspSynthesisImporter:
 
         return ssp_lib_dict
 
-    def load_observation_mask(self, obs_dict, obs_flux_resam):
-
-        # Declare type of masks
-        data_type = obs_dict['data_type']
-
-        if data_type == 'FIT3D':
-
-            boolean_mask = self.load_FIT3D_mask(obs_dict, obs_flux_resam)
-
-        elif data_type == 'starlight':
-
-            boolean_mask = ones(len(obs_flux_resam))  # self.starlight_mask(obs_dict, obs_flux_resam)
-
-        return boolean_mask
 
 class ImportModelData(SspSynthesisImporter):
     '''
@@ -526,10 +511,10 @@ class ImportModelData(SspSynthesisImporter):
 
         return opticalDepthCoeffs
 
-    def load_obsData(self, obsFile=None, objName=None, obs_wavelength=None, obs_flux=None):
+    def load_obsData(self, obsFile=None, objName=None):
 
         # TODO this should go into the master configuration
-        list_parameters     = ['obs_wavelength', 'obs_flux', 'wavelengh_limits', 'norm_interval'] #also all 'param_prior'
+        list_parameters     = ['Input_lines', 'Av_prefit','sigma_star_prefit', 'coeffsPop_prefit', 'coeffsPopErr_prefit', 'wavelengh_limits', 'norm_interval'] #also all 'param_prior'
         boolean_parameters  = ['Normalized_by_Hbeta']
         string_parameters   = ['address_lines_log', 'address_spectrum', 'address_obs_mask', 'obsFile', 'objName']
         print '-Reading observation {} {}'.format(obsFile if obsFile is not None else '', ' for object ' + objName if objName is not None else '')
@@ -549,6 +534,12 @@ class ImportModelData(SspSynthesisImporter):
             obj_data['obsFile'] = obsFile
             obj_data['objName'] = objName
 
+            results_section = objName + '_results'
+            #Recover data from previous fits
+            if cfg.has_section(results_section):
+                prefit_data = dict(cfg.items(results_section))
+                obj_data.update(prefit_data)
+
         else:
             # Dictionary with the observation data # TODO This does not work so well
             obj_data = locals()
@@ -562,9 +553,12 @@ class ImportModelData(SspSynthesisImporter):
             if obj_data[key] == '':
                 obj_data[key] = None
 
-            # Arrays
-            elif (key in list_parameters) or ('_prior' in key):
-                obj_data[key] = np.array(map(float, obj_data[key].split(',')))
+            # Arrays (The last boolean overrides the parameters
+            elif (key in list_parameters) or ('_prior' in key) or (',' in obj_data[key]):
+                if key in ['input_lines']:
+                    obj_data[key] = np.array(map(str, obj_data[key].split(',')))
+                else:
+                    obj_data[key] = np.array(map(float, obj_data[key].split(',')))
 
             # Boolean
             elif key in boolean_parameters:
@@ -588,6 +582,8 @@ class ImportModelData(SspSynthesisImporter):
         return obj_data
 
     def load_ssp_library(self, ssp_lib_type, data_folder=None, data_file=None, wavelengh_limits=None, resample_inc=None, norm_interval=None):
+
+        # TODO In here we need to add a test sample library
 
         # Store stellar base type
         sspLib_dict = {'data_type': ssp_lib_type}
@@ -676,12 +672,11 @@ class ImportModelData(SspSynthesisImporter):
 
         return
 
-    def generate_object_mask(self, linesDf, wavelength):
+    def generate_object_mask(self, linesDf, wavelength, linelabels):
 
         # TODO This will not work for a redshifted lines log
-
-        idcs_lineMasks = linesDf.index.isin(self.linesDb.index)
-        idcs_spectrumMasks = ~linesDf.index.isin(self.linesDb.index)
+        idcs_lineMasks = linesDf.index.isin(linelabels)
+        idcs_spectrumMasks = ~linesDf.index.isin(linelabels)
 
         # Matrix mask for integring the emission lines
         n_lineMasks = idcs_lineMasks.sum()
@@ -690,6 +685,7 @@ class ImportModelData(SspSynthesisImporter):
         # Total mask for valid regions in the spectrum
         n_objMasks = idcs_spectrumMasks.sum()
         self.int_mask = np.ones(wavelength.size, dtype=bool)
+        self.object_mask = np.ones(wavelength.size, dtype=bool)
 
         # Loop through the emission lines
         wmin, wmax = linesDf['w3'].loc[idcs_lineMasks].values, linesDf['w4'].loc[idcs_lineMasks].values
@@ -700,28 +696,9 @@ class ImportModelData(SspSynthesisImporter):
 
         # Loop through the object masks
         wmin, wmax = linesDf['w3'].loc[idcs_spectrumMasks].values, linesDf['w4'].loc[idcs_spectrumMasks].values
-        print n_objMasks
         for i in range(n_objMasks):
             idx_currentMask = (wavelength > wmin[i]) & (wavelength < wmax[i])
             self.int_mask = self.int_mask & ~idx_currentMask
-
-
-        # self.obj_data['int_mask'] = boolean_mask * 1
-        # self.obj_data['boolean_mask'] = boolean_mask
-        # self.obj_data['flux_norm_mask'] = self.obj_data['flux_norm'] * self.obj_data['int_mask']
-        #
-        # Plot input data
-        # import matplotlib.pyplot as plt
-        # fig, ax = plt.subplots(1, 1, figsize=(8, 6))
-        # #ax.plot(self.obj_data['wave_resam'], self.obj_data['flux_norm'],label='Model spectrum')
-        # for i in range(n_lineMasks):
-        #     ax.plot(self.obj_data['wave_resam'], self.obj_data['flux_norm'] * self.boolean_matrix[i,:], label=linesDf.index.values[i])
-        # #ax.plot(self.obj_data['wave_resam'], self.obj_data['flux_norm']*self.int_mask,label='Model spectrum')
-        # ax.update({'xlabel': 'Wavelength (nm)', 'ylabel': 'Flux (normalised)'})
-        # ax.legend()
-        # plt.show()
-        #
-        #
-        # exit()
+            self.object_mask = self.object_mask & ~idx_currentMask
 
         return
