@@ -366,6 +366,8 @@ class Plot_Conf(Fig_Conf):
                                     'ChiSq_O':r'$\chi^{2}_{O}$',
                                     'ChiSq_S':r'$\chi^{2}_{S}$',
                                     'S2_abund':r'$S^{+}$',
+                                    'He1r': r'$y^{+}$',
+                                    'He2r': r'$y^{2+}$',
                                     'S3_abund':r'$S^{2+}$',
                                     'O2_abund':r'$O^{+}$',
                                     'O3_abund':r'$O^{2+}$',

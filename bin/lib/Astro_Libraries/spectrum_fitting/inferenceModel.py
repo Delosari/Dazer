@@ -28,19 +28,13 @@ class SpectraSynthesizer(ModelIngredients):
 
         # Run the sampler
         db_address = output_folder + model_name + '.db' # TODO Deberiamos poder quitar este .db
-        #self.run_pymc(db_address, iterations=iterations, tuning=tuning, model_type=hammer)
+        self.run_pymc(db_address, iterations=iterations, tuning=tuning, model_type=hammer)
 
         # # Load the results
         inferenceTrace, interenceParamsDict = self.load_pymc_database_manual(db_address, sampler='pymc3')
 
-        pymc3.traceplot(inferenceTrace)
-
         # # # Plot output data
-        self.plotOuputData(self.output_folder + self.objName, inferenceTrace, interenceParamsDict, array(interenceParamsDict.keys()))
-
-        # print pymc3.summary(interence_trace)
-        # pymc3.traceplot(interence_trace)
-        # plt.show()
+        self.plotOuputData(self.output_folder + model_name, inferenceTrace, interenceParamsDict, array(interenceParamsDict.keys()))
 
         return
 
@@ -111,8 +105,7 @@ class SpectraSynthesizer(ModelIngredients):
 
                 # Gas Physical conditions priors
                 T_low = pymc3.Normal('T_low', mu=self.Te_prior[0], sd=1000.0)
-                cHbeta = pymc3.Lognormal('cHbeta', mu=0, sd=1)
-                #cHbeta  = pymc3.Uniform('cHbeta', lower=self.cHbeta_prior[0], upper=self.cHbeta_prior[1])
+                cHbeta = pymc3.Lognormal('cHbeta', mu=0, sd=1) if self.NoReddening is False else self.obj_data['cHbeta_true']
 
                 # High temperature
                 T_high = TOIII_TSIII_relation(T_low)
@@ -120,7 +113,7 @@ class SpectraSynthesizer(ModelIngredients):
                 if 'emission' in self.spectraComponents:
 
                     # Emission lines density
-                    n_e = pymc3.Normal('n_e', mu=self.ne_prior[0], sd=self.ne_prior[1])
+                    n_e =  pymc3.Normal('n_e', mu=self.ne_prior[0], sd=self.ne_prior[1])
 
                     # Helium abundance priors
                     if self.He1rCheck:
@@ -130,9 +123,9 @@ class SpectraSynthesizer(ModelIngredients):
                     abund_dict = {'H1r':1.0}
                     for j in self.rangeObsAtoms:
                         if self.obsAtoms[j] == 'He1r':
-                            abund_dict[self.obsAtoms[j]] =  pymc3.Lognormal(self.obsAtoms[j], mu=0, sd=1)#pymc3.Uniform(self.obsAtoms[j], lower=0, upper=1)
+                            abund_dict[self.obsAtoms[j]] = 0.1 * pymc3.Lognormal(self.obsAtoms[j], mu=0, sd=1)#pymc3.Uniform(self.obsAtoms[j], lower=0, upper=1)
                         elif self.obsAtoms[j] == 'He2r':
-                            abund_dict[self.obsAtoms[j]] =  pymc3.Lognormal(self.obsAtoms[j], mu=0, sd=1)#pymc3.Uniform(self.obsAtoms[j], lower=0, upper=1)
+                            abund_dict[self.obsAtoms[j]] = 0.001 * pymc3.Lognormal(self.obsAtoms[j], mu=0, sd=1)#pymc3.Uniform(self.obsAtoms[j], lower=0, upper=1)
                         else:
                             abund_dict[self.obsAtoms[j]] = pymc3.Normal(self.obsAtoms[j], mu=5, sd=5)
 

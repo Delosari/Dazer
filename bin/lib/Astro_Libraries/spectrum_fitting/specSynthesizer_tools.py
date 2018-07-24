@@ -52,7 +52,7 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
         # Lower accepted limit for ssps
         self.lowlimit_sspContribution = lowlimit_sspContribution
 
-    def gen_synth_obs(self, spectra_components = None, input_ions = None,
+    def gen_synth_obs(self, spectra_components = None,
                       wavelengh_limits = None, resample_inc = None, norm_interval = None,
                       obj_properties_file = None, obj_lines_file = None,
                       output_folder = None, obs_name = 'synthObj', ssp_lib_type = None, data_folder = None,
@@ -83,7 +83,7 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
         obj_WaveObs = obj_WaveRest * (1.0 + z_obj)
 
         # Generate masks for the object from the lines log
-        self.generate_object_mask(obj_lines_df, obj_WaveRest)
+        self.generate_object_mask(obj_lines_df, obj_WaveRest, obj_lines_df.index.values)
 
         # -------- Emission lines data
         #Store input data
@@ -105,7 +105,9 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
         self.obj_data['lineFlambda'] = self.gasExtincParams(self.obj_data['lineWaves'], self.Rv_model, self.reddedning_curve_model)
 
         # Plot fits of emissivity grids
-        #self.plot_emisFits(self.obj_data['lineLabels'], self.emisCoeffs, self.emis_grid, self.paths_dict['emisGridsPath'])
+        self.plot_emisFits(self.obj_data['lineLabels'], self.emisCoeffs, self.emis_grid, self.paths_dict['emisGridsPath'])
+
+        exit()
 
         #Dictionary with synthetic abundances
         abund_df        = obj_prop_df[obj_prop_df.index.str.contains('_abund')]
@@ -146,7 +148,6 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
         synth_lines_log = '{}{}_lineslog.txt'.format(output_folder, obs_name)
         with open(synth_lines_log, 'w') as f:
             f.write(obj_lines_df.ix[:, :'blended_label'].to_string(float_format=lambda x: "{:15.8f}".format(x), index=True, index_names=False))
-
 
         # -------- Nebular continuum calculation
 
@@ -225,6 +226,18 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
         obj_dict['Te_prior']            = [10000.0, 1000.0]
         obj_dict['ne_prior']            = [80, 50]
         obj_dict['cHbeta_prior']        = [0.125, 0.02]
+        obj_dict['T_low_true']          = T_low
+        obj_dict['n_e_true']            = n_e
+        obj_dict['cHbeta_true']         = cHbeta
+        obj_dict['tau_true']            = tau
+        obj_dict['S2_true']             = self.abund_dict['S2']
+        obj_dict['S3_true']             = self.abund_dict['S3']
+        obj_dict['Ar3_true']            = self.abund_dict['Ar3']
+        obj_dict['Ar4_true']            = self.abund_dict['Ar4']
+        obj_dict['O2_true']             = self.abund_dict['O2']
+        obj_dict['O3_true']             = self.abund_dict['O3']
+        obj_dict['N2_true']             = self.abund_dict['N2']
+
 
         #Save the data into an "ini" configuration file
         conf_address = '{}{}_objParams.txt'.format(output_folder, obs_name)

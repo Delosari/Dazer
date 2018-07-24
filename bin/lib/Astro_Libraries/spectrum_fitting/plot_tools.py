@@ -1,6 +1,7 @@
 import numpy as np
 import corner
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 from matplotlib import cm
 from matplotlib import rcParams
 from matplotlib.mlab import detrend_mean
@@ -18,6 +19,12 @@ def label_formatting(line_label):
     label = '$' + label + '$'
 
     return label
+
+def _histplot_bins(column, bins=100):
+    """Helper to get bins for histplot."""
+    col_min = np.min(column)
+    col_max = np.max(column)
+    return range(col_min, col_max + 2, max((col_max - col_min) // bins, 1))
 
 class Basic_plots(Plot_Conf):
 
@@ -241,20 +248,26 @@ class Basic_plots(Plot_Conf):
     def tracesPosteriorPlot(self, traces_list, stats_dic):
 
         #Remove operations from the parameters list
-        traces = traces_list[[i for i, v in enumerate(traces_list) if '_Op' not in v]]
+        traces = traces_list[[i for i, v in enumerate(traces_list) if ('_Op' not in v) and ('_log__' not in v)]]
 
         # Number of traces to plot
         n_traces = len(traces)
 
         # Declare figure format
-        size_dict = {'figure.figsize': (10, 16), 'axes.titlesize':20, 'axes.labelsize': 20, 'legend.fontsize': 14}
-        self.FigConf(plotSize=size_dict, Figtype='tracePosterior', n_columns=2, n_rows=n_traces)
+        size_dict = {'axes.titlesize':20, 'axes.labelsize': 20, 'legend.fontsize': 10}
+        rcParams.update(size_dict)#self.FigConf(plotSize=size_dict, Figtype='tracePosterior', n_columns=2, n_rows=n_traces)
+        fig = plt.figure(figsize=(8, n_traces))
 
-        # Generate the color map
+        # # Generate the color map
         self.gen_colorList(0, n_traces)
+        gs = gridspec.GridSpec(n_traces*2, 4)
 
-        # Plot individual traces
+        gs.update(wspace=0.2, hspace=1.8)
         for i in range(n_traces):
+
+            #Creat figure axis
+            axTrace = fig.add_subplot(gs[2*i:2*(1+i),:3])
+            axPoterior = fig.add_subplot(gs[2*i:2*(1+i), 3])
 
             # Current trace
             trace_code = traces[i]
@@ -270,25 +283,27 @@ class Basic_plots(Plot_Conf):
                 label = r'{} = ${:.3e}$ $\pm$ {:.3e}'.format(self.labels_latex_dic[trace_code], mean_value, std_dev)
 
             # Plot the traces
-            self.Axis[i,0].plot(trace_array, label=label, color=self.get_color(i))
-            self.Axis[i, 0].axhline(y=mean_value, color=self.get_color(i), linestyle='--')
-            self.Axis[i, 0].set_ylabel(self.labels_latex_dic[trace_code])
+            axTrace.plot(trace_array, label=label, color=self.get_color(i))
+            axTrace.axhline(y=mean_value, color=self.get_color(i), linestyle='--')
+            axTrace.set_ylabel(self.labels_latex_dic[trace_code])
 
             #Plot the histograms
-            #self.Axis[i,1].hist(trace_array, histtype='stepfilled', bins=35, alpha=.7, color=self.get_color(i), normed=False)
-            self.Axis[i,1].hist(trace_array, bins=35,  histtype='bar', color=self.get_color(i), align = 'left')
-            self.Axis[i,1].set_xlim(np.min(trace_array) - 0.5, np.max(trace_array) + 0.5)
-            # self.Axis[i, 1].axis('scaled')
-            # self.Axis[i, 1].set(adjustable='datalim', aspect=1)
-            #Add true value if available
+            axPoterior.hist(trace_array, bins=50, histtype='step', color=self.get_color(i), align = 'left')
 
-            if i < n_traces - 1:
-                self.Axis[i, 0].set_xticklabels([])
+            #Add true value if available
+            if trace_code + '_true' in self.obj_data:
+                value_true = self.obj_data[trace_code + '_true']
+                axPoterior.axvline(x=value_true, color=self.get_color(i), linestyle='solid')
 
             # Add legend
-            self.legend_conf(self.Axis[i,0], loc=2)
+            axTrace.legend(loc=7)
 
-            plt.tight_layout()
+            #Remove ticks and labels
+            if i < n_traces - 1:
+                axTrace.get_xaxis().set_visible(False)
+                axTrace.set_xticks([])
+            axPoterior.yaxis.set_major_formatter(plt.NullFormatter())
+            axPoterior.set_yticks([])
 
         return
 
@@ -598,12 +613,12 @@ class MCMC_printer(Basic_plots, Basic_tables):
             self.savefig(output_address, resolution=200)
             plt.clf()
 
-            # # 3D Comparison between PyNeb values and the fitted equation
-            # self.emissivitySurfaceFit_3D(lineLabel, emisCoeffs_dict[lineLabel], emisGrid_array[:,i], self.ionEmisEq[lineLabel], te_ne_grid)
-            #
-            # output_address = '{}{}_{}'.format(output_folder,'emissivityTeDe3D',lineLabel)
-            # self.savefig(output_address, resolution=200)
-            # plt.clf()
+            # 3D Comparison between PyNeb values and the fitted equation
+            self.emissivitySurfaceFit_3D(lineLabel, emisCoeffs_dict[lineLabel], emisGrid_array[:,i], self.ionEmisEq[lineLabel], te_ne_grid)
+
+            output_address = '{}{}_{}'.format(output_folder,'emissivityTeDe3D',lineLabel)
+            self.savefig(output_address, resolution=200)
+            plt.clf()
 
         return
 
@@ -650,36 +665,36 @@ class MCMC_printer(Basic_plots, Basic_tables):
         # Posteriors
         print '--Model parameters posterior diagram'
         self.tracesPosteriorPlot(params_list, db_dict)
-        plt.show()
+        self.savefig(database_address + '_ParamsTracesPosterios', resolution=200)
 
-        # # # Table mean values
-        # print '--Model parameters table'
-        # self.table_mean_outputs(database_address + '_meanOutput', params_list, db_dict, true_values = None)
-        #
-        # # # Line fluxes values
-        # print '--Line fluxes table' # TODO divide in two
-        # self.table_line_fluxes(database_address + '_LineFluxes', self.lineLabels, 'calcFluxes_Op', db_dict, true_values=self.obsLineFluxes)
-        # self.fluxes_distribution(self.lineLabels, 'calcFluxes_Op', db_dict, true_values=self.obsLineFluxes)
-        # self.savefig(database_address + '_LineFluxesPosteriors', resolution=200)
-        #
-        # # Traces
-        # print '--Traces diagram'
-        # self.traces_plot(params_list, db_dict)
-        # self.savefig(database_address + '_TracesPlot', resolution=200)
-        #
-        # # Posteriors
-        # print '--Model parameters posterior diagram'
-        # self.posteriors_plot(params_list, db_dict)
-        # self.savefig(database_address + '_PosteriorPlot', resolution=200)
-        #
-        # # Acorrelation
-        # print '--Acorrelation plot'
-        # self.acorr_plot(params_list, db_dict, n_columns=4, n_rows=int(ceil(len(params_list)/4.0)))
-        # self.savefig(database_address + '_Acorrelation', resolution=200)
-        #
-        # # Corner plot
-        # print '--Scatter plot matrix'
-        # self.corner_plot(params_list, db_dict)
-        # self.savefig(database_address + '_CornerPlot', resolution=200)
+        # # Table mean values
+        print '--Model parameters table'
+        self.table_mean_outputs(database_address + '_meanOutput', params_list, db_dict, true_values = None)
+
+        # # Line fluxes values
+        print '--Line fluxes table' # TODO divide in two
+        self.table_line_fluxes(database_address + '_LineFluxes', self.lineLabels, 'calcFluxes_Op', db_dict, true_values=self.obsLineFluxes)
+        self.fluxes_distribution(self.lineLabels, 'calcFluxes_Op', db_dict, true_values=self.obsLineFluxes)
+        self.savefig(database_address + '_LineFluxesPosteriors', resolution=200)
+
+        # Traces
+        print '--Traces diagram'
+        self.traces_plot(params_list, db_dict)
+        self.savefig(database_address + '_TracesPlot', resolution=200)
+
+        # Posteriors
+        print '--Model parameters posterior diagram'
+        self.posteriors_plot(params_list, db_dict)
+        self.savefig(database_address + '_PosteriorPlot', resolution=200)
+
+        # Acorrelation
+        print '--Acorrelation plot'
+        self.acorr_plot(params_list, db_dict, n_columns=4, n_rows=int(ceil(len(params_list)/4.0)))
+        self.savefig(database_address + '_Acorrelation', resolution=200)
+
+        # Corner plot
+        print '--Scatter plot matrix'
+        self.corner_plot(params_list, db_dict)
+        self.savefig(database_address + '_CornerPlot', resolution=200)
 
         return
