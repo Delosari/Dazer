@@ -117,11 +117,19 @@ class EmissivitySurfaceFitter_tensorOps():
 
     def emisEquation_HeI_tt(self, xy_space, a, b, c, d):
         temp_range, den_range = xy_space
-        return (a + b * den_range) * tt.log10(temp_range / 10000.0) - tt.log10(c + d * den_range)
+        return tt.pow(temp_range / 10000.0, a + b * den_range) / (c + d * den_range)
 
     def emisEquation_HeII_tt(self, xy_space, a, b):
         temp_range, den_range = xy_space
-        return a + b * tt.log(temp_range/10000)
+        return a * tt.pow(temp_range / 10000, b)
+
+    # def emisEquation_HeI_tt(self, xy_space, a, b, c, d):
+    #     temp_range, den_range = xy_space
+    #     return (a + b * den_range) * tt.log10(temp_range / 10000.0) - tt.log10(c + d * den_range)
+    #
+    # def emisEquation_HeII_tt(self, xy_space, a, b):
+    #     temp_range, den_range = xy_space
+    #     return a + b * tt.log(temp_range/10000)
 
 
 class EmissionEquations_tensorOps():
@@ -131,16 +139,22 @@ class EmissionEquations_tensorOps():
         self.fluxEq_tt = {}
 
     def H1_lines_tt(self, emis_ratio, cHbeta, flambda, abund=None, ftau=None, continuum=None):
-        return emis_ratio - flambda * cHbeta
+        return tt.pow(10, emis_ratio - flambda * cHbeta)
+
+    # def He1_lines_tt(self, emis_ratio, cHbeta, flambda, abund, ftau=None, continuum=None):
+    #     return tt.log10(abund) + emis_ratio + tt.log10(ftau) - flambda * cHbeta
+    #
+    # def He2_lines_tt(self, emis_ratio, cHbeta, flambda, abund, ftau=None, continuum=None):
+    #     return tt.log10(abund) + emis_ratio - flambda * cHbeta
 
     def He1_lines_tt(self, emis_ratio, cHbeta, flambda, abund, ftau=None, continuum=None):
-        return tt.log10(abund) + emis_ratio + tt.log10(ftau) - flambda * cHbeta
+        return abund * emis_ratio * ftau * tt.pow(10, -1 * flambda * cHbeta)
 
     def He2_lines_tt(self, emis_ratio, cHbeta, flambda, abund, ftau=None, continuum=None):
-        return tt.log10(abund) + emis_ratio - flambda * cHbeta
+        return abund * emis_ratio * tt.pow(10, -1 * flambda * cHbeta)
 
     def metal_lines_tt(self, emis_ratio, cHbeta, flambda, abund, ftau=None, continuum=None):
-        return abund + emis_ratio - flambda * cHbeta - 12
+        return tt.pow(10, abund + emis_ratio - flambda * cHbeta - 12)
 
 class stellarContinuum_tensorOps():
 

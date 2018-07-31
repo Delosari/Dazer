@@ -434,12 +434,10 @@ class SspSynthesisImporter:
             age_vector[i] = bases_df.iloc[i]['age_yr']
             Z_vector[i] = bases_df.iloc[i]['z_star']
 
-        ssp_lib_dict[
-            'basesWave'] = waveBases_orig  # This is not pretty but not other option if bases do not have same length...
+        ssp_lib_dict['basesWave'] = waveBases_orig  # This is not pretty but not other option if bases do not have same length...
         ssp_lib_dict['nBases'] = nBases
         ssp_lib_dict['nPixBases_max'] = max_nPixelsBases
-        ssp_lib_dict[
-            'fluxBases'] = fluxBases_orig  # This is not pretty but not other option if bases do not have same length...
+        ssp_lib_dict['fluxBases'] = fluxBases_orig  # This is not pretty but not other option if bases do not have same length...
         ssp_lib_dict['ageBases'] = age_vector
         ssp_lib_dict['zBases'] = Z_vector
         # ssp_lib_dict['bases_one_array']     = ones(nBases)
@@ -622,9 +620,20 @@ class ImportModelData(SspSynthesisImporter):
         output_dict['resample_inc'] = resample_inc
         output_dict['norm_interval'] = norm_interval
 
+        # Special case using 0, -1 indexing
+        if wavelengh_limits is not None:
+            if (wavelengh_limits[0] != 0) and (wavelengh_limits[0] != -1):
+                inputWaveLimits = wavelengh_limits
+            else:
+                inputWaveLimits = wavelengh_limits
+                if wavelengh_limits[0] == 0:
+                    inputWaveLimits[0] = int(np.ceil(spec_wave[0]) + 1)
+                if wavelengh_limits[-1] == -1:
+                    inputWaveLimits[-1] = int(np.floor(spec_wave[-1]) - 1)
+
         # Resampling the spectra
         if resample_inc is not None:
-            wave_resam = np.arange(wavelengh_limits[0], wavelengh_limits[-1], resample_inc, dtype=float)
+            wave_resam = np.arange(inputWaveLimits[0], inputWaveLimits[-1], resample_inc, dtype=float)
 
             # Loop throught the fluxes (In the case of the bases it is assumed they may have different wavelength ranges)
             if isinstance(spec_flux, list):
@@ -689,16 +698,22 @@ class ImportModelData(SspSynthesisImporter):
 
         # Loop through the emission lines
         wmin, wmax = linesDf['w3'].loc[idcs_lineMasks].values, linesDf['w4'].loc[idcs_lineMasks].values
+        idxMin, idxMax = np.searchsorted(wavelength, [wmin, wmax])
         for i in range(n_lineMasks):
-            idx_currentMask = (wavelength > wmin[i]) & (wavelength < wmax[i])
-            self.boolean_matrix[i,:] = idx_currentMask
-            self.int_mask = self.int_mask & ~idx_currentMask
+            if not np.isnan(wmin[i]) and not np.isnan(wmax[i]) and (wmax[i] < wavelength[-1]):
+                w2, w3 = wavelength[idxMin[i]], wavelength[idxMax[i]]
+                idx_currentMask = (wavelength >= w2) & (wavelength <= w3)
+                self.boolean_matrix[i, :] = idx_currentMask
+                self.int_mask = self.int_mask & ~idx_currentMask
 
         # Loop through the object masks
         wmin, wmax = linesDf['w3'].loc[idcs_spectrumMasks].values, linesDf['w4'].loc[idcs_spectrumMasks].values
+        idxMin, idxMax = np.searchsorted(wavelength, [wmin, wmax])
         for i in range(n_objMasks):
-            idx_currentMask = (wavelength > wmin[i]) & (wavelength < wmax[i])
-            self.int_mask = self.int_mask & ~idx_currentMask
-            self.object_mask = self.object_mask & ~idx_currentMask
+            if not np.isnan(wmin[i]) and not np.isnan(wmax[i]) and (wmax[i] < wavelength[-1]):
+                w2, w3 = wavelength[idxMin[i]], wavelength[idxMax[i]]
+                idx_currentMask = (wavelength >= w2) & (wavelength <= w3)
+                self.int_mask = self.int_mask & ~idx_currentMask
+                self.object_mask = self.object_mask & ~idx_currentMask
 
         return

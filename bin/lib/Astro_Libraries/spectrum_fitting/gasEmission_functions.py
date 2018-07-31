@@ -42,7 +42,7 @@ class EmissivitySurfaceFitter(EmissivitySurfaceFitter_tensorOps):
         EmissivitySurfaceFitter_tensorOps.__init__(self)
 
         # TODO we should read this from the xlsx file
-        self.ionEmisEq = {'S2_6716A'  : self.emisEquation_TeDe,
+        self.ionEmisEq_fit = {'S2_6716A'  : self.emisEquation_TeDe,
                             'S2_6731A'  : self.emisEquation_TeDe,
                             'S3_6312A'  : self.emisEquation_Te,
                             'S3_9069A'  : self.emisEquation_Te,
@@ -60,14 +60,21 @@ class EmissivitySurfaceFitter(EmissivitySurfaceFitter_tensorOps):
                             'H1_4102A'  : self.emisEquation_HI,
                             'H1_4341A'  : self.emisEquation_HI,
                             'H1_6563A'  : self.emisEquation_HI,
-                            'He1_3889A' : self.emisEquation_HeI,
-                            'He1_4026A' : self.emisEquation_HeI,
-                            'He1_4471A' : self.emisEquation_HeI,
-                            'He1_5876A' : self.emisEquation_HeI,
-                            'He1_6678A' : self.emisEquation_HeI,
-                            'He1_7065A' : self.emisEquation_HeI,
-                            'He2_4686A' : self.emisEquation_HeII}
+                            'He1_3889A' : self.emisEquation_HeI_fit,
+                            'He1_4026A' : self.emisEquation_HeI_fit,
+                            'He1_4471A' : self.emisEquation_HeI_fit,
+                            'He1_5876A' : self.emisEquation_HeI_fit,
+                            'He1_6678A' : self.emisEquation_HeI_fit,
+                            'He1_7065A' : self.emisEquation_HeI_fit,
+                            'He2_4686A' : self.emisEquation_HeII_fit}
 
+        # Second dictionary for the line fluxes
+        self.ionEmisEq = dict(self.ionEmisEq_fit)
+        for line in ['He1_3889A', 'He1_4026A', 'He1_4471A', 'He1_5876A', 'He1_5876A', 'He1_6678A', 'He1_7065A']:
+            self.ionEmisEq[line] = self.emisEquation_HeI
+        self.ionEmisEq['He2_4686A'] = self.emisEquation_HeII
+
+        # Initial coeffient values to help with the fitting
         self.epm2017_emisCoeffs = {'He1_3889A': np.array([0.173, 0.00054, 0.904, 1e-5]),
                             'He1_4026A': np.array([-0.09, 0.0000063, 4.297, 1e-5]),
                             'He1_4471A': np.array([-0.1463, 0.0005, 2.0301, 1.5e-5]),
@@ -89,13 +96,21 @@ class EmissivitySurfaceFitter(EmissivitySurfaceFitter_tensorOps):
         temp_range, den_range = xy_space
         return a + b * np.log10(temp_range) + c * np.log10(temp_range) * np.log10(temp_range)
 
-    def emisEquation_HeI(self, xy_space, a, b, c, d):
+    def emisEquation_HeI_fit(self, xy_space, a, b, c, d):
         temp_range, den_range = xy_space
         return (a + b * den_range) * np.log10(temp_range / 10000.0) - np.log10(c + d * den_range)
 
-    def emisEquation_HeII(self, xy_space, a, b):
+    def emisEquation_HeII_fit(self, xy_space, a, b):
         temp_range, den_range = xy_space
         return a + b * np.log(temp_range/10000)
+
+    def emisEquation_HeI(self, xy_space, a, b, c, d):
+        temp_range, den_range = xy_space
+        return np.power(temp_range / 10000.0, a + b * den_range) / (c + d * den_range)
+
+    def emisEquation_HeII(self, xy_space, a, b):
+        temp_range, den_range = xy_space
+        return a * np.power(temp_range / 10000, b)
 
     def fitEmis(self, func_emis, xy_space, line_emis, p0 = None):
         p1, p1_cov = curve_fit(func_emis, xy_space, line_emis, p0)
@@ -122,11 +137,11 @@ class EmissionEquations(EmissionEquations_tensorOps):
                 eqFlux_tt = self.H1_lines_tt
 
             elif 'He1r' in lineIon:
-                eqFlux = self.He1_lines
+                eqFlux = self.He1_linesFlux
                 eqFlux_tt = self.He1_lines_tt
 
             elif 'He2r' in lineIon:
-                eqFlux = self.He2_lines
+                eqFlux = self.He2_linesFlux
                 eqFlux_tt = self.He2_lines_tt
 
             else:
@@ -144,6 +159,12 @@ class EmissionEquations(EmissionEquations_tensorOps):
 
     def He2_lines(self, emis_ratio, cHbeta, flambda, abund, ftau=None, continuum=None):
         return log10(abund) + emis_ratio - flambda * cHbeta
+
+    def He1_linesFlux(self, emis_ratio, cHbeta, flambda, abund, ftau=None, continuum=None):
+        return abund * emis_ratio * ftau * np.power(10, -1 * flambda * cHbeta)
+
+    def He2_linesFlux(self, emis_ratio, cHbeta, flambda, abund, ftau=None, continuum=None):
+        return abund * emis_ratio * np.power(10, -1 * flambda * cHbeta)
 
     def metal_lines(self, emis_ratio, cHbeta, flambda, abund, ftau=None, continuum=None):
         return abund + emis_ratio - flambda * cHbeta - 12
@@ -194,7 +215,6 @@ class EmissionComponents(EmissivitySurfaceFitter, EmissionEquations, LineMesurer
         return combined_spectrum
 
     def ftau_func(self, tau, temp, den, a, b, c, d):
-        # TODO can be move this one to log?
         return 1 + tau/2.0 * (a + (b + c * den + d * den * den) * temp/10000.0)
 
     def import_emission_line_data(self, obj_lines_df, input_lines = 'all'):
@@ -285,15 +305,16 @@ class EmissionComponents(EmissivitySurfaceFitter, EmissionEquations, LineMesurer
             lineLabel = self.obj_data['lineLabels'][i]
 
             # Get equation type to fit the emissivity
-            line_func  = self.ionEmisEq[lineLabel]
+            line_func  = self.ionEmisEq_fit[lineLabel]
 
             # Compute emissivity functions coefficients
             p0 = self.epm2017_emisCoeffs[lineLabel] if lineLabel in self.epm2017_emisCoeffs else None
             p1, cov1 = self.fitEmis(line_func, (XX, YY), self.emis_grid[:, i], p0=p0)
             self.emisCoeffs[lineLabel] = p1
-            print lineLabel, p1
 
-        exit()
+        # Additional functions for correction on the coefficients
+        if 'He2_4686A' in self.obj_data['lineLabels']:
+            self.emisCoeffs['He2_4686A'][0] = 10**(self.emisCoeffs['He2_4686A'][0])
 
         return
 

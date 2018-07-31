@@ -96,6 +96,32 @@ class Basic_plots(Plot_Conf):
 
         return
 
+    def continuumFit(self, db_dict):
+
+        outputSSPsCoefs, Av_star = np.median(db_dict['w_i']['trace'], axis=0), db_dict['Av_star']['median']
+        outputSSPsCoefs_std, Av_star_std = np.std(db_dict['w_i']['trace'], axis=0), db_dict['Av_star']['standard deviation']
+
+        stellarFit = outputSSPsCoefs.dot(self.onBasesFluxNorm) * np.power(10, -0.4 * Av_star * self.Xx_stellar)
+        stellarPrefit = self.sspPrefitCoeffs.dot(self.onBasesFluxNorm) * np.power(10, -0.4 * self.stellarAv_prior[0] * self.Xx_stellar)
+        nebularFit = self.nebDefault['synth_neb_flux']
+
+        stellarFit_upper = (outputSSPsCoefs + outputSSPsCoefs_std).dot(self.onBasesFluxNorm) * np.power(10, -0.4 * (Av_star - Av_star_std) * self.Xx_stellar) + nebularFit
+        stellarFit_lower = (outputSSPsCoefs - outputSSPsCoefs_std).dot(self.onBasesFluxNorm) * np.power(10, -0.4 * (Av_star + Av_star_std) * self.Xx_stellar) + nebularFit
+
+        size_dict = {'figure.figsize': (20, 14), 'axes.labelsize': 16, 'legend.fontsize': 18}
+        self.FigConf(plotSize=size_dict)
+
+        self.data_plot(self.inputWave, self.inputContinuum, 'Object normed flux')
+        self.data_plot(self.inputWave, nebularFit, 'Nebular continuum')
+        self.data_plot(self.inputWave, stellarFit + nebularFit,'Continuum fit', color='tab:green')
+        self.Axis.fill_between(self.inputWave, stellarFit_lower, stellarFit_upper, color='tab:green', alpha=0.5)
+        self.data_plot(self.inputWave, stellarPrefit + nebularFit, 'prefit fit', color='tab:red', linestyle=':')
+
+        self.Axis.set_yscale('log')
+        self.FigWording(xlabel='Wavelength $(\AA)$', ylabel='Observed flux', title='SSPs continuum prefit')
+
+        return
+
     def masked_observation(self):
 
         size_dict = {'figure.figsize': (20, 14), 'axes.labelsize': 16, 'legend.fontsize': 16}
@@ -204,7 +230,7 @@ class Basic_plots(Plot_Conf):
     def traces_plot(self, traces_list, stats_dic):
 
         #Remove operations from the parameters list
-        traces = traces_list[[i for i, v in enumerate(traces_list) if '_Op' not in v]]
+        traces = traces_list[[i for i, v in enumerate(traces_list) if ('_Op' not in v) and ('_log__' not in v) and ('w_i' not in v)]]
 
         # Number of traces to plot
         n_traces = len(traces)
@@ -247,8 +273,8 @@ class Basic_plots(Plot_Conf):
 
     def tracesPosteriorPlot(self, traces_list, stats_dic):
 
-        #Remove operations from the parameters list
-        traces = traces_list[[i for i, v in enumerate(traces_list) if ('_Op' not in v) and ('_log__' not in v)]]
+        #Remove operations from the parameters list # TODO addapt this line to discremenate better
+        traces = traces_list[[i for i, v in enumerate(traces_list) if ('_Op' not in v) and ('_log__' not in v) and ('w_i' not in v)]]
 
         # Number of traces to plot
         n_traces = len(traces)
@@ -310,7 +336,7 @@ class Basic_plots(Plot_Conf):
     def posteriors_plot(self, traces_list, stats_dic):
 
         #Remove operations from the parameters list
-        traces = traces_list[[i for i, v in enumerate(traces_list) if '_Op' not in v]]
+        traces = traces_list[[i for i, v in enumerate(traces_list) if ('_Op' not in v) and ('_log__' not in v) and ('w_i' not in v)]]
 
         # Number of traces to plot
         n_traces = len(traces)
@@ -364,7 +390,7 @@ class Basic_plots(Plot_Conf):
         n_lines = len(lines_list)
 
         # Declare figure format
-        size_dict = {'figure.figsize': (14, 20), 'axes.titlesize':20, 'axes.labelsize': 20, 'legend.fontsize': 14}
+        size_dict = {'figure.figsize': (14, 20), 'axes.titlesize':11, 'axes.labelsize': 8, 'legend.fontsize': 11}
         self.FigConf(plotSize=size_dict, Figtype='Grid', n_columns=1, n_rows=n_lines)
 
         # Generate the color map
@@ -413,7 +439,7 @@ class Basic_plots(Plot_Conf):
     def acorr_plot(self, traces_list, stats_dic, n_columns=4, n_rows=2):
 
         #Remove operations from the parameters list
-        traces = traces_list[[i for i, v in enumerate(traces_list) if '_Op' not in v]]
+        traces = traces_list[[i for i, v in enumerate(traces_list) if ('_Op' not in v) and ('_log__' not in v) and ('w_i' not in v)]]
 
         # Number of traces to plot
         n_traces = len(traces)
@@ -453,7 +479,7 @@ class Basic_plots(Plot_Conf):
     def corner_plot(self, traces_list, stats_dic, plot_true_values=False):
 
         #Remove operations from the parameters list
-        traces = traces_list[[i for i, v in enumerate(traces_list) if '_Op' not in v]]
+        traces = traces_list[[i for i, v in enumerate(traces_list) if ('_Op' not in v) and ('_log__' not in v) and ('w_i' not in v)]]
 
         # Number of traces to plot
         n_traces = len(traces)
@@ -531,7 +557,7 @@ class Basic_tables(Pdf_printer):
         #Loop around the parameters
         for param in parameters_list:
 
-            if '_Op' not in param:
+            if ('_Op' not in param) and param not in ['w_i']:
 
                 # Label for the plot
                 label       = self.labels_latex_dic[param]
@@ -645,56 +671,70 @@ class MCMC_printer(Basic_plots, Basic_tables):
             self.prefit_comparison(obj_ssp_fit_flux)
             self.savefig(self.input_folder + self.objName + '_prefit_Output', resolution=200)
 
-        # Prefit SSPs norm plot
-        if sspPrefitCoeffs is not None:
-            self.prefit_ssps(sspPrefitCoeffs)
-            self.savefig(self.input_folder + self.objName + '_prefit_NormSsps', resolution=200)
+            # Prefit SSPs norm plot
+            if sspPrefitCoeffs is not None:
+                self.prefit_ssps(sspPrefitCoeffs)
+                self.savefig(self.input_folder + self.objName + '_prefit_NormSsps', resolution=200)
+
+        # SSP prefit traces # TODO increase flexibility for a big number of parameter
+        traces_names = np.array(['Av_star', 'sigma_star'])
 
         # Stellar prefit Traces
-        self.traces_plot(['Av_star', 'sigma_star'], pymc2_dbPrefit, pymc2_db_dictPrefit)
-        self.save_manager(self.input_folder + self.objName + '_PrefitTracesPlot', save=True, save_pickle=False)
+        self.traces_plot(traces_names, pymc2_db_dictPrefit)
+        self.savefig(self.input_folder + self.objName + '_PrefitTracesPlot', resolution=200)
 
         # Stellar prefit Posteriors
-        self.posteriors_plot(['Av_star', 'sigma_star'], pymc2_dbPrefit, pymc2_db_dictPrefit)
-        self.save_manager(self.input_folder + self.objName + '_PrefitPosteriorPlot', save=True, save_pickle=False)
+        self.posteriors_plot(traces_names, pymc2_db_dictPrefit)
+        self.savefig(self.input_folder + self.objName + '_PrefitPosteriorPlot', resolution=200)
+
+        # Stellar prefit Posteriors
+        self.tracesPosteriorPlot(traces_names, pymc2_db_dictPrefit)
+        self.savefig(self.input_folder + self.objName + '_ParamsTracesPosterios', resolution=200)
 
         return
 
     def plotOuputData(self, database_address, db, db_dict, params_list):
 
-        # Posteriors
-        print '--Model parameters posterior diagram'
-        self.tracesPosteriorPlot(params_list, db_dict)
-        self.savefig(database_address + '_ParamsTracesPosterios', resolution=200)
+        if self.stellarCheck:
+            self.continuumFit(db_dict)
+            self.savefig(database_address + '_ContinuumFit', resolution=200)
 
-        # # Table mean values
-        print '--Model parameters table'
-        self.table_mean_outputs(database_address + '_meanOutput', params_list, db_dict, true_values = None)
 
-        # # Line fluxes values
-        print '--Line fluxes table' # TODO divide in two
-        self.table_line_fluxes(database_address + '_LineFluxes', self.lineLabels, 'calcFluxes_Op', db_dict, true_values=self.obsLineFluxes)
-        self.fluxes_distribution(self.lineLabels, 'calcFluxes_Op', db_dict, true_values=self.obsLineFluxes)
-        self.savefig(database_address + '_LineFluxesPosteriors', resolution=200)
+        if self.emissionCheck:
 
-        # Traces
-        print '--Traces diagram'
-        self.traces_plot(params_list, db_dict)
-        self.savefig(database_address + '_TracesPlot', resolution=200)
+            # Posteriors
+            print '--Model parameters posterior diagram'
+            self.tracesPosteriorPlot(params_list, db_dict)
+            self.savefig(database_address + '_ParamsTracesPosterios', resolution=200)
 
-        # Posteriors
-        print '--Model parameters posterior diagram'
-        self.posteriors_plot(params_list, db_dict)
-        self.savefig(database_address + '_PosteriorPlot', resolution=200)
+            # # Table mean values
+            print '--Model parameters table'
+            self.table_mean_outputs(database_address + '_meanOutput', params_list, db_dict, true_values = None)
 
-        # Acorrelation
-        print '--Acorrelation plot'
-        self.acorr_plot(params_list, db_dict, n_columns=4, n_rows=int(ceil(len(params_list)/4.0)))
-        self.savefig(database_address + '_Acorrelation', resolution=200)
+            # # Line fluxes values
+            print '--Line fluxes table' # TODO divide in two
+            self.table_line_fluxes(database_address + '_LineFluxes', self.lineLabels, 'calcFluxes_Op', db_dict, true_values=self.obsLineFluxes)
+            self.fluxes_distribution(self.lineLabels, 'calcFluxes_Op', db_dict, true_values=self.obsLineFluxes)
+            self.savefig(database_address + '_LineFluxesPosteriors', resolution=200)
 
-        # Corner plot
-        print '--Scatter plot matrix'
-        self.corner_plot(params_list, db_dict)
-        self.savefig(database_address + '_CornerPlot', resolution=200)
+            # Traces
+            print '--Traces diagram'
+            self.traces_plot(params_list, db_dict)
+            self.savefig(database_address + '_TracesPlot', resolution=200)
+
+            # Posteriors
+            print '--Model parameters posterior diagram'
+            self.posteriors_plot(params_list, db_dict)
+            self.savefig(database_address + '_PosteriorPlot', resolution=200)
+
+            # Acorrelation
+            print '--Acorrelation plot'
+            self.acorr_plot(params_list, db_dict, n_columns=4, n_rows=int(ceil(len(params_list)/4.0)))
+            self.savefig(database_address + '_Acorrelation', resolution=200)
+
+            # Corner plot
+            print '--Scatter plot matrix'
+            self.corner_plot(params_list, db_dict)
+            self.savefig(database_address + '_CornerPlot', resolution=200)
 
         return

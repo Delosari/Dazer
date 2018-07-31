@@ -545,7 +545,7 @@ class Plot_Conf(Fig_Conf):
                 #Plot the individual bars            
                 for i in range(len(param_sort)):                    
                     x, y        = log_t, param_sort[i]
-                    label       = 'z = {}'.format(z_sort[i])
+                    label       = 'Z = {}'.format(z_sort[i])
                     idx_color   = where(zValues == z_sort[i])[0][0] 
                     color       = self.get_color(idx_color)
                     self.Axis.bar(x, y, label=label, color=color, width=ageBins_HW/2, fill = True, edgecolor=color, log = True)

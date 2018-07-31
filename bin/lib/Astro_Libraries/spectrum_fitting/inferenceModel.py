@@ -6,7 +6,7 @@ import cPickle as pickle
 import theano
 import theano.tensor as tt
 from collections import OrderedDict
-from numpy import mean, std, square, empty, percentile, median, sum as np_sum, abs, array
+from numpy import mean, std, square, percentile, median, sum as np_sum, array, ones
 from lib.Astro_Libraries.spectrum_fitting.specSynthesizer_tools import ModelIngredients
 from gasEmission_functions import TOIII_TSIII_relation
 import matplotlib.pyplot as plt
@@ -28,7 +28,8 @@ class SpectraSynthesizer(ModelIngredients):
 
         # Run the sampler
         db_address = output_folder + model_name + '.db' # TODO Deberiamos poder quitar este .db
-        self.run_pymc(db_address, iterations=iterations, tuning=tuning, model_type=hammer)
+        self.normContants = {'He1r': 0.1, 'He2r': 0.001}  # TODO need to decide where to place this
+        #self.run_pymc(db_address, iterations=iterations, tuning=tuning, model_type=hammer)
 
         # # Load the results
         inferenceTrace, interenceParamsDict = self.load_pymc_database_manual(db_address, sampler='pymc3')
@@ -97,11 +98,43 @@ class SpectraSynthesizer(ModelIngredients):
     def nuts_model(self, iterations, tuning):
 
         # Container to store the synthetic line fluxes
-        lineFlux_tt = tt.zeros(self.lineLabels.size)
+        if self.emissionCheck:
+            lineFlux_tt = tt.zeros(self.lineLabels.size)
+
+        # Stellar bases tensor
+        if self.stellarCheck:
+            Xx_tt = theano.shared(self.Xx_stellar)
+            basesFlux_tt = theano.shared(self.onBasesFluxNorm)
+            nebular_continuum_tt = theano.shared(self.nebDefault['synth_neb_flux'])
+            err_Continuum = 0.10 * ones(self.inputContinuum.size) # TODO really need to check this
+            # err_Continuum = self.obsFluxNorm * 0.05
+            # err_Continuum[err_Continuum < 0.001] = err_Continuum.mean()
+
 
         with pymc3.Model() as model:
 
-            if ('nebular' in self.spectraComponents) or ('emission' in self.spectraComponents):
+            if self.stellarCheck:
+
+                # Stellar continuum priors
+                Av_star = pymc3.Normal('Av_star', mu=self.stellarAv_prior[0], sd=self.stellarAv_prior[0] * 0.10) #pymc3.Lognormal('Av_star', mu=1, sd=0.75)
+                w_i = pymc3.Normal('w_i', mu=self.sspPrefitCoeffs, sd=self.sspPrefitCoeffs*0.10, shape=self.nBases)
+
+                # Compute stellar continuum
+                stellar_continuum = w_i.dot(basesFlux_tt)
+
+                # Apply extinction
+                spectrum_reddened = stellar_continuum * tt.pow(10, -0.4 * Av_star * Xx_tt)
+
+                # Add nebular component
+                continuum = spectrum_reddened + nebular_continuum_tt #pymc3.Deterministic('continuum_Op', spectrum_reddened + nebular_continuum)
+
+                # Apply mask
+                continuum_masked = continuum * self.int_mask
+
+                # Likelihood continuum components
+                Y_continuum = pymc3.Normal('Y_continuum', mu=continuum_masked, sd=err_Continuum, observed=self.inputContinuum)
+
+            if self.emissionCheck:
 
                 # Gas Physical conditions priors
                 T_low = pymc3.Normal('T_low', mu=self.Te_prior[0], sd=1000.0)
@@ -110,22 +143,23 @@ class SpectraSynthesizer(ModelIngredients):
                 # High temperature
                 T_high = TOIII_TSIII_relation(T_low)
 
-                if 'emission' in self.spectraComponents:
+                if self.emissionCheck:
 
                     # Emission lines density
                     n_e =  pymc3.Normal('n_e', mu=self.ne_prior[0], sd=self.ne_prior[1])
+                    #n_e = self.normContants['n_e'] * pymc3.Lognormal('n_e', mu=0, sd=1)
 
                     # Helium abundance priors
                     if self.He1rCheck:
-                        tau = pymc3.Lognormal('tau', mu=0, sd=1)
+                        tau = pymc3.Lognormal('tau', mu=1, sd=0.75)
 
                     # Composition priors
                     abund_dict = {'H1r':1.0}
                     for j in self.rangeObsAtoms:
                         if self.obsAtoms[j] == 'He1r':
-                            abund_dict[self.obsAtoms[j]] = 0.1 * pymc3.Lognormal(self.obsAtoms[j], mu=0, sd=1)#pymc3.Uniform(self.obsAtoms[j], lower=0, upper=1)
+                            abund_dict[self.obsAtoms[j]] = self.normContants['He1r'] * pymc3.Lognormal(self.obsAtoms[j], mu=0, sd=1)#pymc3.Uniform(self.obsAtoms[j], lower=0, upper=1)
                         elif self.obsAtoms[j] == 'He2r':
-                            abund_dict[self.obsAtoms[j]] = 0.001 * pymc3.Lognormal(self.obsAtoms[j], mu=0, sd=1)#pymc3.Uniform(self.obsAtoms[j], lower=0, upper=1)
+                            abund_dict[self.obsAtoms[j]] = self.normContants['He2r'] * pymc3.Lognormal(self.obsAtoms[j], mu=0, sd=1)#pymc3.Uniform(self.obsAtoms[j], lower=0, upper=1)
                         else:
                             abund_dict[self.obsAtoms[j]] = pymc3.Normal(self.obsAtoms[j], mu=5, sd=5)
 
@@ -154,39 +188,20 @@ class SpectraSynthesizer(ModelIngredients):
                         line_ftau = self.ftau_func(tau, Te_calc, n_e, *self.ftau_coeffs[line_label]) if self.He1_lineIdcs[i] else None
 
                         # Line synthetic flux
-                        flux_i = tt.pow(10, self.fluxEq_tt[line_label](line_emis, cHbeta, line_flambda, line_abund, line_ftau, continuum=None))
+                        flux_i = self.fluxEq_tt[line_label](line_emis, cHbeta, line_flambda, line_abund, line_ftau, continuum=None)
 
                         # Store in container
                         lineFlux_tt = tt.inc_subtensor(lineFlux_tt[i], flux_i)
 
+                    # Store computed fluxes
                     lineFlux_ttarray = pymc3.Deterministic('calcFluxes_Op',lineFlux_tt)
-                    # Global normal Likelihood for all lines
-                    # err_lines = pymc3.HalfNormal('err_lines', sd=0.05, shape=self.lineLabels.size)
-                    # Y = pymc3.Normal('Y', mu=lineFlux_tt, sd=err_lines, observed=self.obsLineFluxes)
-                    Y = pymc3.Normal('Y', mu=lineFlux_ttarray, sd=self.obsLineFluxErr, observed=self.obsLineFluxes)
 
-            if 'stellar' in self.spectraComponents:
+                    # Likelihood gas components
+                    Y_emision = pymc3.Normal('Y_emision', mu=lineFlux_ttarray, sd=self.obsLineFluxErr, observed=self.obsLineFluxes)
 
-                # Stellar continuum priors
-                Av_star = pymc3.Uniform('Av_star', lower=0, upper=3)
-                popCoeffs = pymc3.Normal('Av_star', mu=self.sspPrefit_Coeffs, sd=self.sspPrefit_err, shape = self.nBases)
-
-                # Apply extinction to the bases
-                Av_tensor = tt.ones(self.nBases) * self.Xx_stellar
-                dust_attenuation = tt.pow(10, Av_tensor)
-
-                # Compute the bases libray treated by the physical data
-                basesTreated = self.onBasesFluxNorm * dust_attenuation
-
-                # Compute synthetic spectrum
-                #fit_continuum = basesTreated.dot(popCoeffs) + nebular_flux
-
+            # Get energy traces in model
             for RV in model.basic_RVs:
                 print(RV.name, RV.logp(model.test_point))
-
-            # Provide starting points
-            # start= pymc3.find_MAP()
-            # print start
 
             # Launch model
             trace = pymc3.sample(iterations, tune=tuning, nchains=2, njobs=2)
@@ -366,7 +381,8 @@ class SpectraSynthesizer(ModelIngredients):
             for parameter in trace.varnames:
                 if ('_log__' not in parameter) and ('interval' not in parameter):
 
-                    trace_i = trace[parameter]
+                    trace_norm = self.normContants[parameter] if parameter in self.normContants else 1.0
+                    trace_i = trace_norm * trace[parameter]
                     stats_dict[parameter] = OrderedDict()
                     param_dict[parameter] = array([trace[parameter].mean(), trace[parameter].std()])
 
