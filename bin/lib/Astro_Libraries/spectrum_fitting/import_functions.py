@@ -512,10 +512,9 @@ class ImportModelData(SspSynthesisImporter):
     def load_obsData(self, obsFile=None, objName=None):
 
         # TODO this should go into the master configuration
-        list_parameters     = ['Input_lines', 'Av_prefit','sigma_star_prefit', 'coeffsPop_prefit', 'coeffsPopErr_prefit', 'wavelengh_limits', 'norm_interval'] #also all 'param_prior'
+        list_parameters     = ['input_lines', 'Av_prefit','sigma_star_prefit', 'coeffsPop_prefit', 'coeffsPopErr_prefit', 'wavelengh_limits', 'norm_interval'] #also all 'param_prior'
         boolean_parameters  = ['Normalized_by_Hbeta']
         string_parameters   = ['address_lines_log', 'address_spectrum', 'address_obs_mask', 'obsFile', 'objName']
-        print '-Reading observation {} {}'.format(obsFile if obsFile is not None else '', ' for object ' + objName if objName is not None else '')
 
         # ----Load the obj data
         if obsFile is not None:
@@ -554,7 +553,10 @@ class ImportModelData(SspSynthesisImporter):
             # Arrays (The last boolean overrides the parameters
             elif (key in list_parameters) or ('_prior' in key) or (',' in obj_data[key]):
                 if key in ['input_lines']:
-                    obj_data[key] = np.array(map(str, obj_data[key].split(',')))
+                    if obj_data[key] == 'all':
+                        obj_data[key] = 'all'
+                    else:
+                        obj_data[key] = np.array(map(str, obj_data[key].split(',')))
                 else:
                     obj_data[key] = np.array(map(float, obj_data[key].split(',')))
 

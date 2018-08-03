@@ -6,7 +6,7 @@ import cPickle as pickle
 import theano
 import theano.tensor as tt
 from collections import OrderedDict
-from numpy import mean, std, square, percentile, median, sum as np_sum, array, ones
+from numpy import mean, std, square, percentile, median, sum as np_sum, array, ones, empty
 from lib.Astro_Libraries.spectrum_fitting.specSynthesizer_tools import ModelIngredients
 from gasEmission_functions import TOIII_TSIII_relation
 import matplotlib.pyplot as plt

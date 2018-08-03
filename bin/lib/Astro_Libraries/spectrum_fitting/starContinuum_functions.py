@@ -48,7 +48,7 @@ class SspFitter():
         # Convove bases with respect to kernel for dispersion velocity calculation
         basesGridConvolved = convolve2d(bases_flux, kernel, mode='same', boundary='symm')
 
-        # Interpolate bases to wavelength range
+        # Interpolate bases to wavelength ranges
         basesGridInterp = (interp1d(wave_z, basesGridConvolved, axis=1, bounds_error=True)(obs_wave)).T
 
         # Generate final flux model including reddening

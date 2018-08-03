@@ -10,6 +10,8 @@ from numpy import array, reshape, empty, ceil, percentile, median, nan, flatnonz
 from lib.Plotting_Libraries.dazer_plotter import Plot_Conf
 from lib.Plotting_Libraries.sigfig import round_sig
 from lib.CodeTools.File_Managing_Tools import Pdf_printer
+from scipy import stats
+from scipy.integrate    import simps
 
 def label_formatting(line_label):
 
@@ -154,6 +156,101 @@ class Basic_plots(Plot_Conf):
         self.area_fill(self.obj_data['norm_interval'][0], self.obj_data['norm_interval'][1], 'Norm interval: {} - {}'.format(self.obj_data['norm_interval'][0], self.obj_data['norm_interval'][1]), alpha=0.5)
 
         self.FigWording(xlabel='Wavelength $(\AA)$', ylabel = 'Observed flux', title = 'Resampled observation')
+
+        return
+
+    def linesGrid(self, linesDf, wave, flux, plotAddress):
+
+        # Get number of lines to generate the figure
+        lineLabels = linesDf.index.values
+        nLabels = lineLabels.size
+        if nLabels <= 56:
+            nRows, nColumns = 7, 8
+        else:
+            nRows, nColumns = 8, 8
+
+
+        # Generate figure
+        size_dict = {'figure.figsize': (30, 20), 'axes.titlesize': 12, 'axes.labelsize': 10, 'legend.fontsize': 10}
+        self.FigConf(plotSize=size_dict, Figtype='Grid', n_columns=nColumns, n_rows=nRows)
+
+        # Get line regions
+        wavesMatrix = linesDf.loc[:,'w1':'w6'].values
+        wavesIdcs = np.searchsorted(wave, wavesMatrix)
+        idcsLines = (wave[wavesIdcs[:, 2]] <= wave[:, None]) & (wave[:, None] <= wave[wavesIdcs[:, 3]])
+        idcsContinua = ((wave[wavesIdcs[:, 0]] <= wave[:, None]) & (wave[:, None] <= wave[wavesIdcs[:, 1]])) | ((wave[wavesIdcs[:, 4]] <= wave[:, None]) & (wave[:, None] <= wave[wavesIdcs[:, 5]]))
+        idcsRedContinuum = ((wave[wavesIdcs[:, 0]] <= wave[:, None]) & (wave[:, None] <= wave[wavesIdcs[:, 1]]))
+        idcsBlueContinuum = ((wave[wavesIdcs[:, 4]] <= wave[:, None]) & (wave[:, None] <= wave[wavesIdcs[:, 5]]))
+
+        # Loop through the line and plot them
+        for i in range(nLabels):
+
+            lineLabel = lineLabels[i]
+            lineType = linesDf.iloc[i].region_label
+
+            # Get line_i wave and continua
+            lineWave, lineFlux = wave[idcsLines[:, i]], flux[idcsLines[:, i]]
+            continuaWave, continuaFlux = wave[idcsContinua[:, i]], flux[idcsContinua[:, i]]
+            continuaRedWave, continuaRedFlux = wave[idcsRedContinuum[:, i]], flux[idcsRedContinuum[:, i]]
+            continuaBlueWave, continuaBlueFlux = wave[idcsBlueContinuum[:, i]], flux[idcsBlueContinuum[:, i]]
+
+            # Compute linear line continuum and get the standard deviation on the continuum
+            slope, intercept, r_value, p_value, std_err = stats.linregress(continuaWave, continuaFlux)
+            linearLineContinua = lineWave * slope + intercept
+
+            #Excluding Hbeta
+            recombCheck = True if (('H1' in lineLabel) or ('He1' in lineLabel) or ('He2' in lineLabel)) and (lineLabel != 'H1_4861A') and ('_w' not in lineLabel) else False
+            blendedCheck = True if (lineType is not 'continuum_mask') and (lineType != 'None') else False
+            # print i, lineLabels[i], recombCheck, blendedCheck #linesDf.iloc[i].obs_flux, simps(lineFlux, lineWave), lineFlux.sum()
+
+            #Plot the data
+            self.Axis[i].plot(continuaRedWave, continuaRedFlux, color='tab:orange')
+            self.Axis[i].plot(continuaBlueWave, continuaBlueFlux, color='tab:orange')
+            self.Axis[i].plot(lineWave, lineFlux, color='tab:blue')
+
+            # Add flux for isolated recombination lines
+            if recombCheck and blendedCheck is False:
+
+                # Assign new values
+                fluxContinuum = linearLineContinua.sum()
+                linesDf.loc[lineLabel, 'obs_flux'] = linesDf.iloc[i].obs_flux + fluxContinuum
+
+                self.Axis[i].plot(lineWave, linearLineContinua, color='tab:green')
+
+            # Add flux for blended recombination lines
+            if recombCheck and blendedCheck:
+                muLine, sigmaLine = linesDf.iloc[i].mu, linesDf.iloc[i].sigma
+                lineHalfWidth = 3 * sigmaLine
+                w3, w4 = muLine - lineHalfWidth, muLine + lineHalfWidth
+                idx3, idx4 = np.searchsorted(wave, [w3, w4])
+                idcsLines_trim = (wave[idx3] <= wave) & (wave <= wave[idx4])
+                lineWaveTrim, linearLineContinuaTrim = wave[idcsLines_trim], wave[idcsLines_trim] * slope + intercept
+                fluxContinuum = linearLineContinuaTrim.sum()
+
+                # Assign new values
+                linesDf.loc[lineLabel, 'obs_flux'] = linesDf.iloc[i].obs_flux + fluxContinuum
+                linesDf.loc[lineLabel, 'w3'], linesDf.loc[lineLabel, 'w4'] = w3, w4
+
+                # Generate the plot
+                self.Axis[i].plot(lineWaveTrim, linearLineContinuaTrim, color='tab:purple')
+
+            # Adjust the flux in N2_6548
+            if lineLabel == 'N2_6548A':
+                if linesDf.loc[lineLabel, 'region_label'] != 'None':
+                    linesDf.loc[lineLabel, 'obs_fluxErr'] = linesDf.loc['N2_6584A', 'obs_fluxErr']
+
+            # Format the plot
+            self.Axis[i].get_yaxis().set_visible(False)
+            self.Axis[i].set_yticks([])
+            self.Axis[i].get_xaxis().set_visible(False)
+            self.Axis[i].set_xticks([])
+            self.Axis[i].set_yscale('log')
+
+            #Wording plot
+            self.Axis[i].set_title(lineLabels[i])
+
+        # Plot the data
+        plt.savefig(plotAddress, dpi=200, bbox_inches='tight')
 
         return
 

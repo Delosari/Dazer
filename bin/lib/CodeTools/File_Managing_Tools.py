@@ -1922,7 +1922,7 @@ class Dazer_Files(Txt_Files_Manager):
                 
         return linelog_dict
 
-    def load_lineslog_frame(self, lines_log_address, mode = 'Auto', chbeta_coef = None):
+    def load_lineslog_frame(self, lines_log_address, mode = 'Auto', chbeta_coef = None, key_check = 'group_label'):
 
         #Load a frame from the lines log       
         #lines_frame = read_csv(lines_log_address, skiprows = [0], delim_whitespace = True, header = 0, index_col = 0)
@@ -1931,8 +1931,8 @@ class Dazer_Files(Txt_Files_Manager):
         #Load the line flux           
         if mode == 'Auto':  #Gaussian flux for blended lines, integrated for the rest
     
-            Int_indexes     = lines_frame['group_label'] == 'None'
-            Gauss_indexes   = lines_frame['group_label'] != 'None'
+            Int_indexes     = lines_frame[key_check] == 'None'
+            Gauss_indexes   = lines_frame[key_check] != 'None'
                         
             F_Int_uarray    = uarray(lines_frame.loc[Int_indexes, 'flux_intg'].values,      lines_frame.loc[Int_indexes, 'flux_intg_er'].values) 
             F_Gauss_uarray  = uarray(lines_frame.loc[Gauss_indexes, 'flux_gauss'].values,   lines_frame.loc[Gauss_indexes, 'flux_gauss_er'].values)

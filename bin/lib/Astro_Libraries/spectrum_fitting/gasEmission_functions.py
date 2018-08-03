@@ -234,8 +234,6 @@ class EmissionComponents(EmissivitySurfaceFitter, EmissionEquations, LineMesurer
         obj_lines_df['pynebCode'] = self.linesDb.loc[idx_obj_lines].pyneb_code
         obj_lines_df['emis_type'] = self.linesDb.loc[idx_obj_lines].emis_type
 
-        print 'estas',  obj_lines_df['emis_type']
-
         # Get lines for the analysis (Excluding Hbeta) #  TODO add check of possible lines
         if input_lines is 'all':
             idx_lines = (obj_lines_df.index != 'H1_4861A')
@@ -254,7 +252,7 @@ class EmissionComponents(EmissivitySurfaceFitter, EmissionEquations, LineMesurer
         # Assign flux equation to each line
         self.assignFluxEq2Label(self.obj_data['lineLabels'], self.obj_data['lineIons'])
 
-        print('-- Atomic sources Loaded ')
+        # print('-- Atomic sources Loaded ')
         # for atom in self.ionDict.keys():
         #     textPrint = '--- {}: {}'.format(atom, self.ionDict[atom].printSources())
         #     print(textPrint)
@@ -340,7 +338,7 @@ class EmissionComponents(EmissivitySurfaceFitter, EmissionEquations, LineMesurer
 
             # Otherwise generate it (and save it)
             else:
-                print('--- Generating grid: {}'.format(line_label))
+                #print('--- Generating grid: {}'.format(line_label))
                 emis_grid_i = self.ionDict[ions_list[i]].getEmissivity(XX, YY, wave=pynebcode_list[i], product=False)
                 np.save(grid_address, emis_grid_i)
 

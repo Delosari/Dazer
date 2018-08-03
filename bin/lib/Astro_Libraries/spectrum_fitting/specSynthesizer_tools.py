@@ -333,7 +333,7 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
                 # Compute nebular continuum using normalise Halpha and standard conditions
                 self.computeDefaultNeb(self.nebDefault['Te_neb'], self.obj_data['nebFlambda'], self.nebDefault['cHbeta_neb'],
                                        self.nebDefault['He1_neb'], self.nebDefault['He2_neb'],
-                                       self.obj_data['flux_halpha'] / self.obj_data['normFlux_coeff'], self.nebDefault['z_neb'])
+                                       self.nebDefault['flux_halpha'] / self.obj_data['normFlux_coeff'], self.nebDefault['z_neb'])
 
                 # Ready continuum data
                 self.prepareContinuaData(self.ssp_lib['wave_resam'], self.ssp_lib['flux_norm'], self.ssp_lib['normFlux_coeff'],
@@ -347,7 +347,7 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
                 self.plotInputSSPsynthesis()
 
                 # Run stellar continua prefit and store/print the results
-                #self.run_pymc(self.prefit_db, iterations=15000, variables_list=['Av_star', 'sigma_star'], prefit = True)
+                self.run_pymc(self.prefit_db, iterations=8000, variables_list=['Av_star', 'sigma_star'], prefit = True)
                 self.savePrefitData(self.sspCoeffsPrefit_file, self.prefit_db)
 
             # Compute nebular continuum using prior physical data
