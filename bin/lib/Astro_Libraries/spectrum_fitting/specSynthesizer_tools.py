@@ -280,7 +280,7 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
             self.obj_data['lineFlambda'] = self.gasExtincParams(self.obj_data['lineWaves'], self.Rv_model, self.reddedning_curve_model)
 
         # Trim, resample and normalize according to the input object
-        if ('nebular' in fitting_components) or ('stellar' in fitting_components):
+        if 'obs_wavelength' in self.obj_data: # TODO this is a bit dirty
             self.treat_input_spectrum(self.obj_data, self.obj_data['obs_wavelength'], self.obj_data['obs_flux'], wavelengh_limits, resample_inc, norm_interval)
 
         # Reddening parameters for the nebular continuum

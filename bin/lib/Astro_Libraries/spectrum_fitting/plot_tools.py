@@ -160,7 +160,6 @@ class Basic_plots(Plot_Conf):
         return
 
     def linesGrid(self, linesDf, wave, flux, plotAddress):
-
         # Get number of lines to generate the figure
         lineLabels = linesDf.index.values
         nLabels = lineLabels.size
@@ -193,10 +192,15 @@ class Basic_plots(Plot_Conf):
             continuaWave, continuaFlux = wave[idcsContinua[:, i]], flux[idcsContinua[:, i]]
             continuaRedWave, continuaRedFlux = wave[idcsRedContinuum[:, i]], flux[idcsRedContinuum[:, i]]
             continuaBlueWave, continuaBlueFlux = wave[idcsBlueContinuum[:, i]], flux[idcsBlueContinuum[:, i]]
+            lineRes = lineWave[1] - lineWave[0] # TODO need to understand this better
 
             # Compute linear line continuum and get the standard deviation on the continuum
             slope, intercept, r_value, p_value, std_err = stats.linregress(continuaWave, continuaFlux)
             linearLineContinua = lineWave * slope + intercept
+
+            # lineFlux_i = linesDf.loc[lineLabel, 'line_Flux'].nominal_value
+            # lineFlux_iSimps = simps(lineFlux, lineWave) - simps(linearLineContinua, lineWave)
+            # lineFlux_iSum = (lineFlux.sum() - linearLineContinua.sum()) * lineRes
 
             #Excluding Hbeta
             recombCheck = True if (('H1' in lineLabel) or ('He1' in lineLabel) or ('He2' in lineLabel)) and (lineLabel != 'H1_4861A') and ('_w' not in lineLabel) else False
@@ -212,7 +216,7 @@ class Basic_plots(Plot_Conf):
             if recombCheck and blendedCheck is False:
 
                 # Assign new values
-                fluxContinuum = linearLineContinua.sum()
+                fluxContinuum = linearLineContinua.sum() * lineRes
                 linesDf.loc[lineLabel, 'obs_flux'] = linesDf.iloc[i].obs_flux + fluxContinuum
 
                 self.Axis[i].plot(lineWave, linearLineContinua, color='tab:green')
@@ -225,7 +229,7 @@ class Basic_plots(Plot_Conf):
                 idx3, idx4 = np.searchsorted(wave, [w3, w4])
                 idcsLines_trim = (wave[idx3] <= wave) & (wave <= wave[idx4])
                 lineWaveTrim, linearLineContinuaTrim = wave[idcsLines_trim], wave[idcsLines_trim] * slope + intercept
-                fluxContinuum = linearLineContinuaTrim.sum()
+                fluxContinuum = linearLineContinuaTrim.sum() * lineRes
 
                 # Assign new values
                 linesDf.loc[lineLabel, 'obs_flux'] = linesDf.iloc[i].obs_flux + fluxContinuum
@@ -238,6 +242,10 @@ class Basic_plots(Plot_Conf):
             if lineLabel == 'N2_6548A':
                 if linesDf.loc[lineLabel, 'region_label'] != 'None':
                     linesDf.loc[lineLabel, 'obs_fluxErr'] = linesDf.loc['N2_6584A', 'obs_fluxErr']
+                    if (linesDf.loc['N2_6548A', 'obs_fluxErr'] / linesDf.loc['N2_6548A', 'obs_flux']) > 0.1:
+                        linesDf.loc['N2_6548A', 'obs_fluxErr'] = linesDf.loc['N2_6548A', 'obs_flux'] * 0.1
+                    if (linesDf.loc['N2_6584A', 'obs_fluxErr'] / linesDf.loc['N2_6584A', 'obs_flux']) > 0.1:
+                        linesDf.loc['N2_6584A', 'obs_fluxErr'] = linesDf.loc['N2_6584A', 'obs_flux'] * 0.1
 
             # Format the plot
             self.Axis[i].get_yaxis().set_visible(False)

@@ -141,17 +141,11 @@ class EmissionEquations_tensorOps():
     def H1_lines_tt(self, emis_ratio, cHbeta, flambda, abund=None, ftau=None, continuum=None):
         return tt.pow(10, emis_ratio - flambda * cHbeta)
 
-    # def He1_lines_tt(self, emis_ratio, cHbeta, flambda, abund, ftau=None, continuum=None):
-    #     return tt.log10(abund) + emis_ratio + tt.log10(ftau) - flambda * cHbeta
-    #
-    # def He2_lines_tt(self, emis_ratio, cHbeta, flambda, abund, ftau=None, continuum=None):
-    #     return tt.log10(abund) + emis_ratio - flambda * cHbeta
-
     def He1_lines_tt(self, emis_ratio, cHbeta, flambda, abund, ftau=None, continuum=None):
-        return abund * emis_ratio * ftau * tt.pow(10, -1 * flambda * cHbeta)
+        return abund * emis_ratio * ftau * tt.pow(10, -1 * flambda * cHbeta) + continuum
 
     def He2_lines_tt(self, emis_ratio, cHbeta, flambda, abund, ftau=None, continuum=None):
-        return abund * emis_ratio * tt.pow(10, -1 * flambda * cHbeta)
+        return abund * emis_ratio * tt.pow(10, -1 * flambda * cHbeta) + continuum
 
     def metal_lines_tt(self, emis_ratio, cHbeta, flambda, abund, ftau=None, continuum=None):
         return tt.pow(10, abund + emis_ratio - flambda * cHbeta - 12)

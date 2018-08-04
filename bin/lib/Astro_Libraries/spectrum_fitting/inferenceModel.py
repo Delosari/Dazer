@@ -29,7 +29,7 @@ class SpectraSynthesizer(ModelIngredients):
         # Run the sampler
         db_address = output_folder + model_name + '.db' # TODO Deberiamos poder quitar este .db
         self.normContants = {'He1r': 0.1, 'He2r': 0.001}  # TODO need to decide where to place this
-        #self.run_pymc(db_address, iterations=iterations, tuning=tuning, model_type=hammer)
+        self.run_pymc(db_address, iterations=iterations, tuning=tuning, model_type=hammer)
 
         # # Load the results
         inferenceTrace, interenceParamsDict = self.load_pymc_database_manual(db_address, sampler='pymc3')
@@ -100,6 +100,10 @@ class SpectraSynthesizer(ModelIngredients):
         # Container to store the synthetic line fluxes
         if self.emissionCheck:
             lineFlux_tt = tt.zeros(self.lineLabels.size)
+            continuum = tt.zeros(self.obj_data['wave_resam'].size)
+            # idx_N2_6548A = self.lineLabels == 'N2_6548A'
+            # idx_N2_6584A = self.lineLabels == 'N2_6584A'
+            # self.obsLineFluxErr[idx_N2_6548A], self.obsLineFluxErr[idx_N2_6584A] = 0.1* self.obsLineFluxes[idx_N2_6548A], 0.1 * self.obsLineFluxes[idx_N2_6584A]
 
         # Stellar bases tensor
         if self.stellarCheck:
@@ -184,11 +188,14 @@ class SpectraSynthesizer(ModelIngredients):
                         # Atom abundance
                         line_abund = 1.0 if self.H1_lineIdcs[i] else abund_dict[line_ion]
 
+                        # Line continuum
+                        line_continuum = tt.sum(continuum * self.boolean_matrix[i]) * self.lineRes[i]
+
                         # ftau correction for HeI lines
                         line_ftau = self.ftau_func(tau, Te_calc, n_e, *self.ftau_coeffs[line_label]) if self.He1_lineIdcs[i] else None
 
                         # Line synthetic flux
-                        flux_i = self.fluxEq_tt[line_label](line_emis, cHbeta, line_flambda, line_abund, line_ftau, continuum=None)
+                        flux_i = self.fluxEq_tt[line_label](line_emis, cHbeta, line_flambda, line_abund, line_ftau, continuum=line_continuum)
 
                         # Store in container
                         lineFlux_tt = tt.inc_subtensor(lineFlux_tt[i], flux_i)

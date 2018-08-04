@@ -693,6 +693,9 @@ class ImportModelData(SspSynthesisImporter):
         n_lineMasks = idcs_lineMasks.sum()
         self.boolean_matrix = np.zeros((n_lineMasks, wavelength.size), dtype=bool)
 
+        # Array with line wavelength resolution which we fill with default value (This is because there are lines beyong the continuum range)
+        self.lineRes = np.ones(n_lineMasks) * (wavelength[1] - wavelength[0])
+
         # Total mask for valid regions in the spectrum
         n_objMasks = idcs_spectrumMasks.sum()
         self.int_mask = np.ones(wavelength.size, dtype=bool)
@@ -702,11 +705,12 @@ class ImportModelData(SspSynthesisImporter):
         wmin, wmax = linesDf['w3'].loc[idcs_lineMasks].values, linesDf['w4'].loc[idcs_lineMasks].values
         idxMin, idxMax = np.searchsorted(wavelength, [wmin, wmax])
         for i in range(n_lineMasks):
-            if not np.isnan(wmin[i]) and not np.isnan(wmax[i]) and (wmax[i] < wavelength[-1]):
+            if not np.isnan(wmin[i]) and not np.isnan(wmax[i]) and (wmax[i] < wavelength[-1]): # We need this for lines beyong continuum range #TODO propose better
                 w2, w3 = wavelength[idxMin[i]], wavelength[idxMax[i]]
                 idx_currentMask = (wavelength >= w2) & (wavelength <= w3)
                 self.boolean_matrix[i, :] = idx_currentMask
                 self.int_mask = self.int_mask & ~idx_currentMask
+                self.lineRes[i] = wavelength[idxMax[i]] - wavelength[idxMax[i] - 1]
 
         # Loop through the object masks
         wmin, wmax = linesDf['w3'].loc[idcs_spectrumMasks].values, linesDf['w4'].loc[idcs_spectrumMasks].values
