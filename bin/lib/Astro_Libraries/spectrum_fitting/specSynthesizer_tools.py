@@ -255,6 +255,7 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
                          input_lines=None, wavelengh_limits = None, resample_inc=None, norm_interval=None):
 
         # Dictionary to store the data
+        self.obj_data = {}
         self.obj_data = obs_data.copy()
 
         if output_folder is None: # TODO need to establish a global path to save the data
@@ -290,6 +291,7 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
 
         # Declare stellar data
         if 'stellar' in fitting_components:
+            self.ssp_lib = {}
             self.ssp_lib = ssp_data.copy()
 
         # Generate object masks
@@ -308,7 +310,7 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
         self.input_folder = output_folder + 'input_data/'
         self.output_folder = output_folder + 'output_data/'
         self.dataFolder = prefit_data
-        self.configFile = obs_data['obsFile']
+        self.configFile = obs_data['obsFile'] #TODO this one has to go into the configuration
         self.objName = str(obs_data['objName'])
         self.prefit_db = '{}{}_sspPrefitDB'.format(self.dataFolder, self.objName)
         self.sspCoeffsPrefit_file = '{}{}_prefitSSPpopulations.txt'.format(self.input_folder, self.objName)
@@ -347,7 +349,7 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
                 self.plotInputSSPsynthesis()
 
                 # Run stellar continua prefit and store/print the results
-                self.run_pymc(self.prefit_db, iterations=8000, variables_list=['Av_star', 'sigma_star'], prefit = True)
+                #self.run_pymc(self.prefit_db, iterations=8000, variables_list=['Av_star', 'sigma_star'], prefit = True)
                 self.savePrefitData(self.sspCoeffsPrefit_file, self.prefit_db)
 
             # Compute nebular continuum using prior physical data

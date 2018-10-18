@@ -64,20 +64,20 @@ class Basic_plots(Plot_Conf):
 
     def prefit_comparison(self, obj_ssp_fit_flux):
 
-        size_dict = {'figure.figsize': (20, 14), 'axes.labelsize': 16, 'legend.fontsize': 18}
+        size_dict = {'figure.figsize': (20, 14), 'axes.labelsize': 22, 'legend.fontsize': 22}
         self.FigConf(plotSize=size_dict)
 
         self.data_plot(self.inputWave, self.obj_data['flux_norm'], 'Object normed flux')
         self.data_plot(self.inputWave, self.nebDefault['synth_neb_flux'], 'Nebular continuum')
-        self.data_plot(self.inputWave, obj_ssp_fit_flux + self.nebDefault['synth_neb_flux'], 'Prefit continuum output', linestyle=':')
+        self.data_plot(self.inputWave, obj_ssp_fit_flux + self.nebDefault['synth_neb_flux'], 'Prefit continuum output', linestyle='-')
         self.Axis.set_yscale('log')
-        self.FigWording(xlabel='Wavelength $(\AA)$', ylabel='Observed flux', title='SSPs continuum prefit')
+        self.FigWording(xlabel='Wavelength $(\AA)$', ylabel='Normalised flux', title='')
 
         return
 
     def prefit_ssps(self, sspPrefitCoeffs):
 
-        size_dict = {'figure.figsize': (20, 14), 'axes.labelsize': 16, 'legend.fontsize': 18}
+        size_dict = {'figure.figsize': (20, 14), 'axes.labelsize': 22, 'legend.fontsize': 22}
         self.FigConf(plotSize=size_dict)
 
         #TODO This function should go to my collection
@@ -89,12 +89,13 @@ class Basic_plots(Plot_Conf):
             if sspPrefitCoeffs[i] > self.lowlimit_sspContribution:
                 counter += 1
                 label_i = '{} base: flux coeff {}, norm coeff {:.2E}'.format(ordinal_bases[i], sspPrefitCoeffs[i], self.onBasesFluxNormCoeffs[i])
+                label_i = '{} base'.format(ordinal_bases[i])
                 self.data_plot(self.onBasesWave, self.onBasesFluxNorm[i], label_i)
 
         self.area_fill(self.ssp_lib['norm_interval'][0], self.ssp_lib['norm_interval'][1], 'Norm interval: {} - {}'.format(self.ssp_lib['norm_interval'][0], self.ssp_lib['norm_interval'][1]), alpha=0.5)
 
         title = 'SSP prefit contributing stellar populations {}/{}'.format((sspPrefitCoeffs > self.lowlimit_sspContribution).sum(), len(self.onBasesFluxNorm))
-        self.FigWording(xlabel='Wavelength $(\AA)$', ylabel = 'Normalized flux', title = title)
+        self.FigWording(xlabel='Wavelength $(\AA)$', ylabel = 'Normalised flux', title = '')
 
         return
 
@@ -261,6 +262,119 @@ class Basic_plots(Plot_Conf):
         plt.savefig(plotAddress, dpi=200, bbox_inches='tight')
 
         return
+
+    def linesGrid_noContinuum(self, linesDf, wave, flux, plotAddress):
+        # Get number of lines to generate the figure
+        lineLabels = linesDf.index.values
+        nLabels = lineLabels.size
+        if nLabels <= 56:
+            nRows, nColumns = 7, 8
+        else:
+            nRows, nColumns = 8, 8
+
+
+        # Generate figure
+        size_dict = {'figure.figsize': (30, 20), 'axes.titlesize': 12, 'axes.labelsize': 10, 'legend.fontsize': 10}
+        self.FigConf(plotSize=size_dict, Figtype='Grid', n_columns=nColumns, n_rows=nRows)
+
+        # Get line regions
+        wavesMatrix = linesDf.loc[:,'w1':'w6'].values
+        wavesIdcs = np.searchsorted(wave, wavesMatrix)
+        idcsLines = (wave[wavesIdcs[:, 2]] <= wave[:, None]) & (wave[:, None] <= wave[wavesIdcs[:, 3]])
+        idcsContinua = ((wave[wavesIdcs[:, 0]] <= wave[:, None]) & (wave[:, None] <= wave[wavesIdcs[:, 1]])) | ((wave[wavesIdcs[:, 4]] <= wave[:, None]) & (wave[:, None] <= wave[wavesIdcs[:, 5]]))
+        idcsRedContinuum = ((wave[wavesIdcs[:, 0]] <= wave[:, None]) & (wave[:, None] <= wave[wavesIdcs[:, 1]]))
+        idcsBlueContinuum = ((wave[wavesIdcs[:, 4]] <= wave[:, None]) & (wave[:, None] <= wave[wavesIdcs[:, 5]]))
+
+        # Loop through the line and plot them
+        for i in range(nLabels):
+
+            lineLabel = lineLabels[i]
+            lineType = linesDf.iloc[i].region_label
+
+            # Get line_i wave and continua
+            lineWave, lineFlux = wave[idcsLines[:, i]], flux[idcsLines[:, i]]
+            continuaWave, continuaFlux = wave[idcsContinua[:, i]], flux[idcsContinua[:, i]]
+            continuaRedWave, continuaRedFlux = wave[idcsRedContinuum[:, i]], flux[idcsRedContinuum[:, i]]
+            continuaBlueWave, continuaBlueFlux = wave[idcsBlueContinuum[:, i]], flux[idcsBlueContinuum[:, i]]
+            lineRes = lineWave[1] - lineWave[0] # TODO need to understand this better
+
+            # Compute linear line continuum and get the standard deviation on the continuum
+            slope, intercept, r_value, p_value, std_err = stats.linregress(continuaWave, continuaFlux)
+            linearLineContinua = lineWave * slope + intercept
+
+            # lineFlux_i = linesDf.loc[lineLabel, 'line_Flux'].nominal_value
+            # lineFlux_iSimps = simps(lineFlux, lineWave) - simps(linearLineContinua, lineWave)
+            # lineFlux_iSum = (lineFlux.sum() - linearLineContinua.sum()) * lineRes
+
+            #Excluding Hbeta
+            recombCheck = True if (('H1' in lineLabel) or ('He1' in lineLabel) or ('He2' in lineLabel)) and (lineLabel != 'H1_4861A') and ('_w' not in lineLabel) else False
+            blendedCheck = True if (lineType is not 'continuum_mask') and (lineType != 'None') else False
+            # print i, lineLabels[i], recombCheck, blendedCheck #linesDf.iloc[i].obs_flux, simps(lineFlux, lineWave), lineFlux.sum()
+
+            #Plot the data
+            self.Axis[i].plot(continuaRedWave, continuaRedFlux, color='tab:orange')
+            self.Axis[i].plot(continuaBlueWave, continuaBlueFlux, color='tab:orange')
+            self.Axis[i].plot(lineWave, lineFlux, color='tab:blue')
+
+            # Add flux for isolated recombination lines
+            if recombCheck and blendedCheck is False:
+
+                # Assign new values
+                fluxContinuum = 0.0
+                linesDf.loc[lineLabel, 'obs_flux'] = linesDf.iloc[i].obs_flux + fluxContinuum
+
+                self.Axis[i].plot(lineWave, linearLineContinua, color='tab:green')
+
+            # Add flux for blended recombination lines
+            if recombCheck and blendedCheck:
+                muLine, sigmaLine = linesDf.iloc[i].mu, linesDf.iloc[i].sigma
+                lineHalfWidth = 3 * sigmaLine
+                w3, w4 = muLine - lineHalfWidth, muLine + lineHalfWidth
+                idx3, idx4 = np.searchsorted(wave, [w3, w4])
+                idcsLines_trim = (wave[idx3] <= wave) & (wave <= wave[idx4])
+                lineWaveTrim, linearLineContinuaTrim = wave[idcsLines_trim], wave[idcsLines_trim] * slope + intercept
+                fluxContinuum = 0.0
+
+                # Assign new values
+                linesDf.loc[lineLabel, 'obs_flux'] = linesDf.iloc[i].obs_flux + fluxContinuum
+                linesDf.loc[lineLabel, 'w3'], linesDf.loc[lineLabel, 'w4'] = w3, w4
+
+                # Generate the plot
+                self.Axis[i].plot(lineWaveTrim, linearLineContinuaTrim, color='tab:purple')
+
+            # Adjust the flux in N2_6548
+            if lineLabel == 'N2_6548A':
+                if linesDf.loc[lineLabel, 'region_label'] != 'None':
+                    linesDf.loc[lineLabel, 'obs_fluxErr'] = linesDf.loc['N2_6584A', 'obs_fluxErr']
+                    if (linesDf.loc['N2_6548A', 'obs_fluxErr'] / linesDf.loc['N2_6548A', 'obs_flux']) > 0.1:
+                        linesDf.loc['N2_6548A', 'obs_fluxErr'] = linesDf.loc['N2_6548A', 'obs_flux'] * 0.1
+                    if (linesDf.loc['N2_6584A', 'obs_fluxErr'] / linesDf.loc['N2_6584A', 'obs_flux']) > 0.1:
+                        linesDf.loc['N2_6584A', 'obs_fluxErr'] = linesDf.loc['N2_6584A', 'obs_flux'] * 0.1
+
+            # Adjust the flux in N2_6548
+            if lineLabel == 'O2_7319A':
+                if linesDf.loc[lineLabel, 'region_label'] != 'None':
+                    if (linesDf.loc['O2_7319A', 'obs_fluxErr'] / linesDf.loc['O2_7319A', 'obs_flux']) > 0.1:
+                        linesDf.loc['O2_7319A', 'obs_fluxErr'] = linesDf.loc['O2_7319A', 'obs_flux'] * 0.1
+                    if (linesDf.loc['O2_7330A', 'obs_fluxErr'] / linesDf.loc['O2_7330A', 'obs_flux']) > 0.1:
+                        linesDf.loc['O2_7330A', 'obs_fluxErr'] = linesDf.loc['O2_7330A', 'obs_flux'] * 0.1
+
+            # Format the plot
+            self.Axis[i].get_yaxis().set_visible(False)
+            self.Axis[i].set_yticks([])
+            self.Axis[i].get_xaxis().set_visible(False)
+            self.Axis[i].set_xticks([])
+            self.Axis[i].set_yscale('log')
+
+            #Wording plot
+            self.Axis[i].set_title(lineLabels[i])
+
+        # Plot the data
+        plt.savefig(plotAddress, dpi=200, bbox_inches='tight')
+
+        return
+
+
 
     def emissivitySurfaceFit_2D(self, line_label, emisCoeffs, emisGrid, funcEmis, te_ne_grid):
 
@@ -581,7 +695,7 @@ class Basic_plots(Plot_Conf):
 
         return
 
-    def corner_plot(self, traces_list, stats_dic, plot_true_values=False):
+    def corner_plot(self, traces_list, stats_dic, true_values=None):
 
         #Remove operations from the parameters list
         traces = traces_list[[i for i, v in enumerate(traces_list) if ('_Op' not in v) and ('_log__' not in v) and ('w_i' not in v)]]
@@ -609,17 +723,16 @@ class Basic_plots(Plot_Conf):
             labels_list.append(self.labels_latex_dic[trace_code])
         traces_array = array(list_arrays).T
 
-
-        true_values = empty(len(traces))
-        for i in range(len(traces)):
-            if 'true_value' in stats_dic[traces[i]]:
-                true_values[i] = stats_dic[traces[i]]['true_value']
-            else:
-                true_values[i] = None
+        # true_values = empty(len(traces))
+        # for i in range(len(traces)):
+        #     if 'true_value' in stats_dic[traces[i]]:
+        #         true_values[i] = stats_dic[traces[i]]['true_value']
+        #     else:
+        #         true_values[i] = 'None'
 
         #Generate the plot
         self.Fig = corner.corner(traces_array[:, :], fontsize=30, labels=labels_list, quantiles=[0.16, 0.5, 0.84],
-                                 show_titles=True, title_args={"fontsize": 200}, truths=true_values,
+                                 show_titles=True, title_args={"fontsize": 200}, truths=true_values, truth_color='#ae3135',
                                  title_fmt='0.3f')
 
 
@@ -789,12 +902,12 @@ class MCMC_printer(Basic_plots, Basic_tables):
         self.savefig(self.input_folder + self.objName + '_PrefitTracesPlot', resolution=200)
 
         # Stellar prefit Posteriors
-        self.posteriors_plot(traces_names, pymc2_db_dictPrefit)
-        self.savefig(self.input_folder + self.objName + '_PrefitPosteriorPlot', resolution=200)
+        # self.posteriors_plot(traces_names, pymc2_db_dictPrefit)
+        # self.savefig(self.input_folder + self.objName + '_PrefitPosteriorPlot', resolution=200)
 
         # Stellar prefit Posteriors
         self.tracesPosteriorPlot(traces_names, pymc2_db_dictPrefit)
-        self.savefig(self.input_folder + self.objName + '_ParamsTracesPosterios', resolution=200)
+        self.savefig(self.input_folder + self.objName + '_ParamsTracesPosterios_StellarPrefit', resolution=200)
 
         return
 
@@ -840,6 +953,6 @@ class MCMC_printer(Basic_plots, Basic_tables):
             # Corner plot
             print '--Scatter plot matrix'
             self.corner_plot(params_list, db_dict)
-            self.savefig(database_address + '_CornerPlot', resolution=200)
+            self.savefig(database_address + '_CornerPlot', resolution=100)
 
         return

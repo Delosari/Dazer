@@ -371,8 +371,7 @@ class Chemical_Analysis_pyneb():
         self.determine_ionic_abundance('ArIV_HII', self.Ar4_atom, diagnos_eval, diagnos_mag, Thigh, ne)
         
     def oxygen_abundance_scheme(self,  Tlow, Thigh, ne):                       
- 
- 
+
         #Calculate the O_+1 abundances from 3200+ lines
         O2_lines = ['O2_3726A+']
         diagnos_eval, diagnos_mag = self.check_obsLines(O2_lines)

@@ -4,6 +4,7 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/Dazer.iml" filepath="$PROJECT_DIR$/.idea/Dazer.iml" />
       <module fileurl="file://$PROJECT_DIR$/../thesis_pipeline/.idea/Thesis_Pipeline.iml" filepath="$PROJECT_DIR$/../thesis_pipeline/.idea/Thesis_Pipeline.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../astronomy/.idea/astronomy.iml" filepath="$PROJECT_DIR$/../astronomy/.idea/astronomy.iml" />
       <module fileurl="file://$PROJECT_DIR$/../ppxf-6.7.11/.idea/ppxf-6.7.11.iml" filepath="$PROJECT_DIR$/../ppxf-6.7.11/.idea/ppxf-6.7.11.iml" />
     </modules>
   </component>

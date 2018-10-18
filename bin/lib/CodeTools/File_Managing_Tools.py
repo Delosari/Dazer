@@ -649,7 +649,8 @@ class Pdf_printer():
             self.pdfDoc.packages.append(Package('hyperref', options=['unicode=true',]))
             self.pdfDoc.append(NoEscape(r'\pagenumbering{gobble}'))
             self.pdfDoc.packages.append(Package('nicefrac'))
-            
+            self.pdfDoc.packages.append(Package('color', options=['usenames', 'dvipsnames',])) #Package to crop pdf to a figure
+
         elif pdf_type == 'longtable':
             self.pdfDoc.append(NoEscape(r'\pagenumbering{gobble}'))
 
