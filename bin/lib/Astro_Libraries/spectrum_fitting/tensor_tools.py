@@ -49,7 +49,6 @@ class BilinearInterpTheano():
 
         return out
 
-
     def operation_bilinear(self):
 
         # Declare variables
@@ -72,12 +71,11 @@ class BilinearInterpTheano():
 
         return interpol_value
 
-
 class EmissivitySurfaceFitter_tensorOps():
 
     def __init__(self):
 
-        self.ionEmisEq_tt = {'S2_6716A'  : self.emisEquation_TeDe_tt,
+        self.ionEmisEq_tt = {'S2_6716A' : self.emisEquation_TeDe_tt,
                             'S2_6731A'  : self.emisEquation_TeDe_tt,
                             'S3_6312A'  : self.emisEquation_Te_tt,
                             'S3_9069A'  : self.emisEquation_Te_tt,
@@ -102,6 +100,10 @@ class EmissivitySurfaceFitter_tensorOps():
                             'He1_6678A' : self.emisEquation_HeI_tt,
                             'He1_7065A' : self.emisEquation_HeI_tt,
                             'He2_4686A' : self.emisEquation_HeII_tt}
+
+        self.EmisRatioEq_tt = {'RSII'   : self.emisEquation_TeDe_tt,
+                            'RSIII'     : self.emisEquation_Te_tt,
+                            'ROIII'     : self.emisEquation_Te_tt}
 
     def emisEquation_Te_tt(self, xy_space, a, b, c):
         temp_range, den_range = xy_space

@@ -96,10 +96,20 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
         self.gasSamplerVariables(self.obj_data['lineIons'], self.high_temp_ions)
 
         # Create or load emissivity grids
-        self.import_emissivity_grids()
+        self.emis_grid = self.computeEmissivityGrids(self.obj_data['linePynebCode'], self.obj_data['lineIons'], True)
 
         # Fit emissivity grids to a surface
-        self.fit_emissivity_surface()
+        self.fitEmissivityPlane()
+
+        # # Create or emissivity diagnostic ratios
+        # self.diagnosRatios, self.diagnosGrid = self.computeDiagnosGrids(self.obj_data['linePynebCode'], self.diagnosDict, self.emis_grid)
+        #
+        # # Fit emissivity ratios a surface
+        # self.emisRatioCoeffs = self.fitEmissivityDiagnosPlane(self.diagnosRatios, self.diagnosGrid)
+        #
+        # # Plot fits of emissivity ratios
+        # print 'I am saving here', self.paths_dict['emisGridsPath']
+        # self.plot_emisRatioFits(self.diagnosRatios, self.emisRatioCoeffs, self.diagnosGrid, self.paths_dict['emisGridsPath'])
 
         # Reddening parameters
         self.obj_data['lineFlambda'] = self.gasExtincParams(self.obj_data['lineWaves'], self.Rv_model, self.reddedning_curve_model)
@@ -127,6 +137,7 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
                                     self.obj_data['lineLabels'], self.obj_data['lineIons'], self.obj_data['lineFlambda'])
 
         #Converting the fluxes from metals and hydrogen into linear scale
+        # TODO Two scales in same array it is very dangerous
         for i in range(logLine_fluxes.size):
             if self.obj_data['lineIons'][i] not in ['He1r', 'He2r']:
                 logLine_fluxes[i] = np.power(10, logLine_fluxes[i])
@@ -207,7 +218,7 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
             synth_spectrum_address = '{}{}_spectrum.txt'.format(output_folder, obs_name)
             np.savetxt(synth_spectrum_address, np.transpose(np.array([obj_WaveObs, self.obj_data['obsFlux']])), fmt="%7.1f %10.4e")
 
-        #Store synthetic object data log # TODO Add here the comments of the function
+        #Store synthetic object data log # TODO Add here the comments of the function and make it automatic
         obj_dict = OrderedDict()
         obj_dict['address_lines_log']   = synth_lines_log
         obj_dict['address_spectrum']    = synth_spectrum_address
@@ -228,9 +239,10 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
         obj_dict['wavelengh_limits']    = wavelengh_limits
         obj_dict['norm_interval']       = norm_interval
         obj_dict['Te_prior']            = [10000.0, 1000.0]
-        obj_dict['ne_prior']            = [80, 50]
+        obj_dict['ne_prior']            = [200, 100]
         obj_dict['cHbeta_prior']        = [0.125, 0.02]
         obj_dict['T_low_true']          = T_low
+        obj_dict['T_high_true']         = T_high
         obj_dict['n_e_true']            = n_e
         obj_dict['cHbeta_true']         = cHbeta
         obj_dict['tau_true']            = tau
@@ -264,7 +276,6 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
         #Read log with observational features and masks
         obj_lines_df = read_csv(obs_data['obj_lines_file'], delim_whitespace=True, header=0, index_col=0)
 
-
         #Prepare data from emission line file
         self.import_emission_line_data(obj_lines_df, input_lines = input_lines)
 
@@ -272,10 +283,20 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
         if 'emission' in fitting_components:
 
             # Create or load emissivity grids
-            self.import_emissivity_grids()
+            self.emis_grid = self.computeEmissivityGrids(self.obj_data['linePynebCode'], self.obj_data['lineIons'], True)
 
             # Fit emissivity grids to a surface
-            self.fit_emissivity_surface()
+            self.fitEmissivityPlane()
+
+            # Create or emissivity diagnostic ratios
+            self.diagnosRatios, self.diagnosGrid = self.computeDiagnosGrids(self.obj_data['linePynebCode'], self.diagnosDict, self.emis_grid)
+
+            # Fit emissivity ratios a surface
+            self.emisRatioCoeffs = self.fitEmissivityDiagnosPlane(self.diagnosRatios, self.diagnosGrid)
+
+            # Plot fits of emissivity ratios
+            print 'I am saving here', self.paths_dict['emisGridsPath']
+            self.plot_emisRatioFits(self.diagnosRatios, self.emisRatioCoeffs, self.diagnosGrid, self.paths_dict['emisGridsPath'])
 
             # Reddening parameters
             self.obj_data['lineFlambda'] = self.gasExtincParams(self.obj_data['lineWaves'], self.Rv_model, self.reddedning_curve_model)
@@ -393,7 +414,7 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
             self.obsLineFluxes      = self.obj_data['lineFluxes']/self.obj_data['flux_hbeta']
             self.obsLineFluxErr     = self.obj_data['lineErr']/self.obj_data['flux_hbeta']
 
-        #Setting minimin error to 0.01 of the line flux
+        # Setting minimin error to 0.01 of the line flux
         err_fraction = self.obj_data['lineErr']/self.obj_data['lineFluxes']
         idcs_smallErr = err_fraction < 0.02
         self.obsLineFluxErr[idcs_smallErr] = 0.02
@@ -406,14 +427,35 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
         # Variables to make the iterations simpler
         self.gasSamplerVariables(self.lineIons, self.high_temp_ions)
 
+        # Define diagnostic ratios
+        self.obsDiagRatios = np.empty(self.diagnosRatios.size)
+        for i in range(self.diagnosRatios.size):
+
+            ratio = self.diagnosRatios[i]
+
+            # Get the numerator and denominator wave indeces
+            num_waves = self.diagnosDict[ratio]['num']
+            den_waves = self.diagnosDict[ratio]['den']
+
+            # New indices
+            num_idcs = np.argwhere(np.in1d(self.obj_data['linePynebCode'], num_waves))
+            den_idcs = np.argwhere(np.in1d(self.obj_data['linePynebCode'], den_waves))
+
+            # New diagnostics
+            self.obsDiagRatios[i] = np.log10(self.obsLineFluxes[num_idcs].sum() / self.obsLineFluxes[den_idcs].sum())
+
 
         # print '-- Line fluxes', self.obsLineFluxes
         # print '-- Line flux uncertainty', self.obsLineFluxErr
         # print '-- Errors percentage', 1.0 - self.obj_data['lineErr']/self.obj_data['lineFluxes']
-        print '-- Observed atoms:', np.unique(self.lineIons)
-        print '-- Treating lines:', self.lineLabels
-        print '-- Temperature prior', self.Te_prior
-        print '-- Density prior', self.ne_prior
+        # print '-- Observed atoms:', np.unique(self.lineIons)
+        # print '-- Treating lines:', self.lineLabels
+        # print '-- Temperature prior', self.Te_prior
+        # print '-- Density prior', self.ne_prior
+        # print self.diagnosRatios, self.obsDiagRatios
+        # print self.emisEquation_Te((self.obj_data['T_low_true'], self.obj_data['n_e_true']), *self.emisRatioCoeffs['RSIII'])
+        # print self.emisEquation_Te((self.obj_data['T_high_true'], self.obj_data['n_e_true']), *self.emisRatioCoeffs['ROIII'])
+        # print 'Hi'
 
         return
 

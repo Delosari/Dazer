@@ -624,7 +624,9 @@ class Pdf_printer():
                                      'bottom'   : '2cm'}
 
     def create_pdfDoc(self, fname, pdf_type = 'graphs', geometry_options = None, document_class = u'article'):
-        
+
+        #TODO it would be nicer to create pdf object to do all these things
+
         self.pdf_type = pdf_type
         
         #Update the geometry if necessary (we coud define a dictionary distinction)

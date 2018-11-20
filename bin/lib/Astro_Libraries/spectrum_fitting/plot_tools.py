@@ -374,8 +374,6 @@ class Basic_plots(Plot_Conf):
 
         return
 
-
-
     def emissivitySurfaceFit_2D(self, line_label, emisCoeffs, emisGrid, funcEmis, te_ne_grid):
 
         # Plot format
@@ -766,7 +764,7 @@ class Basic_tables(Pdf_printer):
     def table_mean_outputs(self, table_address, parameters_list, db_dict, true_values = None):
 
         # Table headers
-        headers = ['Parameter', 'True value', 'Mean', 'Standard deviation', 'Number of points', 'Median', r'$16^{th}$ $percentil$', r'$84^{th}$ $percentil$']
+        headers = ['Parameter', 'True value', 'Mean', 'Standard deviation', 'Number of points', 'Median', r'$16^{th}$ $percentil$', r'$84^{th}$ $percentil$', r'$Difference$']
 
         # Generate pdf
         self.create_pdfDoc(table_address, pdf_type='table')
@@ -785,13 +783,14 @@ class Basic_tables(Pdf_printer):
                 median      = db_dict[param]['median']
                 p_16th      = db_dict[param]['16th_p']
                 p_84th      = db_dict[param]['84th_p']
+                true_value  = 'None'
+                perDif      = 'None'
 
-                if 'true_value' in db_dict[param]:
-                    true_value = db_dict[param]['true_value']
-                else:
-                    true_value = 'None'
+                if param + '_true' in true_values:
+                    true_value = true_values[param + '_true']
+                    perDif = 1 - (true_value/median * 100)
 
-                self.addTableRow([label, true_value, mean_value, std, n_traces, median, p_16th, p_84th], last_row=False if parameters_list[-1] != param else True)
+                self.addTableRow([label, true_value, mean_value, std, n_traces, median, p_16th, p_84th, perDif], last_row=False if parameters_list[-1] != param else True)
 
         self.generate_pdf(clean_tex=True)
 
@@ -807,6 +806,7 @@ class Basic_tables(Pdf_printer):
 
         if true_values is not None:
             headers.insert(1, 'True value')
+            headers.insert(2, 'Diff percentage')
 
         self.pdf_insert_table(headers)
 
@@ -815,6 +815,7 @@ class Basic_tables(Pdf_printer):
         median_line_values  = median(db_dict[function_key]['trace'], axis=0)
         p16th_line_values   = percentile(db_dict[function_key]['trace'],16, axis=0)
         p84th_line_values   = percentile(db_dict[function_key]['trace'],84, axis=0)
+        diff_Percentage     = 1 - (median_line_values/true_values * 100)
 
         for i in range(len(lines_list)):
 
@@ -825,6 +826,7 @@ class Basic_tables(Pdf_printer):
 
             if true_values is not None:
                 row_i.insert(1, true_values[i])
+                row_i.insert(2, diff_Percentage[i])
 
             self.addTableRow(row_i, last_row=False if lines_list[-1] != lines_list[i] else True)
 
@@ -859,6 +861,34 @@ class MCMC_printer(Basic_plots, Basic_tables):
 
             # 3D Comparison between PyNeb values and the fitted equation
             self.emissivitySurfaceFit_3D(lineLabel, emisCoeffs_dict[lineLabel], emisGrid_array[:,i], self.ionEmisEq[lineLabel], te_ne_grid)
+
+            output_address = '{}{}_{}'.format(output_folder,'emissivityTeDe3D',lineLabel)
+            self.savefig(output_address, resolution=200)
+            plt.clf()
+
+        return
+
+    def plot_emisRatioFits(self, diagnoslabels, emisCoeffs_dict, emisGrid_array, output_folder):
+
+        # Temperature and density meshgrids
+        X, Y = np.meshgrid(self.tem_grid_range, self.den_grid_range)
+        XX, YY = X.flatten(), Y.flatten()
+        te_ne_grid = (XX, YY)
+
+        for i in range(diagnoslabels.size):
+
+            lineLabel = diagnoslabels[i]
+            print '--Fitting surface', lineLabel
+
+            # 2D Comparison between PyNeb values and the fitted equation
+            self.emissivitySurfaceFit_2D(lineLabel, emisCoeffs_dict[lineLabel], emisGrid_array[:,i], self.EmisRatioEq_fit[lineLabel], te_ne_grid)
+
+            output_address = '{}{}_{}'.format(output_folder,'emissivityTeDe2D',lineLabel)
+            self.savefig(output_address, resolution=200)
+            plt.clf()
+
+            # 3D Comparison between PyNeb values and the fitted equation
+            self.emissivitySurfaceFit_3D(lineLabel, emisCoeffs_dict[lineLabel], emisGrid_array[:,i], self.EmisRatioEq_fit[lineLabel], te_ne_grid)
 
             output_address = '{}{}_{}'.format(output_folder,'emissivityTeDe3D',lineLabel)
             self.savefig(output_address, resolution=200)
@@ -927,7 +957,7 @@ class MCMC_printer(Basic_plots, Basic_tables):
 
             # # Table mean values
             print '--Model parameters table'
-            self.table_mean_outputs(database_address + '_meanOutput', params_list, db_dict, true_values = None)
+            self.table_mean_outputs(database_address + '_meanOutput', params_list, db_dict, true_values = self.obj_data)
 
             # # Line fluxes values
             print '--Line fluxes table' # TODO divide in two

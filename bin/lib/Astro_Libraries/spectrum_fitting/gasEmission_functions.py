@@ -6,6 +6,13 @@ from scipy.optimize import curve_fit
 from DZ_LineMesurer import LineMesurer_v2
 from numpy import ones, exp, zeros, log10
 from tensor_tools import EmissivitySurfaceFitter_tensorOps, EmissionEquations_tensorOps
+from inspect import getargspec
+
+def someMethod(self, arg1, kwarg1=None):
+    pass
+
+args = getargspec(someMethod)
+
 
 
 def TOIII_TSIII_relation(TSIII):
@@ -68,6 +75,10 @@ class EmissivitySurfaceFitter(EmissivitySurfaceFitter_tensorOps):
                             'He1_7065A' : self.emisEquation_HeI_fit,
                             'He2_4686A' : self.emisEquation_HeII_fit}
 
+        self.EmisRatioEq_fit = {'RSII'    : self.emisEquation_TeDe,
+                            'RSIII'     : self.emisEquation_Te,
+                            'ROIII'     : self.emisEquation_Te}
+
         # Second dictionary for the line fluxes
         self.ionEmisEq = dict(self.ionEmisEq_fit)
         for line in ['He1_3889A', 'He1_4026A', 'He1_4471A', 'He1_5876A', 'He1_5876A', 'He1_6678A', 'He1_7065A']:
@@ -112,6 +123,7 @@ class EmissivitySurfaceFitter(EmissivitySurfaceFitter_tensorOps):
         temp_range, den_range = xy_space
         return a * np.power(temp_range / 10000, b)
 
+    #TODO Separate lists of equation surfaces from the functions to fit
     def fitEmis(self, func_emis, xy_space, line_emis, p0 = None):
         p1, p1_cov = curve_fit(func_emis, xy_space, line_emis, p0)
         return p1, p1_cov
@@ -193,6 +205,11 @@ class EmissionComponents(EmissivitySurfaceFitter, EmissionEquations, LineMesurer
         # Set atomic data: # TODO Set these from the configuration file
         atomicFiles = 's_iii_coll_HRS12.dat'
         pn.atomicData.setDataFile(atomicFiles)
+
+        # Line dianostics declaration #TODO this is not very powerful... maybe something like in pyneb
+        self.diagnosDict = {'ROIII'  :{'num' : np.array([4363]), 'den':np.array([4959, 5007])},
+                           'RSIII'  :{'num' : np.array([6312]), 'den':np.array([9069, 9531])}}
+                           #'RSII'   :{'num' : np.array([6716]), 'den':np.array([6731])}}
 
         # Generate the dictionary with pyneb ions
         print('-- Loading atoms data with PyNeb')
@@ -286,11 +303,10 @@ class EmissionComponents(EmissivitySurfaceFitter, EmissionEquations, LineMesurer
 
         # Emissivity grid
         # TODO get this one out
-        self.emis_grid = self.manage_emissivity_grids(self.obj_data['linePynebCode'], self.obj_data['lineIons'], forceGridsReset)
 
         return
 
-    def fit_emissivity_surface(self):
+    def fitEmissivityPlane(self):
 
         # Temperature and density meshgrids
         X, Y = np.meshgrid(self.tem_grid_range, self.den_grid_range)
@@ -304,19 +320,45 @@ class EmissionComponents(EmissivitySurfaceFitter, EmissionEquations, LineMesurer
 
             # Get equation type to fit the emissivity
             line_func  = self.ionEmisEq_fit[lineLabel]
+            n_args = len(getargspec(line_func).args) - 2 #TODO Not working in python 2.7 https://stackoverflow.com/questions/847936/how-can-i-find-the-number-of-arguments-of-a-python-function
 
             # Compute emissivity functions coefficients
-            p0 = self.epm2017_emisCoeffs[lineLabel] if lineLabel in self.epm2017_emisCoeffs else None
+            p0 = self.epm2017_emisCoeffs[lineLabel] if lineLabel in self.epm2017_emisCoeffs else np.zeros(n_args)
             p1, cov1 = self.fitEmis(line_func, (XX, YY), self.emis_grid[:, i], p0=p0)
             self.emisCoeffs[lineLabel] = p1
 
+        # TODO document the data of how these coefficients can be derived
         # Additional functions for correction on the coefficients
         if 'He2_4686A' in self.obj_data['lineLabels']:
             self.emisCoeffs['He2_4686A'][0] = 10**(self.emisCoeffs['He2_4686A'][0])
 
         return
 
-    def manage_emissivity_grids(self, pynebcode_list, ions_list, forceGridReset=False):
+    def fitEmissivityDiagnosPlane(self, diagnRatios, emissivityRatiosGrid):
+
+        # Temperature and density meshgrids #
+        # TODO this XX YY should go to the self.
+        X, Y = np.meshgrid(self.tem_grid_range, self.den_grid_range)
+        XX, YY = X.flatten(), Y.flatten()
+
+        # Dictionary to store the emissivity surface coeffients
+        emisRatioCoeffs = {}
+        for i in range(diagnRatios.size):
+
+            ratioLabel = diagnRatios[i]
+
+            # Get equation type to fit the emissivity
+            diagnoFunct = self.EmisRatioEq_fit[ratioLabel]
+
+            # Compute emissivity functions coefficients
+            p1, cov1 = self.fitEmis(diagnoFunct, (XX, YY), emissivityRatiosGrid[:, i], p0=np.array([0,0,0]))
+            emisRatioCoeffs[ratioLabel] = p1
+
+            print ratioLabel, p1
+
+        return emisRatioCoeffs
+
+    def computeEmissivityGrids(self, pynebcode_list, ions_list, forceGridReset=False):
 
         # Temperature and density meshgrids
         X, Y = np.meshgrid(self.tem_grid_range, self.den_grid_range)
@@ -346,6 +388,45 @@ class EmissionComponents(EmissivitySurfaceFitter, EmissionEquations, LineMesurer
             emisGrid[:, i] = np.log10(emis_grid_i/Hbeta_emis_grid)
 
         return emisGrid
+
+    def computeDiagnosGrids(self, pynebcodeWaves, diagnosDict, emisRatioGrid):
+
+        diagnosGridDict = {}
+        for diagnos in diagnosDict:
+
+            # Get the numerator and denominator wave indeces
+            num_waves = diagnosDict[diagnos]['num']
+            den_waves = diagnosDict[diagnos]['den']
+
+            # Check if all the ratio lines are available
+            num_set = np.in1d(pynebcodeWaves, num_waves)
+            den_set = np.in1d(pynebcodeWaves, den_waves)
+
+            #Sum up elements in numerator and denominator and divide
+            if (num_waves.size == num_set.sum()) and (den_waves.size == den_set.sum()):
+
+                num_idcs = np.argwhere(num_set)
+                den_idcs = np.argwhere(den_set)
+
+                num_array = np.power(10, emisRatioGrid[:, num_idcs])
+                den_array = np.power(10, emisRatioGrid[:, den_idcs])
+
+                diagnosGridDict[diagnos] = np.log10(num_array.sum(axis=1) / den_array.sum(axis=1))
+
+        # Protocol in case no line ratio is available
+        if len(diagnosGridDict) > 0:
+
+            # Move data from dict to an array
+            diagnosList = np.array(diagnosGridDict.keys())
+            diagnosGrid = np.empty((emisRatioGrid.shape[0], diagnosList.size))
+
+            for i in range(diagnosList.size):
+                diagnosGrid[:, i] = np.squeeze(diagnosGridDict[diagnosList[i]])
+
+        else:
+            diagnosList, diagnosGrid = None, None
+
+        return diagnosList, diagnosGrid
 
     def calcEmFluxes(self, Tlow, Thigh, ne, cHbeta, tau, abund_dict, lineLabels, lineIons, lineFlambda):
 
@@ -379,6 +460,10 @@ class EmissionComponents(EmissivitySurfaceFitter, EmissionEquations, LineMesurer
 
             # Store in container
             linesFlux[i] = fluxEq_i
+
+            print line_label, line_coeffs, line_emis
+            print line_ion, Te_calc, ne, cHbeta, line_flambda, fluxEq_i
+            print
 
         return linesFlux
 
