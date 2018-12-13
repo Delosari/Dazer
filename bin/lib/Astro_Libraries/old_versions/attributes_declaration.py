@@ -227,7 +227,7 @@ def gaussian_filter1d_vital(sigma, wave, flux):
 #         self.obj_data['obs_wave'] = obj_wave_obs
 #         self.obj_data['stellar_flux'] = obj_flux
 #         self.obj_data['stellar_flux_err'] = obj_flux + stellar_err
-#         self.obj_data['sigma_continuum'] = 0.02  # TODO put this in the object data
+#         self.obj_data['sigma_continuum'] = 0.02
 #
 #
 #

@@ -10,6 +10,7 @@ from scipy.interpolate import interp1d
 from distutils.util import strtobool
 from astropy.io import fits as astropyfits
 
+
 # Function to create folders
 def make_folder(folder_path):
 
@@ -108,10 +109,10 @@ def parseObjData(file_address, sectionName, objData):
     with open(file_address, 'w') as f:
         parser.write(f)
 
-
     return
 
 
+# Class with tools to import SSPs libraries
 class SspSynthesisImporter:
 
     def __init__(self):
@@ -447,67 +448,78 @@ class SspSynthesisImporter:
         return ssp_lib_dict
 
 
+# Class with SpecSyzer dataloading tools
 class ImportModelData(SspSynthesisImporter):
-    '''
-    This class loads the binaries required for the dazer spectra synthesizer module
-    '''
 
-    def __init__(self):
+    def __init__(self, confFolder):
 
         # Class with tools to import starlight bases
         SspSynthesisImporter.__init__(self)
 
-        self.paths_dict = {}
+        # Load default configuration file
+        self.config = self.load_confFile(confFolder, 'config.ini')
 
-        # Paths for linux:
-        if os.name == 'posix':
-            # TODO This data should be read from a text file
-            self.paths_dict['inference_folder']     = '/home/vital/Astrodata/Inference_output/'
-            self.paths_dict['nebular_data_folder']  = '/home/vital/Dropbox/Astrophysics/Lore/NebularContinuum/'
-            self.paths_dict['Hydrogen_CollCoeff']   = '/home/vital/PycharmProjects/dazer/bin/lib/Astro_Libraries/literature_data/Neutral_Hydrogen_Collisional_Correction_coef.txt'
-            self.paths_dict['Helium_CollCoeff']     = '/home/vital/PycharmProjects/dazer/bin/lib/Astro_Libraries/literature_data/Neutral_Helium_Collisional_Correction_coef.txt'
-            self.paths_dict['Helium_OpticalDepth']  = '/home/vital/PycharmProjects/dazer/bin/lib/Astro_Libraries/literature_data/Benjamin1999_OpticalDepthFunctionCoefficients.txt'
-            self.paths_dict['lines_data_file']      = '/home/vital/PycharmProjects/dazer/bin/lib/Astro_Libraries/spectrum_fitting/lines_data.xlsx'
-            self.paths_dict['dazer_path']           = '/home/vital/PycharmProjects/dazer/'
-            self.paths_dict['stellar_data_folder']  = '/home/vital/Starlight/'
-            self.paths_dict['observations_folder']  = '/home/vital/Dropbox/Astrophysics/Data/WHT_observations/objects/'
-            self.paths_dict['emisGridsPath']        = '/home/vital/PycharmProjects/thesis_pipeline/spectrum_fitting/testing_output/input_data/'
+        # Define default folders
+        self.dataFolder = os.path.join(os.path.expanduser('~'), self.config['inference_folder'])
+        self.inputsFolder = os.path.join(self.dataFolder, self.config['input_data_folder'])
+        self.outputsFolder = os.path.join(self.dataFolder, self.config['output_data_folder'])
+        self.externalDataFolder = os.path.join(confFolder, self.config['external_data_folder'])
+        self.configFolder = confFolder
 
-        # Paths for windows:
-        elif os.name == 'nt':
-            # TODO Check guides for windows and linux
-            self.paths_dict['inference_folder']     = 'D:/Inference_data/'
-            self.paths_dict['nebular_data_folder']  = 'E:/Cloud Storage/Dropbox/Astrophysics/Lore/NebularContinuum/'
-            self.paths_dict['Hydrogen_CollCoeff']   = 'C:/Users/lativ/git/dazer/bin/lib/Astro_Libraries/Neutral_Hydrogen_Collisional_Correction_coef.txt'
-            self.paths_dict['Helium_CollCoeff']     = 'C:/Users/lativ/git/dazer/bin/lib/Astro_Libraries/Neutral_Helium_Collisional_Correction_coef.txt'
-            self.paths_dict['Helium_OpticalDepth']  = 'C:/Users/lativ/git/dazer/bin/lib/Astro_Libraries/Benjamin1999_OpticalDepthFunctionCoefficients.txt'
-            self.paths_dict['stellar_data_folder']  = 'E:/Cloud Storage/Dropbox/Astrophysics/Tools/Starlight/'
-            self.paths_dict['lines_data_file']      = 'C:/Users/lativ/git/dazer/bin/lib/Astro_Libraries/spectrum_fitting/lines_data.xlsx'
-            self.paths_dict['dazer_path']           = 'C:/Users/lativ/git/dazer/'
-            self.paths_dict['observations_folder']  = 'E:/Cloud Storage/Dropbox/Astrophysics/Data/WHT_observations/objects/'
-            self.paths_dict['emisGridsPath']        = 'C:/Users/lativ/git/dazer/bin/lib/Astro_Libraries/spectrum_fitting/'
+    def load_confFile(self, root_folder, confFile):
 
-        # Import database with lines labels information
-        self.linesDb = read_excel(self.paths_dict['lines_data_file'], sheetname=0, header=0, index_col=0)
+        # Configuration file address
+        file_address = '{}/{}'.format(root_folder, confFile)
 
-        # Additional code to adapt to old lines log labelling
-        self.linesDb['pyneb_code'] = self.linesDb['pyneb_code'].astype(str)
-        idx_numeric_pynebCode = ~self.linesDb['pyneb_code'].str.contains('A+')
-        self.linesDb.loc[idx_numeric_pynebCode, 'pyneb_code'] = self.linesDb.loc[
-            idx_numeric_pynebCode, 'pyneb_code'].astype(int)
-        self.linesDb['ion'].apply(str)
+        # Check if file exists
+        if os.path.isfile(file_address):
+            cfg = ConfigParser.ConfigParser()
+            cfg.optionxform = str
+            cfg.read(file_address)
+        else:
+            exit('--WARNING: Default configuration could not be found exiting program')
 
-    def import_optical_depth_coeff_table(self):
+        # Loop through configuration file sections and merge into a dictionary
+        confDict = dict(cfg.items('conf_entries'))
+        confDict['sections'] = cfg.sections()
+        for i in range(1, len(cfg.sections())):
 
-        Data_dict = OrderedDict()
+            section = cfg.sections()[i]
+            confDict[section] = cfg.options(section)
 
-        opticalDepthCoeffs_df = read_csv(self.paths_dict['Helium_OpticalDepth'], delim_whitespace=True, header=0)
+            for option in cfg.options(section):
 
-        opticalDepthCoeffs = {}
-        for column in opticalDepthCoeffs_df.columns:
-            opticalDepthCoeffs[column] = opticalDepthCoeffs_df[column].values
+                if (option in confDict['string_conf']) or ('_folder' in option) or ('_file' in option):
+                    confDict[option] = cfg.get(section, option)
 
-        return opticalDepthCoeffs
+                elif '_check' in option:
+                    confDict[option] = cfg.getboolean(section, option)
+
+                elif (option in confDict['list_conf']) or ('_parameters' in option) or ('_prior' in option) or ('_list' in option):
+                    raw_list = cfg.get(section, option)
+
+                    # Special entry
+                    if option is 'input_lines':
+                        if raw_list is 'all':
+                            confDict[option] = raw_list
+                        else:
+                            confDict[option] = np.array(map(str, raw_list.split(',')))
+
+                    # By default try to read as a list of floats else strings
+                    else:
+                        try:
+                            confDict[option] = np.array(map(float, raw_list.split(',')))
+                        except:
+                            confDict[option] = np.array(map(str, raw_list.split(',')))
+
+                # By default read as a float
+                else:
+                    confDict[option] = cfg.getfloat(section, option)
+
+        # Include configuration file in the dictionary
+        confDict['confAddress'] = file_address
+
+        return confDict
 
     def load_obsData(self, obsFile=None, objName=None):
 
@@ -531,8 +543,8 @@ class ImportModelData(SspSynthesisImporter):
             obj_data['obsFile'] = obsFile
             obj_data['objName'] = objName
 
-            results_section = objName + '_results'
             #Recover data from previous fits
+            results_section = objName + '_results'
             if cfg.has_section(results_section):
                 prefit_data = dict(cfg.items(results_section))
                 obj_data.update(prefit_data)
@@ -580,6 +592,18 @@ class ImportModelData(SspSynthesisImporter):
         obj_data['obj_lines_file'] = obj_data['address_lines_log']
 
         return obj_data
+
+    def import_optical_depth_coeff_table(self, file_address):
+
+        Data_dict = OrderedDict()
+
+        opticalDepthCoeffs_df = read_csv(file_address, delim_whitespace=True, header=0)
+
+        opticalDepthCoeffs = {}
+        for column in opticalDepthCoeffs_df.columns:
+            opticalDepthCoeffs[column] = opticalDepthCoeffs_df[column].values
+
+        return opticalDepthCoeffs
 
     def load_ssp_library(self, ssp_lib_type, data_folder=None, data_file=None, wavelengh_limits=None, resample_inc=None, norm_interval=None):
 

@@ -1,63 +1,38 @@
 import numpy as np
+from os import path
 from pandas import read_csv
-from plot_tools import MCMC_printer
+from lib.Astro_Libraries.spectrum_fitting.plot_tools import MCMC_printer
 from collections import OrderedDict
-from import_functions import ImportModelData, parseObjData, make_folder
-from starContinuum_functions import SspFitter, CCM89_Bal07
-from gasContinuum_functions import NebularContinuaCalculator
-from gasEmission_functions import TOIII_TSIII_relation, EmissionComponents
-from extinction_tools import ReddeningLaws
+from lib.Astro_Libraries.spectrum_fitting.import_functions import ImportModelData, parseObjData, make_folder
+from lib.Astro_Libraries.spectrum_fitting.starContinuum_functions import SspFitter, CCM89_Bal07
+from lib.Astro_Libraries.spectrum_fitting.gasContinuum_functions import NebularContinuaCalculator
+from lib.Astro_Libraries.spectrum_fitting.gasEmission_functions import TOIII_TSIII_relation, EmissionComponents
+from lib.Astro_Libraries.spectrum_fitting.extinction_tools import ReddeningLaws
 
 class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, EmissionComponents, ReddeningLaws, MCMC_printer):
 
     def __init__(self):
 
-        #Import tools to load data
-        ImportModelData.__init__(self)
+        # Load the default configuration
+        ImportModelData.__init__(self, path.dirname(path.realpath(__file__)))
 
-        #Load tools for spectra calculation
+        # Load tools for spectra calculation
         SspFitter.__init__(self)
-        NebularContinuaCalculator.__init__(self, self.paths_dict['nebular_data_folder'])
-        EmissionComponents.__init__(self, self.paths_dict['dazer_path'] + 'format/')
+        EmissionComponents.__init__(self)
+        NebularContinuaCalculator.__init__(self)
 
-        #Import sub classes
+        # Import extintion classes
         ReddeningLaws.__init__(self)
 
-        #For generating graphs
+        # For generating graphs
         MCMC_printer.__init__(self)
 
-        # Default configuration to read from file # TODO actually this should be uplodaded from a file
-        temp_grid = [5000, 25000, 20]
-        den_grid = [0, 500, 20]
-        high_temp_ions = ['He1r', 'He2r', 'O3', 'Ar4']
-        R_v = 3.4
-        reddenig_curve = 'G03 LMC'
-        lowlimit_sspContribution =  0.001
-
-        # Default nebular continuum configuration # TODO confirm this setup
-        self.nebDefault = {'Te_neb': 10000.0, 'z_neb': 0.0, 'cHbeta_neb': 0.1, 'He1_neb': 0.1, 'He2_neb': 0.001}
-
-        # Temperature and density grid declaration
-        self.tem_grid_range = np.linspace(temp_grid[0], temp_grid[1], temp_grid[2])
-        self.den_grid_range = np.linspace(den_grid[0], den_grid[1], den_grid[2])
-        self.den_grid_range[0] = 1 #Change the minimum value for the grid to 1
-
-        # Reddening parameters
-        self.Rv_model = R_v
-        self.reddedning_curve_model = reddenig_curve
-
-        # Declare high ionization temperature ions
-        self.high_temp_ions = high_temp_ions
-
-        # Lower accepted limit for ssps
-        self.lowlimit_sspContribution = lowlimit_sspContribution
-
-    def gen_synth_obs(self, spectra_components = None,
+    def gen_synth_obs(self, obs_name, output_folder,
+                      obj_properties_file=None, obj_lines_file = None,
                       wavelengh_limits = None, resample_inc = None, norm_interval = None,
-                      obj_properties_file = None, obj_lines_file = None,
-                      output_folder = None, obs_name = 'synthObj', ssp_lib_type = None, data_folder = None,
-                      data_file = None ,obj_ssp_coeffs_file = None,
-                      error_stellarContinuum = None, error_lines = None):
+                      ssp_lib_type = None, ssp_folder = None, ssp_file = None,
+                      obj_ssp_coeffs_file = None, error_stellarContinuum = None, error_lines = None,
+                      atomic_data=None, ftau_coeffs=None):
 
         # Dictionary to store the data
         self.obj_data = {}
@@ -75,28 +50,32 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
         obj_lines_df = read_csv(obj_lines_file, delim_whitespace=True, header=0, index_col=0)
 
         # Import the stellar library and use it to generate the observation continuum
-        self.ssp_lib = self.load_ssp_library(ssp_lib_type, data_folder, data_file, wavelengh_limits, resample_inc, norm_interval)
+        self.ssp_lib = self.load_ssp_library(ssp_lib_type, ssp_folder, ssp_file, wavelengh_limits, resample_inc, norm_interval)
 
         # Declare wavelength for the object
-        z_obj = obj_prop_df.loc['z_obj'][0]
-        obj_WaveRest = self.ssp_lib['wave_resam']
+        z_obj, obj_WaveRest = obj_prop_df.loc['z_obj'][0],  self.ssp_lib['wave_resam']
         obj_WaveObs = obj_WaveRest * (1.0 + z_obj)
 
         # Generate masks for the object from the lines log
         self.generate_object_mask(obj_lines_df, obj_WaveRest, obj_lines_df.index.values)
 
-        # -------- Emission lines data
-        #Store input data
+        # ---------------------------------------- Emission lines data -------------------------------------------------
+        # --------------------------------------------------------------------------------------------------------------
+
+        # Store input data
         self.obj_data['flux_hbeta'] = obj_prop_df.loc['flux_hbeta'][0]
+
+        # Load atomic data
+        self.import_atomic_data(atomic_data, ftau_coeffs, self.config['temp_grid'], self.config['den_grid'])
 
         # Prepare data from emission line file (trick to put all the lines)
         self.import_emission_line_data(obj_lines_df, obj_lines_df.index.values)
 
         # Variables to make the iterations simpler
-        self.gasSamplerVariables(self.obj_data['lineIons'], self.high_temp_ions)
+        self.gasSamplerVariables(self.obj_data['lineIons'], self.config['high_temp_ions'])
 
         # Create or load emissivity grids
-        self.emis_grid = self.computeEmissivityGrids(self.obj_data['linePynebCode'], self.obj_data['lineIons'], True)
+        self.emis_grid = self.computeEmissivityGrids(self.obj_data['linePynebCode'], self.obj_data['lineIons'], output_folder)
 
         # Fit emissivity grids to a surface
         self.fitEmissivityPlane()
@@ -112,7 +91,7 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
         # self.plot_emisRatioFits(self.diagnosRatios, self.emisRatioCoeffs, self.diagnosGrid, self.paths_dict['emisGridsPath'])
 
         # Reddening parameters
-        self.obj_data['lineFlambda'] = self.gasExtincParams(self.obj_data['lineWaves'], self.Rv_model, self.reddedning_curve_model)
+        self.obj_data['lineFlambda'] = self.gasExtincParams(self.obj_data['lineWaves'], self.config['R_v'], self.config['reddenig_curve'])
 
         # Plot fits of emissivity grids
         #self.plot_emisFits(self.obj_data['lineLabels'], self.emisCoeffs, self.emis_grid, self.paths_dict['emisGridsPath'])
@@ -164,14 +143,16 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
         with open(synth_lines_log, 'w') as f:
             f.write(obj_lines_df.ix[:, :'blended_label'].to_string(float_format=lambda x: "{:15.8f}".format(x), index=True, index_names=False))
 
-        # -------- Nebular continuum calculation
+
+        # ---------------------------------------- Continuum calculation -----------------------------------------------
+        # --------------------------------------------------------------------------------------------------------------
 
         # Get Halpha flux to calibrate
         idx_Halpha = (self.obj_data['lineLabels'] == 'H1_6563A')
         flux_halpha = self.obj_data['lineFluxes'][idx_Halpha][0] * obj_prop_df.loc['flux_hbeta'][0]
 
         # Reddening parameters for the nebular continuum
-        self.obj_data['nebFlambda'] = self.gasExtincParams(obj_WaveRest, self.Rv_model,  self.reddedning_curve_model)
+        self.obj_data['nebFlambda'] = self.gasExtincParams(obj_WaveRest, self.config['R_v'], self.config['reddenig_curve'])
 
         # Calculate the nebular continua
         self.obj_data['nebularFlux'] = self.nebFluxCont(obj_WaveRest,
@@ -192,7 +173,7 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
 
         # SSP library flux at modelled Av, z_star and sigma_star
         ssp_grid_model_norm = self.physical_SED_model(self.ssp_lib['wave_resam'], obj_WaveObs, self.ssp_lib['flux_norm'],
-                                Av_star, z_obj, sigma_star, Rv_coeff=self.Rv_model)
+                                Av_star, z_obj, sigma_star, Rv_coeff=self.config['R_v'])
 
         # Normalized object flux
         stellarFluxNorm = ssp_grid_model_norm.dot(bases_coeff)
@@ -214,9 +195,8 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
             self.obj_data['obsFlux'] = self.obj_data['nebularFlux'] + self.obj_data['stellarFlux']
 
         # Store the spectrum as a text file
-        if ('nebular' or 'stellar') in spectra_components:
-            synth_spectrum_address = '{}{}_spectrum.txt'.format(output_folder, obs_name)
-            np.savetxt(synth_spectrum_address, np.transpose(np.array([obj_WaveObs, self.obj_data['obsFlux']])), fmt="%7.1f %10.4e")
+        synth_spectrum_address = '{}{}_spectrum.txt'.format(output_folder, obs_name)
+        np.savetxt(synth_spectrum_address, np.transpose(np.array([obj_WaveObs, self.obj_data['obsFlux']])), fmt="%7.1f %10.4e")
 
         #Store synthetic object data log # TODO Add here the comments of the function and make it automatic
         obj_dict = OrderedDict()
@@ -256,7 +236,6 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
         obj_dict['O3_true']             = self.abund_dict['O3']
         obj_dict['N2_true']             = self.abund_dict['N2']
 
-
         #Save the data into an "ini" configuration file
         conf_address = '{}{}_objParams.txt'.format(output_folder, obs_name)
         parseObjData(conf_address, obs_name, obj_dict)
@@ -295,7 +274,6 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
             self.emisRatioCoeffs = self.fitEmissivityDiagnosPlane(self.diagnosRatios, self.diagnosGrid)
 
             # Plot fits of emissivity ratios
-            print 'I am saving here', self.paths_dict['emisGridsPath']
             self.plot_emisRatioFits(self.diagnosRatios, self.emisRatioCoeffs, self.diagnosGrid, self.paths_dict['emisGridsPath'])
 
             # Reddening parameters

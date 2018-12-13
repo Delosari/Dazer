@@ -1,4 +1,4 @@
-from os import path, makedirs, environ
+from os import environ
 environ["MKL_THREADING_LAYER"] = "GNU"
 import pymc3
 import pymc as pymc2
@@ -6,11 +6,10 @@ import cPickle as pickle
 import theano
 import theano.tensor as tt
 from collections import OrderedDict
-from numpy import mean, std, square, percentile, median, sum as np_sum, array, ones, empty, any
-from lib.Astro_Libraries.spectrum_fitting.specSynthesizer_tools import ModelIngredients
-from gasEmission_functions import TOIII_TSIII_relation
-import matplotlib.pyplot as plt
-from import_functions import ImportModelData, parseObjData, make_folder
+from numpy import mean, std, square, percentile, median, sum as np_sum, array, ones, empty
+from lib.specSynthesizer_tools import ModelIngredients
+from lib.Astro_Libraries.spectrum_fitting.gasEmission_functions import TOIII_TSIII_relation
+from lib.Astro_Libraries.spectrum_fitting.import_functions import parseObjData
 
 # Line to avoid the compute_test_value error
 theano.config.compute_test_value = "ignore"
