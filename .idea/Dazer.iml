@@ -5,9 +5,8 @@
       <sourceFolder url="file://$MODULE_DIR$/dazer" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/bin" isTestSource="false" />
     </content>
-    <orderEntry type="jdk" jdkName="Python 2.7 (dazer) (1)" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 2.7 (dazer)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="module" module-name="Thesis_Pipeline" />
     <orderEntry type="module" module-name="ppxf-6.7.11" />
     <orderEntry type="module" module-name="astronomy" />
   </component>
