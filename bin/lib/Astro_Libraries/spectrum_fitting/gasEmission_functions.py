@@ -1,18 +1,13 @@
 import numpy as np
 import pyneb as pn
 from os import path
+from pandas import read_excel
 from bisect import bisect_left
 from scipy.optimize import curve_fit
 from DZ_LineMesurer import LineMesurer_v2
 from numpy import ones, exp, zeros, log10
 from tensor_tools import EmissivitySurfaceFitter_tensorOps, EmissionEquations_tensorOps
 from inspect import getargspec
-
-def someMethod(self, arg1, kwarg1=None):
-    pass
-
-args = getargspec(someMethod)
-
 
 
 def TOIII_TSIII_relation(TSIII):
@@ -123,10 +118,10 @@ class EmissivitySurfaceFitter(EmissivitySurfaceFitter_tensorOps):
         temp_range, den_range = xy_space
         return a * np.power(temp_range / 10000, b)
 
-    #TODO Separate lists of equation surfaces from the functions to fit
     def fitEmis(self, func_emis, xy_space, line_emis, p0 = None):
         p1, p1_cov = curve_fit(func_emis, xy_space, line_emis, p0)
         return p1, p1_cov
+
 
 class EmissionEquations(EmissionEquations_tensorOps):
 
@@ -181,9 +176,10 @@ class EmissionEquations(EmissionEquations_tensorOps):
     def metal_lines(self, emis_ratio, cHbeta, flambda, abund, ftau=None, continuum=None):
         return abund + emis_ratio - flambda * cHbeta - 12
 
+
 class EmissionComponents(EmissivitySurfaceFitter, EmissionEquations, LineMesurer_v2):
 
-    def __init__(self, dazer_path):
+    def __init__(self):
 
         # Tools to fit a the emissivity to a plane
         EmissivitySurfaceFitter.__init__(self)
@@ -192,28 +188,28 @@ class EmissionComponents(EmissivitySurfaceFitter, EmissionEquations, LineMesurer
         EmissionEquations.__init__(self)
 
         # Load tools to measure lines
-        LineMesurer_v2.__init__(self,  dazer_path, 'DZT_LineLog_Headers.dz')
+        LineMesurer_v2.__init__(self, '/home/vital/PycharmProjects/dazer/format/', 'DZT_LineLog_Headers.dz')
 
-        #Hbeta configuration
-        self.Hbeta_label = 'H1_4861A'
-        self.Hbeta_wave = 4862.683
-        self.Hbeta_pynebCode = '4_2'
-
-        #Import Optical depth function
-        self.ftau_coeffs = self.import_optical_depth_coeff_table()
-
-        # Set atomic data: # TODO Set these from the configuration file
-        atomicFiles = 's_iii_coll_HRS12.dat'
-        pn.atomicData.setDataFile(atomicFiles)
-
-        # Line dianostics declaration #TODO this is not very powerful... maybe something like in pyneb
-        self.diagnosDict = {'ROIII'  :{'num' : np.array([4363]), 'den':np.array([4959, 5007])},
-                           'RSIII'  :{'num' : np.array([6312]), 'den':np.array([9069, 9531])}}
-                           #'RSII'   :{'num' : np.array([6716]), 'den':np.array([6731])}}
-
-        # Generate the dictionary with pyneb ions
-        print('-- Loading atoms data with PyNeb')
-        self.ionDict = pn.getAtomDict(atom_list=np.unique(self.linesDb.ion.values.astype(str)))
+        # #Hbeta configuration
+        # self.Hbeta_label = 'H1_4861A'
+        # self.Hbeta_wave = 4862.683
+        # self.Hbeta_pynebCode = '4_2'
+        #
+        # # Import Optical depth function
+        # # self.ftau_coeffs = self.import_optical_depth_coeff_table()
+        #
+        # # Set atomic data: # TODO Set these from the configuration file
+        # atomicFiles = 's_iii_coll_HRS12.dat'
+        # pn.atomicData.setDataFile(atomicFiles)
+        #
+        # # Line dianostics declaration #TODO this is not very powerful... maybe something like in pyneb
+        # self.diagnosDict = {'ROIII'  :{'num' : np.array([4363]), 'den':np.array([4959, 5007])},
+        #                    'RSIII'  :{'num' : np.array([6312]), 'den':np.array([9069, 9531])}}
+        #                    #'RSII'   :{'num' : np.array([6716]), 'den':np.array([6731])}}
+        #
+        # # Generate the dictionary with pyneb ions
+        # print('-- Loading atoms data with PyNeb')
+        # self.ionDict = pn.getAtomDict(atom_list=np.unique(self.linesDb.ion.values.astype(str)))
 
     def calc_emis_spectrum(self, wavelength_range, lines_waves, lines_fluxes, lines_mu, lines_sigma, redshift):
 
@@ -233,6 +229,54 @@ class EmissionComponents(EmissivitySurfaceFitter, EmissionEquations, LineMesurer
 
     def ftau_func(self, tau, temp, den, a, b, c, d):
         return 1 + tau/2.0 * (a + (b + c * den + d * den * den) * temp/10000.0)
+
+    def import_atomic_data(self, atomic_data = None, ftau_coefficients = None, tempGrid = None, denGrid = None):
+
+        # Load nebular continuum constants
+        self.loadNebCons(self.externalDataFolder)
+
+        # Import database with lines labels information
+        linesDataFile = atomic_data if atomic_data is not None else path.join(self.externalDataFolder, self.config['linesData_file'])
+        self.linesDb = read_excel(linesDataFile, sheet_name=0, header=0, index_col=0)
+
+        # Additional code to adapt to old lines log labelling
+        self.linesDb['pyneb_code'] = self.linesDb['pyneb_code'].astype(str)
+        idx_numeric_pynebCode = ~self.linesDb['pyneb_code'].str.contains('A+')
+        self.linesDb.loc[idx_numeric_pynebCode, 'pyneb_code'] = self.linesDb.loc[idx_numeric_pynebCode, 'pyneb_code'].astype(int)
+        self.linesDb['ion'].apply(str)
+
+        print('\n-- Loading atoms data with PyNeb')
+
+        # Load user atomic data references
+        # TODO is the atomic data really changing?
+        for reference in self.config['atomic_data_list']:
+            pn.atomicData.setDataFile(reference)
+
+        # Generate the dictionary with pyneb ions
+        self.ionDict = pn.getAtomDict(atom_list=np.unique(self.linesDb.ion.values.astype(str)))
+
+        # Preparing Hbeta references
+        self.Hbeta_label = 'H1_4861A'
+        self.Hbeta_wave = 4862.683
+        self.Hbeta_pynebCode = '4_2'
+
+        # Import Optical depth function
+        ftauFile = ftau_coefficients if ftau_coefficients is not None else path.join(self.externalDataFolder, self.config['ftau_file'])
+        self.ftau_coeffs = self.import_optical_depth_coeff_table(ftauFile)
+
+        # Declare diagnostic ratios
+        self.diagnosDict = {'ROIII': {'num' :np.array([4363]), 'den' :np.array([4959, 5007])},
+                            'RSIII': {'num' :np.array([6312]), 'den' :np.array([9069, 9531])},
+                            'RSII' : {'num' :np.array([6716]), 'den' :np.array([6731])}}
+
+        # Temperature and density meshgrids
+        tem_grid_range = np.arange(tempGrid[0], tempGrid[1], tempGrid[2])
+        den_grid_range = np.arange(denGrid[0], denGrid[1], denGrid[2])
+        X, Y = np.meshgrid(tem_grid_range, den_grid_range)
+        self.tempGridFlatten, self.denGridFlatten = X.flatten(), Y.flatten()
+
+
+        return
 
     def import_emission_line_data(self, obj_lines_df, input_lines = 'all'):
 
@@ -299,18 +343,7 @@ class EmissionComponents(EmissivitySurfaceFitter, EmissionEquations, LineMesurer
 
         return
 
-    def import_emissivity_grids(self, forceGridsReset=True):
-
-        # Emissivity grid
-        # TODO get this one out
-
-        return
-
     def fitEmissivityPlane(self):
-
-        # Temperature and density meshgrids
-        X, Y = np.meshgrid(self.tem_grid_range, self.den_grid_range)
-        XX, YY = X.flatten(), Y.flatten()
 
         # Dictionary to store the emissivity surface coeffients
         self.emisCoeffs = {}
@@ -324,7 +357,7 @@ class EmissionComponents(EmissivitySurfaceFitter, EmissionEquations, LineMesurer
 
             # Compute emissivity functions coefficients
             p0 = self.epm2017_emisCoeffs[lineLabel] if lineLabel in self.epm2017_emisCoeffs else np.zeros(n_args)
-            p1, cov1 = self.fitEmis(line_func, (XX, YY), self.emis_grid[:, i], p0=p0)
+            p1, cov1 = self.fitEmis(line_func, (self.tempGridFlatten, self.denGridFlatten), self.emis_grid[:, i], p0=p0)
             self.emisCoeffs[lineLabel] = p1
 
         # TODO document the data of how these coefficients can be derived
@@ -358,30 +391,25 @@ class EmissionComponents(EmissivitySurfaceFitter, EmissionEquations, LineMesurer
 
         return emisRatioCoeffs
 
-    def computeEmissivityGrids(self, pynebcode_list, ions_list, forceGridReset=False):
-
-        # Temperature and density meshgrids
-        X, Y = np.meshgrid(self.tem_grid_range, self.den_grid_range)
-        XX, YY = X.flatten(), Y.flatten()
+    def computeEmissivityGrids(self, pynebcode_list, ions_list, grids_folder, loadgrids_check = False):
 
         # Empty grid array
-        emisGrid = np.empty((XX.size, ions_list.size))
-        Hbeta_emis_grid = self.ionDict['H1r'].getEmissivity(XX, YY, wave=4861, product=False)
+        emisGrid = np.empty((self.tempGridFlatten.size, ions_list.size))
+        Hbeta_emis_grid = self.ionDict['H1r'].getEmissivity(self.tempGridFlatten, self.denGridFlatten, wave=4861, product=False)
 
         for i in range(len(ions_list)):
 
             # Line emissivity references
             line_label = '{}_{}'.format(ions_list[i], pynebcode_list[i])
-            grid_address = self.paths_dict['emisGridsPath'] + line_label + '.npy'
+            grid_address = path.join(grids_folder, line_label + '.' + 'npy')
 
-            # Check if grids are available
-            if path.isfile(grid_address) and forceGridReset is False:
+            # Check if grids are available # TODO check if we are reloading the data
+            if path.isfile(grid_address) and loadgrids_check:
                 emis_grid_i = np.load(grid_address)
 
             # Otherwise generate it (and save it)
             else:
-                #print('--- Generating grid: {}'.format(line_label))
-                emis_grid_i = self.ionDict[ions_list[i]].getEmissivity(XX, YY, wave=pynebcode_list[i], product=False)
+                emis_grid_i = self.ionDict[ions_list[i]].getEmissivity(self.tempGridFlatten, self.denGridFlatten, wave=pynebcode_list[i], product=False)
                 np.save(grid_address, emis_grid_i)
 
             # Save along the number of points
@@ -460,10 +488,6 @@ class EmissionComponents(EmissivitySurfaceFitter, EmissionEquations, LineMesurer
 
             # Store in container
             linesFlux[i] = fluxEq_i
-
-            print line_label, line_coeffs, line_emis
-            print line_ion, Te_calc, ne, cHbeta, line_flambda, fluxEq_i
-            print
 
         return linesFlux
 

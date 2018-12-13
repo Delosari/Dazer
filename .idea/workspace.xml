@@ -1,27 +1,35 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="f48e4708-58b6-4194-a318-62e678ead6b0" name="Default" comment="Thesis finished">
-      <change afterPath="$PROJECT_DIR$/../thesis_pipeline/article2_material/0_MeasureLines.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../thesis_pipeline/article2_material/1_generateFileStructure.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../thesis_pipeline/article2_material/2_synthesizeSpectra.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../thesis_pipeline/article2_material/3_getCatalogueResults.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../thesis_pipeline/article2_material/4_DoRegression.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../thesis_pipeline/article2_material/synthTestCases/EmissionLineRatioSurfaces.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../thesis_pipeline/article2_material/synthTestCases/specSyzerModels.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../thesis_pipeline/article2_material/synthTestCases/testing_Emissivities.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../thesis_pipeline/article2_material/synthTestCases/weighted_inference.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../thesis_pipeline/article2_material/tables/obj_lines_tables_absComp.py" afterDir="false" />
+    <list default="true" id="f48e4708-58b6-4194-a318-62e678ead6b0" name="Default" comment="SpecSyzer Review 2018/11/20">
+      <change afterPath="$PROJECT_DIR$/bin/lib/config.ini" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/bin/lib/Astro_Libraries/literature_data/HI_t3_elec.ascii" beforeDir="false" afterPath="$PROJECT_DIR$/bin/lib/Astro_Libraries/literature_data/HI_t3_elec.ascii" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/bin/lib/Astro_Libraries/literature_data/HeII_t4_elec.ascii" beforeDir="false" afterPath="$PROJECT_DIR$/bin/lib/Astro_Libraries/literature_data/HeII_t4_elec.ascii" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/bin/lib/Astro_Libraries/literature_data/HeI_t5_elec.ascii" beforeDir="false" afterPath="$PROJECT_DIR$/bin/lib/Astro_Libraries/literature_data/HeI_t5_elec.ascii" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/attributes_declaration.py" beforeDir="false" afterPath="$PROJECT_DIR$/bin/lib/Astro_Libraries/old_versions/attributes_declaration.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/gasContinuum_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/gasContinuum_functions.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/gasEmission_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/gasEmission_functions.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/inferenceModel.py" beforeDir="false" afterPath="$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/inferenceModel.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/plot_tools.py" beforeDir="false" afterPath="$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/plot_tools.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/specSynthesizer_tools.py" beforeDir="false" afterPath="$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/specSynthesizer_tools.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/tensor_tools.py" beforeDir="false" afterPath="$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/tensor_tools.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/bin/lib/CodeTools/File_Managing_Tools.py" beforeDir="false" afterPath="$PROJECT_DIR$/bin/lib/CodeTools/File_Managing_Tools.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/import_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/import_functions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/inferenceModel.py" beforeDir="false" afterPath="$PROJECT_DIR$/bin/lib/inferenceModel.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/lines_data.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/bin/lib/Astro_Libraries/literature_data/lines_data.xlsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/specSynthesizer_tools.py" beforeDir="false" afterPath="$PROJECT_DIR$/bin/lib/specSynthesizer_tools.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../thesis_pipeline/Observational_Steps/CONICYT_project/partialSpecSyzerResults_CONICYT.py" beforeDir="false" afterPath="$PROJECT_DIR$/../thesis_pipeline/Observational_Steps/CONICYT_project/partialSpecSyzerResults_CONICYT.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../thesis_pipeline/Observational_Steps/megara_NOexcess/partialSpecSyzerResults.py" beforeDir="false" afterPath="$PROJECT_DIR$/../thesis_pipeline/Observational_Steps/megara_NOexcess/partialSpecSyzerResults.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../thesis_pipeline/Tutorials/pymc3_stellarContinuum_testing.py" beforeDir="false" afterPath="$PROJECT_DIR$/../thesis_pipeline/Tutorials/pymc3_stellarContinuum_testing.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../thesis_pipeline/Tutorials/pymc3_stellarContinuum_testing2.py" beforeDir="false" afterPath="$PROJECT_DIR$/../thesis_pipeline/Tutorials/pymc3_stellarContinuum_testing2.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../thesis_pipeline/Tutorials/pymc3_testing2.py" beforeDir="false" afterPath="$PROJECT_DIR$/../thesis_pipeline/Tutorials/pymc3_testing2.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../thesis_pipeline/article2_material/0_MeasureLines.py" beforeDir="false" afterPath="$PROJECT_DIR$/../thesis_pipeline/article2_material/0_MeasureLines.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../thesis_pipeline/article2_material/2_synthesizeSpectra.py" beforeDir="false" afterPath="$PROJECT_DIR$/../thesis_pipeline/article2_material/2_synthesizeSpectra.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../thesis_pipeline/article2_material/3_getCatalogueResults.py" beforeDir="false" afterPath="$PROJECT_DIR$/../thesis_pipeline/article2_material/3_getCatalogueResults.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../thesis_pipeline/article2_material/synthTestCases/specSyzerModels.py" beforeDir="false" afterPath="$PROJECT_DIR$/../thesis_pipeline/article2_material/synthTestCases/specSyzerModels.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../thesis_pipeline/bayesian_treatment/0_MeasureLines.py" beforeDir="false" afterPath="$PROJECT_DIR$/../thesis_pipeline/bayesian_treatment/0_MeasureLines.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../thesis_pipeline/bayesian_treatment/2_prefit_continuum.py" beforeDir="false" afterPath="$PROJECT_DIR$/../thesis_pipeline/bayesian_treatment/2_prefit_continuum.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../thesis_pipeline/bayesian_treatment/4_synthesizeSpectra.py" beforeDir="false" afterPath="$PROJECT_DIR$/../thesis_pipeline/bayesian_treatment/4_synthesizeSpectra.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../thesis_pipeline/bayesian_treatment/5_getCatalogueResults.py" beforeDir="false" afterPath="$PROJECT_DIR$/../thesis_pipeline/bayesian_treatment/5_getCatalogueResults.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../thesis_pipeline/spectrum_fitting/specSyzer_tester.py" beforeDir="false" afterPath="$PROJECT_DIR$/../thesis_pipeline/spectrum_fitting/specSyzer_tester.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../thesis_pipeline/thesis/images/nebularSpectra.py" beforeDir="false" afterPath="$PROJECT_DIR$/../thesis_pipeline/thesis/images/nebularSpectra.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../thesis_pipeline/thesis/thesis_specSyzer_models.py" beforeDir="false" afterPath="$PROJECT_DIR$/../thesis_pipeline/thesis/thesis_specSyzer_models.py" afterDir="false" />
     </list>
     <ignored path="Dazer.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -36,64 +44,24 @@
   <component name="CreatePatchCommitExecutor">
     <option name="PATCH_PATH" value="" />
   </component>
-  <component name="FUSProjectUsageTrigger">
-    <session id="830328648">
-      <usages-collector id="statistics.lifecycle.project">
-        <counts>
-          <entry key="project.closed" value="54" />
-          <entry key="project.open.time.0" value="1" />
-          <entry key="project.open.time.1" value="3" />
-          <entry key="project.open.time.10" value="11" />
-          <entry key="project.open.time.11" value="15" />
-          <entry key="project.open.time.12" value="7" />
-          <entry key="project.open.time.14" value="2" />
-          <entry key="project.open.time.15" value="3" />
-          <entry key="project.open.time.16" value="2" />
-          <entry key="project.open.time.17" value="1" />
-          <entry key="project.open.time.18" value="3" />
-          <entry key="project.open.time.19" value="1" />
-          <entry key="project.open.time.23" value="1" />
-          <entry key="project.open.time.29" value="1" />
-          <entry key="project.open.time.4" value="1" />
-          <entry key="project.open.time.9" value="6" />
-          <entry key="project.opened" value="58" />
-        </counts>
-      </usages-collector>
-      <usages-collector id="statistics.file.extensions.open">
-        <counts>
-          <entry key="cfg" value="1" />
-          <entry key="db" value="1" />
-          <entry key="dz" value="1" />
-          <entry key="html" value="1" />
-          <entry key="png" value="2" />
-          <entry key="py" value="280" />
-          <entry key="txt" value="5" />
-        </counts>
-      </usages-collector>
-      <usages-collector id="statistics.file.types.open">
-        <counts>
-          <entry key="HTML" value="1" />
-          <entry key="Image" value="2" />
-          <entry key="Ini" value="1" />
-          <entry key="PLAIN_TEXT" value="7" />
-          <entry key="Python" value="280" />
-        </counts>
-      </usages-collector>
-      <usages-collector id="statistics.file.extensions.edit">
-        <counts>
-          <entry key="Python Console" value="4321" />
-          <entry key="dummy" value="61" />
-          <entry key="py" value="31866" />
-          <entry key="txt" value="28" />
-        </counts>
-      </usages-collector>
-      <usages-collector id="statistics.file.types.edit">
-        <counts>
-          <entry key="PLAIN_TEXT" value="89" />
-          <entry key="Python" value="36187" />
-        </counts>
-      </usages-collector>
-    </session>
+  <component name="DockManager">
+    <window id="1">
+      <content type="file-editors">
+        <state>
+          <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
+            <file pinned="false" current-in-tab="true">
+              <entry file="file://$PROJECT_DIR$/bin/lib/config.ini">
+                <provider selected="true" editor-type-id="text-editor">
+                  <state relative-caret-position="418">
+                    <caret line="19" column="12" selection-start-line="19" selection-start-column="12" selection-end-line="19" selection-end-column="12" />
+                  </state>
+                </provider>
+              </entry>
+            </file>
+          </leaf>
+        </state>
+      </content>
+    </window>
   </component>
   <component name="FavoritesManager">
     <favorites_list name="Dazer">
@@ -102,41 +70,88 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/gasContinuum_functions.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="1936">
+              <caret line="91" column="39" selection-start-line="91" selection-start-column="39" selection-end-line="91" selection-end-column="39" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/bin/lib/specSynthesizer_tools.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="154">
+              <caret line="16" column="23" selection-start-line="16" selection-start-column="8" selection-end-line="16" selection-end-column="23" />
+              <folding>
+                <element signature="e#0#18#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/import_functions.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="458">
+              <caret line="467" lean-forward="true" selection-start-line="467" selection-end-line="467" />
+              <folding>
+                <element signature="e#0#9#0" expanded="true" />
+                <element signature="e#372#585#0" />
+                <element signature="e#521#573#0" />
+                <element signature="e#653#965#0" />
+                <element signature="e#692#965#0" />
+                <element signature="e#826#965#0" />
+                <element signature="e#1039#2267#0" />
+                <element signature="e#2347#2548#0" />
+                <element signature="e#2650#3470#0" />
+                <element signature="e#2650#2775#0" />
+                <element signature="e#3550#19002#0" />
+                <element signature="e#15116#16825#0" />
+                <element signature="e#16914#19002#0" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
       <file pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/../thesis_pipeline/article1_material/ionization_structure.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="264">
+              <caret line="21" column="48" lean-forward="true" selection-start-line="21" selection-start-column="48" selection-end-line="21" selection-end-column="48" />
+              <folding>
+                <element signature="e#0#32#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/working_examples/pyCloudy_heliumEmissivities.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="1756">
+              <caret line="112" column="37" selection-start-line="112" selection-start-column="37" selection-end-line="112" selection-end-column="37" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/bin/lib/inferenceModel.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="440">
+              <caret line="20" column="24" selection-start-line="20" selection-start-column="8" selection-end-line="20" selection-end-column="24" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/../thesis_pipeline/article2_material/synthTestCases/specSyzerModels.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="462">
-              <caret line="21" column="1" selection-start-line="21" selection-start-column="1" selection-end-line="21" selection-end-column="1" />
+            <state relative-caret-position="528">
+              <caret line="25" selection-start-line="25" selection-end-line="25" />
               <folding>
                 <element signature="e#0#18#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/../thesis_pipeline/article2_material/synthTestCases/EmissionLineRatioSurfaces.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="823">
-              <caret line="63" column="30" selection-start-line="63" selection-start-column="30" selection-end-line="63" selection-end-column="30" />
-              <folding>
-                <element signature="e#0#18#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/specSynthesizer_tools.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="109">
-              <caret line="453" selection-start-line="453" selection-end-line="457" selection-end-column="20" />
-              <folding>
-                <element signature="e#0#18#0" expanded="true" />
-                <element signature="e#23004#25809#0" />
-                <element signature="e#25879#27578#0" />
-                <element signature="e#27631#28069#0" />
-                <element signature="e#28183#28492#0" />
               </folding>
             </state>
           </provider>
@@ -145,48 +160,23 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/gasEmission_functions.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="321">
-              <caret line="325" column="113" selection-start-line="325" selection-start-column="113" selection-end-line="325" selection-end-column="113" />
+            <state relative-caret-position="9086">
+              <caret line="458" column="8" selection-start-line="458" selection-start-column="8" selection-end-line="458" selection-end-column="8" />
               <folding>
                 <element signature="e#0#18#0" expanded="true" />
-                <element signature="e#337#453#0" />
-                <element signature="e#527#1032#0" />
-                <element signature="e#1135#4059#0" />
-                <element signature="e#4119#4228#0" />
-                <element signature="e#4296#4435#0" />
-                <element signature="e#4495#4621#0" />
-                <element signature="e#4689#4819#0" />
-                <element signature="e#4882#4962#0" />
-                <element signature="e#5026#5145#0" />
-                <element signature="e#5204#5287#0" />
-                <element signature="e#5435#5519#0" />
-                <element signature="e#5580#7418#0" />
-                <element signature="e#7552#8831#0" />
-                <element signature="e#8954#9456#0" />
-                <element signature="e#9519#9590#0" />
-                <element signature="e#16125#17523#0" />
+                <element signature="e#7531#8913#0" />
+                <element signature="e#9036#9538#0" />
+                <element signature="e#9601#9672#0" />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
       <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/../thesis_pipeline/article2_material/tables/obj_lines_tables_absComp.py">
+        <entry file="file://$USER_HOME$/Anaconda/python2/lib/python2.7/inspect.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="22">
-              <caret line="74" column="59" selection-start-line="74" selection-start-column="59" selection-end-line="74" selection-end-column="59" />
-              <folding>
-                <element signature="e#0#31#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/bin/lib/CodeTools/File_Managing_Tools.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="15972">
-              <caret line="749" selection-start-line="749" selection-end-line="749" />
+            <state relative-caret-position="17798">
+              <caret line="819" selection-start-line="819" selection-end-line="819" />
             </state>
           </provider>
         </entry>
@@ -202,20 +192,6 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>normContants</find>
-      <find>output_data</find>
-      <find>specS</find>
-      <find>band</find>
-      <find>scatt</find>
-      <find>FigConf</find>
-      <find>rcParams</find>
-      <find>prefit_NOrm</find>
-      <find>KAD</find>
-      <find>'_true'</find>
-      <find>import theano</find>
-      <find>3D</find>
-      <find>import</find>
-      <find>6717</find>
       <find>emisHeI5876_invNew</find>
       <find>emisEquation_HeI</find>
       <find>emissivitySurfaceFit_3D</find>
@@ -232,6 +208,20 @@
       <find>obj_data['lineFluxes']</find>
       <find>DataFrame</find>
       <find>.loc</find>
+      <find>parseObjData</find>
+      <find>prior</find>
+      <find>isfile</find>
+      <find>load_confFile</find>
+      <find>G03 LMC</find>
+      <find>self.paths_dict['dazer_path']</find>
+      <find>self.loadNebCons</find>
+      <find>self.externalDataFolder</find>
+      <find>loadNebCons</find>
+      <find>import_optical_depth_coeff_table</find>
+      <find>X.flatten(), Y.flatten()</find>
+      <find>spectra_components</find>
+      <find>ele_</find>
+      <find>_ele</find>
     </findStrings>
     <replaceStrings>
       <replace />
@@ -254,15 +244,6 @@
   <component name="IdeDocumentHistory">
     <option name="CHANGED_PATHS">
       <list>
-        <option value="$PROJECT_DIR$/../thesis_pipeline/bayesian_treatment/5_MeasureLines.py" />
-        <option value="$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/starContinuum_functions.py" />
-        <option value="$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/import_functions.py" />
-        <option value="$PROJECT_DIR$/../thesis_pipeline/bayesian_treatment/3_assignLines.py" />
-        <option value="$PROJECT_DIR$/bin/lib/Astro_Libraries/Abundances_Class.py" />
-        <option value="$PROJECT_DIR$/../thesis_pipeline/bayesian_treatment/1_generateFileStructure.py" />
-        <option value="$PROJECT_DIR$/../thesis_pipeline/bayesian_treatment/DoRegression.py" />
-        <option value="$PROJECT_DIR$/../thesis_pipeline/bayesian_treatment/2_prefit_continuum.py" />
-        <option value="$PROJECT_DIR$/../thesis_pipeline/bayesian_treatment/8_table_ionicAbund_table_noPreamble_ArS.py" />
         <option value="$PROJECT_DIR$/../thesis_pipeline/article1_material/table_ReferenceObjs_Table.py" />
         <option value="$PROJECT_DIR$/../thesis_pipeline/article1_material/table_electroParam_table_Preamble.py" />
         <option value="$PROJECT_DIR$/../thesis_pipeline/bayesian_treatment/10_table_Abund_table_Comparison.py" />
@@ -293,7 +274,6 @@
         <option value="$PROJECT_DIR$/../thesis_pipeline/Observational_Steps/CONICYT_project/partialSpecSyzerResults_CONICYT.py" />
         <option value="$PROJECT_DIR$/../thesis_pipeline/article2_material/synthTestCases/thesis_specSyzer_models.py" />
         <option value="$PROJECT_DIR$/../thesis_pipeline/article2_material/synth_TestObjProperties.txt" />
-        <option value="$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/inferenceModel.py" />
         <option value="$PROJECT_DIR$/../thesis_pipeline/article2_material/synthTestCases/weighted_inference.py" />
         <option value="$PROJECT_DIR$/../thesis_pipeline/article2_material/synthTestCases/testing_Emissivities.py" />
         <option value="$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/tensor_tools.py" />
@@ -302,17 +282,27 @@
         <option value="$PROJECT_DIR$/../thesis_pipeline/thesis/tables/obj_lines_tables_absComp.py" />
         <option value="$PROJECT_DIR$/bin/lib/CodeTools/File_Managing_Tools.py" />
         <option value="$PROJECT_DIR$/../thesis_pipeline/article2_material/tables/obj_lines_tables_absComp.py" />
-        <option value="$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/gasEmission_functions.py" />
+        <option value="$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/attributes_declaration.py" />
+        <option value="$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/inferenceModel.py" />
+        <option value="$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/conf.txt" />
+        <option value="$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/conf.ini" />
+        <option value="$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/config.ini" />
         <option value="$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/specSynthesizer_tools.py" />
+        <option value="$PROJECT_DIR$/bin/lib/Astro_Libraries/specSynthesizer_tools.py" />
+        <option value="$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/gasContinuum_functions.py" />
         <option value="$PROJECT_DIR$/../thesis_pipeline/article2_material/synthTestCases/specSyzerModels.py" />
+        <option value="$PROJECT_DIR$/bin/lib/config.ini" />
+        <option value="$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/gasEmission_functions.py" />
+        <option value="$PROJECT_DIR$/bin/lib/specSynthesizer_tools.py" />
+        <option value="$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/import_functions.py" />
       </list>
     </option>
   </component>
   <component name="ProjectFrameBounds" extendedState="6">
-    <option name="x" value="209" />
+    <option name="x" value="430" />
     <option name="y" value="27" />
-    <option name="width" value="1387" />
-    <option name="height" value="789" />
+    <option name="width" value="921" />
+    <option name="height" value="1051" />
   </component>
   <component name="ProjectInspectionProfilesVisibleTreeState">
     <entry key="Project Default">
@@ -335,6 +325,7 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
+      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -351,26 +342,16 @@
               <item name="dazer" type="b2602c69:ProjectViewProjectNode" />
               <item name="Thesis_Pipeline" type="47feb1d3:ProjectViewModuleNode" />
               <item name="thesis_pipeline" type="462c0819:PsiDirectoryNode" />
-              <item name="article2_material" type="462c0819:PsiDirectoryNode" />
+              <item name="article1_material" type="462c0819:PsiDirectoryNode" />
             </path>
             <path>
               <item name="dazer" type="b2602c69:ProjectViewProjectNode" />
-              <item name="Thesis_Pipeline" type="47feb1d3:ProjectViewModuleNode" />
-              <item name="thesis_pipeline" type="462c0819:PsiDirectoryNode" />
-              <item name="thesis" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="dazer" type="b2602c69:ProjectViewProjectNode" />
-              <item name="Thesis_Pipeline" type="47feb1d3:ProjectViewModuleNode" />
-              <item name="thesis_pipeline" type="462c0819:PsiDirectoryNode" />
-              <item name="thesis" type="462c0819:PsiDirectoryNode" />
-              <item name="tables" type="462c0819:PsiDirectoryNode" />
+              <item name="dazer" type="462c0819:PsiDirectoryNode" />
             </path>
           </expand>
           <select />
         </subPane>
       </pane>
-      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -379,19 +360,19 @@
     <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
   </component>
   <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/bin/lib/Astro_Libraries/literature_data" />
+      <recent name="$PROJECT_DIR$/bin/lib" />
+      <recent name="$PROJECT_DIR$/bin/lib/Astro_Libraries" />
+      <recent name="$PROJECT_DIR$/bin/lib/Astro_Libraries/old_versions" />
+      <recent name="$PROJECT_DIR$/../thesis_pipeline/Observational_Steps/megara_NOexcess" />
+    </key>
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/../thesis_pipeline/article2_material/tables" />
       <recent name="$PROJECT_DIR$/../thesis_pipeline/article2_material/synthTestCases" />
       <recent name="$PROJECT_DIR$/../thesis_pipeline/article2_material" />
       <recent name="$PROJECT_DIR$/../thesis_pipeline/Observational_Steps/CONICYT_project" />
       <recent name="$PROJECT_DIR$/../thesis_pipeline/Observational_Steps/megara_NOexcess" />
-    </key>
-    <key name="MoveFile.RECENT_KEYS">
-      <recent name="$PROJECT_DIR$/../thesis_pipeline/Observational_Steps/megara_NOexcess" />
-      <recent name="$PROJECT_DIR$/../astronomy" />
-      <recent name="$PROJECT_DIR$/bin/lib/Astro_Libraries/old_versions" />
-      <recent name="$PROJECT_DIR$/bin/lib/Astro_Libraries/literature_data" />
-      <recent name="$PROJECT_DIR$/bin/lib/Astro_Libraries" />
     </key>
   </component>
   <component name="RunDashboard">
@@ -797,7 +778,14 @@
       <option name="project" value="LOCAL" />
       <updated>1539899104144</updated>
     </task>
-    <option name="localTasksCounter" value="35" />
+    <task id="LOCAL-00035" summary="SpecSyzer Review 2018/11/20">
+      <created>1542745334654</created>
+      <option name="number" value="00035" />
+      <option name="presentableId" value="LOCAL-00035" />
+      <option name="project" value="LOCAL" />
+      <updated>1542745334659</updated>
+    </task>
+    <option name="localTasksCounter" value="36" />
     <servers />
   </component>
   <component name="TodoView">
@@ -811,23 +799,23 @@
     </todo-panel>
   </component>
   <component name="ToolWindowManager">
-    <frame x="59" y="27" width="1861" height="1053" extended-state="7" />
+    <frame x="59" y="27" width="1861" height="1053" extended-state="6" />
     <editor active="true" />
     <layout>
-      <window_info auto_hide="true" content_ui="combo" x="34" y="12" width="393" height="774" id="Project" internal_type="SLIDING" order="0" sideWeight="0.49614114" side_tool="true" type="FLOATING" weight="0.29325354" />
+      <window_info auto_hide="true" content_ui="combo" x="771" y="303" width="436" height="500" id="Project" internal_type="SLIDING" order="0" sideWeight="0.49614114" side_tool="true" type="SLIDING" weight="0.29325354" />
       <window_info id="Structure" order="1" sideWeight="0.4829107" side_tool="true" weight="0.2383025" />
       <window_info id="Favorites" order="2" sideWeight="0.5170893" side_tool="true" weight="0.2491839" />
       <window_info anchor="bottom" id="Message" order="0" />
-      <window_info anchor="bottom" id="Find" order="1" sideWeight="0.49945593" weight="0.45670995" />
-      <window_info active="true" anchor="bottom" x="164" y="484" width="1651" height="139" id="Run" order="2" visible="true" weight="0.3843717" />
-      <window_info anchor="bottom" id="Debug" order="3" sideWeight="0.61044616" weight="0.38542765" />
+      <window_info anchor="bottom" id="Find" order="1" sideWeight="0.49945593" weight="0.45621622" />
+      <window_info anchor="bottom" x="164" y="484" width="1651" height="139" id="Run" order="2" weight="0.3935135" />
+      <window_info anchor="bottom" id="Debug" order="3" sideWeight="0.61044616" weight="0.38486487" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
-      <window_info anchor="bottom" id="TODO" order="6" sideWeight="0.49571735" weight="0.32790446" />
-      <window_info anchor="bottom" id="Event Log" order="7" sideWeight="0.38955387" side_tool="true" weight="0.41233766" />
+      <window_info anchor="bottom" id="TODO" order="6" sideWeight="0.49455932" weight="0.4090909" />
+      <window_info anchor="bottom" id="Event Log" order="7" sideWeight="0.36126223" side_tool="true" weight="0.47402596" />
       <window_info anchor="bottom" id="Messages" order="8" />
-      <window_info anchor="bottom" id="Version Control" order="9" sideWeight="0.6943255" weight="0.27380952" />
-      <window_info anchor="bottom" id="Python Console" order="10" sideWeight="0.61860716" weight="0.27380952" />
+      <window_info anchor="bottom" id="Version Control" order="9" sideWeight="0.63873774" weight="0.47402596" />
+      <window_info anchor="bottom" id="Python Console" order="10" sideWeight="0.61860716" weight="0.27351353" />
       <window_info anchor="bottom" auto_hide="true" id="Terminal" internal_type="SLIDING" order="11" sideWeight="0.3813928" side_tool="true" type="SLIDING" weight="0.27470142" />
       <window_info anchor="right" id="Commander" order="0" weight="0.4" />
       <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
@@ -871,6 +859,20 @@
         </entry>
       </map>
     </option>
+    <option name="RECENT_FILTERS">
+      <map>
+        <entry key="Branch">
+          <value>
+            <list />
+          </value>
+        </entry>
+        <entry key="User">
+          <value>
+            <list />
+          </value>
+        </entry>
+      </map>
+    </option>
   </component>
   <component name="Vcs.Log.UiProperties">
     <option name="RECENTLY_FILTERED_USER_GROUPS">
@@ -879,9 +881,6 @@
     <option name="RECENTLY_FILTERED_BRANCH_GROUPS">
       <collection />
     </option>
-  </component>
-  <component name="VcsContentAnnotationSettings">
-    <option name="myLimit" value="2678400000" />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="pycharm testing" />
@@ -907,7 +906,8 @@
     <MESSAGE value="Work 2018/08/02" />
     <MESSAGE value="Work 2018/08/03" />
     <MESSAGE value="Thesis finished" />
-    <option name="LAST_COMMIT_MESSAGE" value="Thesis finished" />
+    <MESSAGE value="SpecSyzer Review 2018/11/20" />
+    <option name="LAST_COMMIT_MESSAGE" value="SpecSyzer Review 2018/11/20" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -938,14 +938,11 @@
           <option name="timeStamp" value="44" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/specSynthesizer_tools.py</url>
-          <line>455</line>
+          <url>file://$PROJECT_DIR$/bin/lib/specSynthesizer_tools.py</url>
+          <line>444</line>
           <option name="timeStamp" value="63" />
         </line-breakpoint>
       </breakpoints>
-      <breakpoints-dialog>
-        <breakpoints-dialog />
-      </breakpoints-dialog>
       <default-breakpoints>
         <breakpoint type="python-exception">
           <properties notifyOnTerminate="true" exception="BaseException">
@@ -956,131 +953,8 @@
     </breakpoint-manager>
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/../thesis_pipeline/bayesian_treatment/4_synthesizeSpectra.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1100">
-          <caret line="53" column="12" selection-start-line="53" selection-start-column="12" selection-end-line="53" selection-end-column="88" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../thesis_pipeline/spectrum_fitting/specSyzer_tester.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1320">
-          <caret line="61" column="21" selection-start-line="61" selection-start-column="21" selection-end-line="61" selection-end-column="21" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/Anaconda/python2/envs/python3/lib/python3.6/site-packages/astropy/nddata/utils.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="14190">
-          <caret line="654" column="8" selection-start-line="654" selection-start-column="8" selection-end-line="654" selection-end-column="8" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/Anaconda/python2/envs/python3/lib/python3.6/site-packages/matplotlib/axes/_base.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="69718">
-          <caret line="3207" selection-start-line="3207" selection-end-line="3207" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../thesis_pipeline/article1_material/Plot_J2_MC_LinearRegressions2.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="880">
-          <caret line="52" selection-start-line="52" selection-end-line="53" selection-end-column="32" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../astronomy/tests/plotSDSSimages.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1056">
-          <caret line="55" column="4" selection-start-line="55" selection-start-column="4" selection-end-line="55" selection-end-column="4" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../thesis_pipeline/Observational_Steps/megara_NOexcess/partialSpecSyzerResults.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="308">
-          <caret line="14" column="12" lean-forward="true" selection-start-line="14" selection-start-column="12" selection-end-line="14" selection-end-column="12" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../thesis_pipeline/Observational_Steps/megara_NOexcess/Plot_N_O_HeS_ratio.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1518">
-          <caret line="71" column="27" selection-start-line="71" selection-start-column="27" selection-end-line="71" selection-end-column="27" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/Desktop/bookmarks_11_2_18.html" />
-    <entry file="file://$PROJECT_DIR$/../thesis_pipeline/Observational_Steps/megara_NOexcess/Plot_NO_vs_He.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="563">
-          <caret line="55" column="92" selection-start-line="55" selection-start-column="86" selection-end-line="55" selection-end-column="92" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../thesis_pipeline/Tutorials/testingSpecgrid.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="66">
-          <caret line="3" column="32" selection-start-line="3" selection-end-line="4" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../thesis_pipeline/thesis/images/Yp_evolution.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="242">
-          <caret line="12" column="10" selection-start-line="12" selection-start-column="3" selection-end-line="12" selection-end-column="10" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/Anaconda/python2/lib/python2.7/site-packages/astropy/visualization/wcsaxes/coordinate_helpers.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="563">
-          <caret line="377" column="8" selection-start-line="377" selection-start-column="8" selection-end-line="377" selection-end-column="8" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/bin/lib/Plotting_Libraries/dazer_plotter.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="563">
-          <caret line="212" column="8" selection-start-line="212" selection-start-column="8" selection-end-line="212" selection-end-column="8" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/Anaconda/python2/envs/python3/lib/python3.6/site-packages/matplotlib/axis.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="563">
-          <caret line="1681" selection-start-line="1681" selection-end-line="1681" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/Anaconda/python2/envs/python3/lib/python3.6/site-packages/astroquery/sdss/core.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="563">
-          <caret line="665" column="12" selection-start-line="665" selection-start-column="8" selection-end-line="665" selection-end-column="12" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/../thesis_pipeline/article2_material/4_DoRegression.py">
       <provider selected="true" editor-type-id="text-editor" />
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../thesis_pipeline/article2_material/1_generateFileStructure.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="528">
-          <caret line="30" column="7" lean-forward="true" selection-start-line="30" selection-start-column="7" selection-end-line="30" selection-end-column="7" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../thesis_pipeline/article2_material/0_MeasureLines.py">
-      <provider selected="true" editor-type-id="text-editor" />
-    </entry>
-    <entry file="file://$USER_HOME$/Anaconda/python2/lib/python2.7/ConfigParser.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="891">
-          <caret line="641" selection-start-line="641" selection-end-line="641" />
-        </state>
-      </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/../thesis_pipeline/Observational_Steps/CONICYT_project/partialSpecSyzerResults_CONICYT.py">
       <provider selected="true" editor-type-id="text-editor">
@@ -1187,71 +1061,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/plot_tools.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="11308">
-          <caret line="870" column="8" selection-start-line="870" selection-start-column="8" selection-end-line="870" selection-end-column="8" />
-          <folding>
-            <element signature="e#0#18#0" expanded="true" />
-            <element signature="e#1033#1093#0" />
-            <element signature="e#1132#2515#0" />
-            <element signature="e#2577#3164#0" />
-            <element signature="e#3219#4526#0" />
-            <element signature="e#4574#6222#0" />
-            <element signature="e#6267#7192#0" />
-            <element signature="e#7240#8134#0" />
-            <element signature="e#8203#13734#0" />
-            <element signature="e#13815#19863#0" />
-            <element signature="e#39095#39186#0" />
-            <element signature="e#39286#40376#0" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/import_functions.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="9812">
-          <caret line="511" column="8" selection-start-line="511" selection-start-column="8" selection-end-line="511" selection-end-column="8" />
-          <folding>
-            <element signature="e#19010#19105#1" />
-            <element signature="e#19140#22612#0" />
-            <element signature="e#20776#22049#0" />
-            <element signature="e#22671#23010#0" />
-            <element signature="e#26324#27422#0" />
-            <element signature="e#27566#30626#0" />
-            <element signature="e#30706#32920#0" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/inferenceModel.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="506">
-          <caret line="23" column="8" selection-start-line="23" selection-start-column="8" selection-end-line="23" selection-end-column="8" />
-          <folding>
-            <element signature="e#1771#3316#0" />
-            <element signature="e#3401#3800#0" />
-            <element signature="e#3857#9553#0" />
-            <element signature="e#9613#15722#0" />
-            <element signature="e#15770#17169#0" />
-            <element signature="e#17210#23692#0" />
-            <element signature="e#23808#27506#0" />
-            <element signature="e#27575#27867#0" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$USER_HOME$/.PyCharmCE2018.2/system/python_stubs/1507783741/numpy/core/umath.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="10164">
           <caret line="462" selection-start-line="462" selection-end-line="462" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/bin/lib/CodeTools/File_Managing_Tools.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="15972">
-          <caret line="749" selection-start-line="749" selection-end-line="749" />
         </state>
       </provider>
     </entry>
@@ -1297,16 +1110,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/../thesis_pipeline/article2_material/tables/obj_lines_tables_absComp.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="22">
-          <caret line="74" column="59" selection-start-line="74" selection-start-column="59" selection-end-line="74" selection-end-column="59" />
-          <folding>
-            <element signature="e#0#31#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/../thesis_pipeline/article2_material/synthTestCases/EmissionLineRatioSurfaces.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="823">
@@ -1317,52 +1120,233 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/gasEmission_functions.py">
+    <entry file="file://$PROJECT_DIR$/../thesis_pipeline/article2_material/tables/obj_lines_tables_absComp.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="321">
-          <caret line="325" column="113" selection-start-line="325" selection-start-column="113" selection-end-line="325" selection-end-column="113" />
+        <state relative-caret-position="22">
+          <caret line="74" column="59" selection-start-line="74" selection-start-column="59" selection-end-line="74" selection-end-column="59" />
           <folding>
-            <element signature="e#0#18#0" expanded="true" />
-            <element signature="e#337#453#0" />
-            <element signature="e#527#1032#0" />
-            <element signature="e#1135#4059#0" />
-            <element signature="e#4119#4228#0" />
-            <element signature="e#4296#4435#0" />
-            <element signature="e#4495#4621#0" />
-            <element signature="e#4689#4819#0" />
-            <element signature="e#4882#4962#0" />
-            <element signature="e#5026#5145#0" />
-            <element signature="e#5204#5287#0" />
-            <element signature="e#5435#5519#0" />
-            <element signature="e#5580#7418#0" />
-            <element signature="e#7552#8831#0" />
-            <element signature="e#8954#9456#0" />
-            <element signature="e#9519#9590#0" />
-            <element signature="e#16125#17523#0" />
+            <element signature="e#0#31#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/specSynthesizer_tools.py">
+    <entry file="file://$PROJECT_DIR$/bin/lib/Astro_Libraries/literature_data/HeI_t5_elec.ascii">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="109">
-          <caret line="453" selection-start-line="453" selection-end-line="457" selection-end-column="20" />
+        <state relative-caret-position="-2244" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/working_examples/pyCloudy_MarinaExample.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="154">
+          <caret line="12" column="5" selection-start-line="12" selection-start-column="5" selection-end-line="12" selection-end-column="5" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/plot_tools.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="163">
+          <caret line="962" column="42" selection-start-line="962" selection-start-column="42" selection-end-line="962" selection-end-column="42" />
           <folding>
             <element signature="e#0#18#0" expanded="true" />
-            <element signature="e#23004#25809#0" />
-            <element signature="e#25879#27578#0" />
-            <element signature="e#27631#28069#0" />
-            <element signature="e#28183#28492#0" />
+            <element signature="e#1033#1093#0" />
+            <element signature="e#1132#2515#0" />
+            <element signature="e#2577#3164#0" />
+            <element signature="e#4574#6222#0" />
+            <element signature="e#6267#7192#0" />
+            <element signature="e#7240#8134#0" />
+            <element signature="e#39095#39186#0" />
+            <element signature="e#39286#40376#0" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/bin/lib/CodeTools/File_Managing_Tools.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="163">
+          <caret line="627" column="9" selection-start-line="627" selection-start-column="9" selection-end-line="627" selection-end-column="9" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../thesis_pipeline/article2_material/0_MeasureLines.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="321">
+          <caret line="152" column="108" selection-start-line="152" selection-start-column="108" selection-end-line="152" selection-end-column="108" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../thesis_pipeline/article2_material/1_generateFileStructure.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="339">
+          <caret line="136" column="55" selection-start-line="136" selection-start-column="55" selection-end-line="136" selection-end-column="55" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../thesis_pipeline/bayesian_treatment/0_MeasureLines.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="321">
+          <caret line="152" column="108" selection-start-line="152" selection-start-column="108" selection-end-line="152" selection-end-column="108" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../thesis_pipeline/bayesian_treatment/3_generateFileStructure_noCont.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="171">
+          <caret line="136" column="55" selection-start-line="136" selection-start-column="55" selection-end-line="136" selection-end-column="55" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Anaconda/python2/lib/python2.7/ConfigParser.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="7920">
+          <caret line="360" column="38" selection-start-line="360" selection-start-column="32" selection-end-line="360" selection-end-column="38" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/bin/lib/Astro_Libraries/old_versions/attributes_declaration.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="2992">
+          <caret line="229" column="49" selection-start-line="229" selection-start-column="49" selection-end-line="229" selection-end-column="49" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/starContinuum_functions.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="176">
+          <caret line="26" column="6" selection-start-line="26" selection-start-column="6" selection-end-line="26" selection-end-column="6" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/bin/DZ_Logs.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="44">
+          <caret line="4" column="6" selection-start-line="4" selection-start-column="6" selection-end-line="4" selection-end-column="6" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Anaconda/python2/lib/python2.7/site-packages/IPython/core/interactiveshell.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="179">
+          <caret line="2881" selection-start-line="2881" selection-end-line="2881" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/bin/DZ_LineMesurer.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="168">
+          <caret line="575" column="6" selection-start-line="575" selection-start-column="6" selection-end-line="575" selection-end-column="6" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/config.ini">
+      <provider selected="true" editor-type-id="text-editor">
+        <state>
+          <caret selection-end-line="1" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Anaconda/python2/lib/python2.7/site-packages/pyneb/utils/manage_atomic_data.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-811">
+          <caret line="380" column="35" selection-start-line="380" selection-start-column="26" selection-end-line="380" selection-end-column="35" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/gasContinuum_functions.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1936">
+          <caret line="91" column="39" selection-start-line="91" selection-start-column="39" selection-end-line="91" selection-end-column="39" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/bin/lib/specSynthesizer_tools.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="154">
+          <caret line="16" column="23" selection-start-line="16" selection-start-column="8" selection-end-line="16" selection-end-column="23" />
+          <folding>
+            <element signature="e#0#18#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/bin/lib/inferenceModel.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="440">
+          <caret line="20" column="24" selection-start-line="20" selection-start-column="8" selection-end-line="20" selection-end-column="24" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/../thesis_pipeline/article2_material/synthTestCases/specSyzerModels.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="462">
-          <caret line="21" column="1" selection-start-line="21" selection-start-column="1" selection-end-line="21" selection-end-column="1" />
+        <state relative-caret-position="528">
+          <caret line="25" selection-start-line="25" selection-end-line="25" />
           <folding>
             <element signature="e#0#18#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/gasEmission_functions.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="9086">
+          <caret line="458" column="8" selection-start-line="458" selection-start-column="8" selection-end-line="458" selection-end-column="8" />
+          <folding>
+            <element signature="e#0#18#0" expanded="true" />
+            <element signature="e#7531#8913#0" />
+            <element signature="e#9036#9538#0" />
+            <element signature="e#9601#9672#0" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Anaconda/python2/lib/python2.7/inspect.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="17798">
+          <caret line="819" selection-start-line="819" selection-end-line="819" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/bin/lib/config.ini">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="418">
+          <caret line="19" column="12" selection-start-line="19" selection-start-column="12" selection-end-line="19" selection-end-column="12" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/bin/lib/Astro_Libraries/spectrum_fitting/import_functions.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="458">
+          <caret line="467" lean-forward="true" selection-start-line="467" selection-end-line="467" />
+          <folding>
+            <element signature="e#0#9#0" expanded="true" />
+            <element signature="e#372#585#0" />
+            <element signature="e#521#573#0" />
+            <element signature="e#653#965#0" />
+            <element signature="e#692#965#0" />
+            <element signature="e#826#965#0" />
+            <element signature="e#1039#2267#0" />
+            <element signature="e#2347#2548#0" />
+            <element signature="e#2650#3470#0" />
+            <element signature="e#2650#2775#0" />
+            <element signature="e#3550#19002#0" />
+            <element signature="e#15116#16825#0" />
+            <element signature="e#16914#19002#0" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/working_examples/pyCloudy_heliumEmissivities.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1756">
+          <caret line="112" column="37" selection-start-line="112" selection-start-column="37" selection-end-line="112" selection-end-column="37" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../thesis_pipeline/article1_material/ionization_structure.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="264">
+          <caret line="21" column="48" lean-forward="true" selection-start-line="21" selection-start-column="48" selection-end-line="21" selection-end-column="48" />
+          <folding>
+            <element signature="e#0#32#0" expanded="true" />
           </folding>
         </state>
       </provider>

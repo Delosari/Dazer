@@ -1,3 +1,4 @@
+from os import path
 from string import split
 from numpy import power, log10, exp, zeros, ceil, interp, loadtxt, digitize
 from scipy import interpolate
@@ -5,10 +6,11 @@ from scipy import interpolate
 
 class NebularContinuaCalculator():
 
-    def __init__(self, data_folder):
+    def __init__(self):
 
-        #Dictionary with the constants
-        self.loadNebCons(data_folder)
+        # Dictionary with the constants
+        # self.loadNebCons(data_folder)
+        return
 
     def loadNebCons(self, data_folder):
 
@@ -40,9 +42,9 @@ class NebularContinuaCalculator():
         self.nebConst['Ryd2erg']    = 2.1798723e-11  # Rydberg to erg   # (s^-1) Transition probability at lambda = 1215.7
 
         # Load files
-        self.HI_fb_dict     = self.importErcolanoFBdata(data_folder + 't3_elec.ascii')
-        self.HeI_fb_dict    = self.importErcolanoFBdata(data_folder + 't5_elec.ascii')
-        self.HeII_fb_dict   = self.importErcolanoFBdata(data_folder + 't4_elec.ascii')
+        self.HI_fb_dict     = self.importErcolanoFBdata(path.join(data_folder, 'HI_t3_elec.ascii'))
+        self.HeI_fb_dict    = self.importErcolanoFBdata(path.join(data_folder, 'HeI_t5_elec.ascii'))
+        self.HeII_fb_dict   = self.importErcolanoFBdata(path.join(data_folder, 'HeII_t4_elec.ascii'))
 
         return
 
