@@ -9,6 +9,7 @@ from lib.Astro_Libraries.spectrum_fitting.gasContinuum_functions import NebularC
 from lib.Astro_Libraries.spectrum_fitting.gasEmission_functions import TOIII_TSIII_relation, EmissionComponents
 from lib.Astro_Libraries.spectrum_fitting.extinction_tools import ReddeningLaws
 
+
 class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, EmissionComponents, ReddeningLaws, MCMC_printer):
 
     def __init__(self):
@@ -18,11 +19,11 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
 
         # Load tools for spectra calculation
         SspFitter.__init__(self)
-        EmissionComponents.__init__(self)
+        EmissionComponents.__init__(self, self.config['temp_grid'], self.config['den_grid'])
         NebularContinuaCalculator.__init__(self)
 
-        # Import extintion classes
-        ReddeningLaws.__init__(self)
+        # Import extinction classes
+        ReddeningLaws.__init__(self, self.config['R_v'], self.config['reddenig_curve'])
 
         # For generating graphs
         MCMC_printer.__init__(self)
@@ -38,10 +39,10 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
         self.obj_data = {}
 
         # Store input files:
-        self.obj_data['obj_properties_file']   = obj_properties_file
-        self.obj_data['obj_lines_file']        = obj_lines_file
-        self.obj_data['obj_ssp_coeffs_file']   = obj_ssp_coeffs_file
-        self.obj_data['output_folder']         = output_folder
+        self.obj_data['obj_properties_file'] = obj_properties_file
+        self.obj_data['obj_lines_file'] = obj_lines_file
+        self.obj_data['obj_ssp_coeffs_file'] = obj_ssp_coeffs_file
+        self.obj_data['output_folder'] = output_folder
 
         # Read simulation data from file
         obj_prop_df = read_csv(obj_properties_file, delim_whitespace=True, header=0, index_col=0)
@@ -71,35 +72,34 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
         # Prepare data from emission line file (trick to put all the lines)
         self.import_emission_line_data(obj_lines_df, obj_lines_df.index.values)
 
-        # Variables to make the iterations simpler
-        self.gasSamplerVariables(self.obj_data['lineIons'], self.config['high_temp_ions'])
+        # Reddening parameters
+        self.obj_data['lineFlambda'] = self.gasExtincParams(self.obj_data['lineWaves'], self.config['R_v'], self.config['reddenig_curve'])
 
         # Create or load emissivity grids
-        self.emis_grid = self.computeEmissivityGrids(self.obj_data['linePynebCode'], self.obj_data['lineIons'], output_folder)
-
-        # Fit emissivity grids to a surface
-        self.fitEmissivityPlane()
-
+        # self.emis_grid = self.computeEmissivityGrids(self.obj_data['linePynebCode'], self.obj_data['lineIons'], output_folder)
+        #
+        # # Fit emissivity grids to a surface
+        # self.fitEmissivityPlane(self.configFolder)
+        #
         # # Create or emissivity diagnostic ratios
         # self.diagnosRatios, self.diagnosGrid = self.computeDiagnosGrids(self.obj_data['linePynebCode'], self.diagnosDict, self.emis_grid)
         #
         # # Fit emissivity ratios a surface
         # self.emisRatioCoeffs = self.fitEmissivityDiagnosPlane(self.diagnosRatios, self.diagnosGrid)
         #
-        # # Plot fits of emissivity ratios
-        # print 'I am saving here', self.paths_dict['emisGridsPath']
+        # Plot fits of emissivity ratios
         # self.plot_emisRatioFits(self.diagnosRatios, self.emisRatioCoeffs, self.diagnosGrid, self.paths_dict['emisGridsPath'])
-
-        # Reddening parameters
-        self.obj_data['lineFlambda'] = self.gasExtincParams(self.obj_data['lineWaves'], self.config['R_v'], self.config['reddenig_curve'])
-
+        #
         # Plot fits of emissivity grids
-        #self.plot_emisFits(self.obj_data['lineLabels'], self.emisCoeffs, self.emis_grid, self.paths_dict['emisGridsPath'])
+        # self.plot_emisFits(self.obj_data['lineLabels'], self.emisCoeffs, self.emis_grid, self.paths_dict['emisGridsPath'])
+
+        # Variables to make the iterations simpler
+        self.gasSamplerVariables(self.obj_data['lineIons'], self.config['high_temp_ions'])
 
         #Dictionary with synthetic abundances
-        abund_df        = obj_prop_df[obj_prop_df.index.str.contains('_abund')]
-        abund_keys      = abund_df.index.str.rstrip('_abund').astype(str).values
-        abund_values    = abund_df.variable_magnitude.values
+        abund_df = obj_prop_df[obj_prop_df.index.str.contains('_abund')]
+        abund_keys = abund_df.index.str.rstrip('_abund').astype(str).values
+        abund_values = abund_df.variable_magnitude.values
         self.abund_dict = dict(zip(abund_keys, abund_values.T))
 
         #Gas physical parameters
@@ -111,28 +111,24 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
         #Calculate T_high assuming we get T_low
         T_high = TOIII_TSIII_relation(T_low)
 
+        # # Prepare gas data # TODO update the prepare_gas_data to use run in this part
+        # self.lineLabels = self.obj_data['lineLabels']
+        # self.lineIons = self.obj_data['lineIons']
+        # self.lineFlambda = self.obj_data['lineFlambda']
+
         # Compute lines flux
-        logLine_fluxes = self.calcEmFluxes(T_low, T_high, n_e, cHbeta, tau, self.abund_dict,
-                                    self.obj_data['lineLabels'], self.obj_data['lineIons'], self.obj_data['lineFlambda'])
-
-        #Converting the fluxes from metals and hydrogen into linear scale
-        # TODO Two scales in same array it is very dangerous
-        for i in range(logLine_fluxes.size):
-            if self.obj_data['lineIons'][i] not in ['He1r', 'He2r']:
-                logLine_fluxes[i] = np.power(10, logLine_fluxes[i])
-                print self.obj_data['lineLabels'][i], logLine_fluxes[i]
-
-        self.obj_data['lineFluxes'] = logLine_fluxes
+        lineFluxes = self.calcEmFluxes(T_low, T_high, n_e, cHbeta, tau, self.abund_dict, self.emFluxTensors, np.zeros(self.lineLabels.size))
+        self.obj_data['lineFluxes'] = lineFluxes
 
         # Use general error if this is provided
         self.obj_data['lineErr'] = self.obj_data['lineFluxes'] * error_lines
 
         # Store data to synthetic observation files
         idx_lines = (obj_lines_df.index != 'H1_4861A')
-        obj_lines_df.loc[idx_lines,'obs_flux']      = self.obj_data['lineFluxes']
-        obj_lines_df.loc[idx_lines,'obs_fluxErr']   = self.obj_data['lineErr']
-        obj_lines_df.loc['H1_4861A','obs_flux']     = 1.0
-        obj_lines_df.loc['H1_4861A','obs_fluxErr']  = 1.0 * error_lines
+        obj_lines_df.loc[idx_lines, 'obs_flux']      = self.obj_data['lineFluxes']
+        obj_lines_df.loc[idx_lines, 'obs_fluxErr']   = self.obj_data['lineErr']
+        obj_lines_df.loc['H1_4861A', 'obs_flux']     = 1.0
+        obj_lines_df.loc['H1_4861A', 'obs_fluxErr']  = 1.0 * error_lines
 
         # Assign line region
         obj_lines_df['w3'] = np.floor(obj_lines_df['obs_wavelength'].values * 0.998)
@@ -160,7 +156,6 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
                                                     obj_prop_df.loc['T_low'][0],
                                                     obj_prop_df.loc['He1r_abund'][0], obj_prop_df.loc['He2r_abund'][0],
                                                     flux_halpha)
-
 
         # Save input conditions:
         Av_star = obj_prop_df.loc['Av_star'][0]
@@ -249,35 +244,41 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
         self.obj_data = {}
         self.obj_data = obs_data.copy()
 
-        if output_folder is None: # TODO need to establish a global path to save the data
-            self.output_folder = self.obj_data['output_folder']
-
-        #Read log with observational features and masks
-        obj_lines_df = read_csv(obs_data['obj_lines_file'], delim_whitespace=True, header=0, index_col=0)
-
-        #Prepare data from emission line file
-        self.import_emission_line_data(obj_lines_df, input_lines = input_lines)
-
         # Prepare emission data
         if 'emission' in fitting_components:
 
-            # Create or load emissivity grids
-            self.emis_grid = self.computeEmissivityGrids(self.obj_data['linePynebCode'], self.obj_data['lineIons'], True)
+            # Read log with observational features and masks
+            obj_lines_df = read_csv(obs_data['obj_lines_file'], delim_whitespace=True, header=0, index_col=0)
 
-            # Fit emissivity grids to a surface
-            self.fitEmissivityPlane()
+            # Load atomic data
+            self.import_atomic_data() # TODO Do we need this one for the nebular continuum?
 
-            # Create or emissivity diagnostic ratios
-            self.diagnosRatios, self.diagnosGrid = self.computeDiagnosGrids(self.obj_data['linePynebCode'], self.diagnosDict, self.emis_grid)
-
-            # Fit emissivity ratios a surface
-            self.emisRatioCoeffs = self.fitEmissivityDiagnosPlane(self.diagnosRatios, self.diagnosGrid)
-
-            # Plot fits of emissivity ratios
-            self.plot_emisRatioFits(self.diagnosRatios, self.emisRatioCoeffs, self.diagnosGrid, self.paths_dict['emisGridsPath'])
+            # Prepare data from emission line file (trick to put all the lines)
+            self.import_emission_line_data(obj_lines_df, input_lines=input_lines)
 
             # Reddening parameters
             self.obj_data['lineFlambda'] = self.gasExtincParams(self.obj_data['lineWaves'], self.Rv_model, self.reddedning_curve_model)
+
+            # Variables to make the iterations simpler
+            #self.gasSamplerVariables(self.obj_data['lineIons'], self.config['high_temp_ions'], normalized_by_Hbeta=normalized_by_Hbeta)
+
+            # Create or load emissivity grids
+            # self.emis_grid = self.computeEmissivityGrids(self.obj_data['linePynebCode'], self.obj_data['lineIons'], output_folder)
+            #
+            # # Fit emissivity grids to a surface
+            # self.fitEmissivityPlane(self.configFolder)
+            #
+            # # Create or emissivity diagnostic ratios
+            # self.diagnosRatios, self.diagnosGrid = self.computeDiagnosGrids(self.obj_data['linePynebCode'], self.diagnosDict, self.emis_grid)
+            #
+            # # Fit emissivity ratios a surface
+            # self.emisRatioCoeffs = self.fitEmissivityDiagnosPlane(self.diagnosRatios, self.diagnosGrid)
+            #
+            # Plot fits of emissivity ratios
+            # self.plot_emisRatioFits(self.diagnosRatios, self.emisRatioCoeffs, self.diagnosGrid, self.paths_dict['emisGridsPath'])
+            #
+            # Plot fits of emissivity grids
+            # self.plot_emisFits(self.obj_data['lineLabels'], self.emisCoeffs, self.emis_grid, self.paths_dict['emisGridsPath'])
 
         # Trim, resample and normalize according to the input object
         if 'obs_wavelength' in self.obj_data: # TODO this is a bit dirty
@@ -299,29 +300,46 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
 
         return
 
-    def prepareSimulation(self, obs_data, ssp_data=None, output_folder = '', spectra_components=None, input_lines='all',
-                        prefit_ssp = True, prefit_data = False, wavelengh_limits = None, resample_inc = None, norm_interval=None):
+    def prepareSimulation(self, obs_data, ssp_data=None, output_folder = None, storage_folder = None,
+                        spectra_components=None, input_lines='all', normalized_by_Hbeta=True,
+                        excludeReddening = False, T_high_prior = False, prefit_ssp = True,
+                        wavelengh_limits = None, resample_inc = None, norm_interval=None):
 
         # Store components fit
         self.spectraComponents = spectra_components
 
         # Folders to store inputs and outputs
-        self.input_folder = output_folder + 'input_data/'
-        self.output_folder = output_folder + 'output_data/'
-        self.dataFolder = prefit_data
-        self.configFile = obs_data['obsFile'] #TODO this one has to go into the configuration
-        self.objName = str(obs_data['objName'])
-        self.prefit_db = '{}{}_sspPrefitDB'.format(self.dataFolder, self.objName)
+        self.input_folder       = output_folder + 'input_data/' # TODO sure?
+        self.output_folder      = output_folder + 'output_data/'
+        self.dataFolder         = self.output_folder if storage_folder is None else storage_folder # TODO sure?
+        self.configFile         = obs_data['obsFile'] #TODO this one has to go into the configuration
+        self.objName            = str(obs_data['objName'])
+        self.prefit_db          = '{}{}_sspPrefitDB'.format(self.dataFolder, self.objName)
         self.sspCoeffsPrefit_file = '{}{}_prefitSSPpopulations.txt'.format(self.input_folder, self.objName)
-        self.sspCoeffs_file = '{}{}_SSPpopulations.txt'.format(self.input_folder, self.objName)
+        self.sspCoeffs_file     = '{}{}_SSPpopulations.txt'.format(self.input_folder, self.objName)
 
         # Create them if not available
         make_folder(self.input_folder)
         make_folder(self.output_folder)
 
-        # Prepare data for the MCMC fitting
-        self.ready_simulation(output_folder, obs_data, ssp_data, spectra_components, input_lines=input_lines,
-                              wavelengh_limits=wavelengh_limits, resample_inc=resample_inc, norm_interval=norm_interval)
+        # Prepare spectrum components for fitting
+        self.emissionCheck, self.stellarCheck, self.emissionCheck = False, False, False
+
+        # Pre-analysis emission spectrum
+        if 'emission' in self.spectraComponents:
+
+            # Get emission data from input files
+            self.ready_simulation(output_folder, obs_data, ssp_data, spectra_components, input_lines=input_lines,
+                                  wavelengh_limits=wavelengh_limits, resample_inc=resample_inc, norm_interval=norm_interval)
+
+            # Declare gas sampler variables
+            self.gasSamplerVariables(self.obj_data['lineIons'], self.config['high_temp_ions'],
+                                     self.obj_data['lineFluxes'], self.obj_data['lineErr'],
+                                     self.obj_data['lineLabels'], self.obj_data['lineFlambda'],
+                                     normalized_by_Hbeta, self.config['linesMinimumError'])
+
+            # Confirm inputs are valid
+            self.emissionCheck = True
 
         # Prefit stellar continua
         if 'stellar' in self.spectraComponents:
@@ -365,77 +383,8 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
                                      nebularFlux=None,#self.nebDefault['synth_neb_flux'],
                                      mainPopulationsFile=self.sspCoeffsPrefit_file)
 
-        else:
-            self.stellarCheck = False
-
-
-        # Ready gas data
-        if 'emission' in self.spectraComponents:
-            self.emissionCheck = True
-            self.prepare_gas_data()
-
-        else:
-            self.emissionCheck = False
-
         return
 
-    def prepare_gas_data(self):
-
-        self.Te_prior           = np.array(self.obj_data['Te_prior'])
-        self.ne_prior           = np.array(self.obj_data['ne_prior'])
-
-        # Emission line fluxes and errors #TODO Add normalization check here
-        if self.obj_data['Normalized_by_Hbeta']:
-            self.obsLineFluxes      = self.obj_data['lineFluxes']
-            self.obsLineFluxErr     = self.obj_data['lineErr']
-        else:
-            self.obsLineFluxes      = self.obj_data['lineFluxes']/self.obj_data['flux_hbeta']
-            self.obsLineFluxErr     = self.obj_data['lineErr']/self.obj_data['flux_hbeta']
-
-        # Setting minimin error to 0.01 of the line flux
-        err_fraction = self.obj_data['lineErr']/self.obj_data['lineFluxes']
-        idcs_smallErr = err_fraction < 0.02
-        self.obsLineFluxErr[idcs_smallErr] = 0.02
-
-        # Lines data
-        self.lineLabels         = self.obj_data['lineLabels']
-        self.lineIons           = self.obj_data['lineIons']
-        self.lineFlambda        = self.obj_data['lineFlambda']
-
-        # Variables to make the iterations simpler
-        self.gasSamplerVariables(self.lineIons, self.high_temp_ions)
-
-        # Define diagnostic ratios
-        self.obsDiagRatios = np.empty(self.diagnosRatios.size)
-        for i in range(self.diagnosRatios.size):
-
-            ratio = self.diagnosRatios[i]
-
-            # Get the numerator and denominator wave indeces
-            num_waves = self.diagnosDict[ratio]['num']
-            den_waves = self.diagnosDict[ratio]['den']
-
-            # New indices
-            num_idcs = np.argwhere(np.in1d(self.obj_data['linePynebCode'], num_waves))
-            den_idcs = np.argwhere(np.in1d(self.obj_data['linePynebCode'], den_waves))
-
-            # New diagnostics
-            self.obsDiagRatios[i] = np.log10(self.obsLineFluxes[num_idcs].sum() / self.obsLineFluxes[den_idcs].sum())
-
-
-        # print '-- Line fluxes', self.obsLineFluxes
-        # print '-- Line flux uncertainty', self.obsLineFluxErr
-        # print '-- Errors percentage', 1.0 - self.obj_data['lineErr']/self.obj_data['lineFluxes']
-        # print '-- Observed atoms:', np.unique(self.lineIons)
-        # print '-- Treating lines:', self.lineLabels
-        # print '-- Temperature prior', self.Te_prior
-        # print '-- Density prior', self.ne_prior
-        # print self.diagnosRatios, self.obsDiagRatios
-        # print self.emisEquation_Te((self.obj_data['T_low_true'], self.obj_data['n_e_true']), *self.emisRatioCoeffs['RSIII'])
-        # print self.emisEquation_Te((self.obj_data['T_high_true'], self.obj_data['n_e_true']), *self.emisRatioCoeffs['ROIII'])
-        # print 'Hi'
-
-        return
 
     def prepareContinuaData(self, basesWave, basesFlux, basesFluxCoeffs, obsWave, obsFlux, obsFluxEr, objMask, nebularFlux = None, mainPopulationsFile = None):
 

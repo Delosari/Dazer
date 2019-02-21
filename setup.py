@@ -9,5 +9,5 @@ setup(
   url = 'https://github.com/Delosari/Dazer.git',
   download_url = 'https://github.com/Delosari/Dazer/tarball/0.1.3', 
   keywords = ['astrophysics', 'emission lines', 'MC'],
-  classifiers = [],
+  classifiers = [], requires=['numpy', 'pandas', 'pymc3', 'theano']
 )

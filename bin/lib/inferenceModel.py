@@ -6,6 +6,7 @@ import cPickle as pickle
 import theano
 import theano.tensor as tt
 from collections import OrderedDict
+from time import sleep
 from numpy import mean, std, square, percentile, median, sum as np_sum, array, ones, empty
 from lib.specSynthesizer_tools import ModelIngredients
 from lib.Astro_Libraries.spectrum_fitting.gasEmission_functions import TOIII_TSIII_relation
@@ -14,37 +15,88 @@ from lib.Astro_Libraries.spectrum_fitting.import_functions import parseObjData
 # Line to avoid the compute_test_value error
 theano.config.compute_test_value = "ignore"
 
+
+# Illustrate the new
+def displaySimulationData(model, priorsDict, lineLabels, lineFluxes, lineErr, lineFitErr):
+
+    print('\n- Simulation configuration')
+
+    # Print input lines and fluxes
+    print('\n-- Input lines')
+    for i in range(lineLabels.size):
+        warnLine = '{}'.format('|| WARNING obsLineErr = {:.4f}'.format(lineErr[i]) if lineErr[i] != lineFitErr[i] else '')
+        displayText = '{} flux = {:.4f} +/- {:.4f} || err % = {:.5f} {}'.format(lineLabels[i], lineFluxes[i], lineFitErr[i], lineFitErr[i] / lineFluxes[i], warnLine)
+        print(displayText)
+
+    # Present the model data
+    print('\n-- Priors design:')
+    for prior in priorsDict:
+        displayText = '{} : mu = {}, std = {}'.format(prior, priorsDict[prior][0], priorsDict[prior][1])
+        print(displayText)
+
+    # Check test_values are finite
+    print('\n-- Test points:')
+    model_var = model.test_point
+    for var in model_var:
+        displayText = '{} = {}'.format(var, model_var[var])
+        print(displayText)
+
+    # Checks log probability of random variables
+    print('\n-- Log probability variable:')
+    print(model.check_test_point())
+
+    # Wait a bit before starting the simulation
+    sleep(0.5)
+
+    return
+
+
 class SpectraSynthesizer(ModelIngredients):
 
     def __init__(self):
 
         ModelIngredients.__init__(self)
 
-    def fitSpectra(self, model_name, hammer = 'nuts', iterations=8000, tuning=2000, output_folder=''):
+        # Priors conf
+        self.defaultPriosConf = {}
 
-        # Declare the sampler #TODO we need to differentiate the model from the sampler
-        self.select_inference_model(model = hammer)
+        # Normalization constants for the plots # TODO this should go together with the reparamatrization
+        self.normContants = {'He1r': 0.1, 'He2r': 0.001}
+
+        # Dictionary with the models
+        self.modelDict = dict(nuts=self.nuts_TwoTemps, HMC=self.emissionHMC, stelar_prefit=self.stellarContinua_model)
+
+    def fitSpectra(self, model_name, hammer='HMC', iterations=8000, tuning=2000, priors_conf=None,
+                   include_reddening=True, include_Thigh_prior=True):
+
+        # Declare the priors configuration
+        self.priorsConf = self.defaultPriosConf.copy()
+        if priors_conf is not None:
+            self.priorsConf.update(priors_conf)
 
         # Run the sampler
-        db_address = output_folder + model_name + '.db' # TODO Deberiamos poder quitar este .db
-        self.normContants = {'He1r': 0.1, 'He2r': 0.001}  # TODO need to decide where to place this
-        self.run_pymc(db_address, iterations=iterations, tuning=tuning, model_type=hammer)
+        # TODO need to decide where to place this
+        db_address = self.output_folder + model_name + '.db' # TODO Deberiamos poder quitar este .db
+        # self.run_pymc(hammer, db_address, iterations, tuning, include_reddening=include_reddening, include_Thigh_prior=include_Thigh_prior)
 
-        # # Load the results
+        # Load the results
         inferenceTrace, interenceParamsDict = self.load_pymc_database_manual(db_address, sampler='pymc3')
 
-        # # # Plot output data
+        # Plot output data
         self.plotOuputData(self.output_folder + model_name, inferenceTrace, interenceParamsDict, array(interenceParamsDict.keys()))
 
         return
 
-    def run_pymc(self, db_address, iterations = 10000, tuning = 0, variables_list = None, prefit = True, model_type = 'pymc2'):
+    def run_pymc(self, model, db_address, iterations=10000, tuning=0, prefit=True, include_reddening=True,
+                 include_Thigh_prior=True):
 
         #TODO this part is very dirty it is not clear where it goes
-        if 'nuts' not in model_type:
+        if 'HMC' not in model:
+
+            variables_list = self.priorsConf.keys()
 
             # Define MCMC model
-            MAP_Model = pymc2.MAP(self.inf_dict)
+            MAP_Model = pymc2.MAP(self.modelDict[model])
 
             # Prefit:
             if prefit is not False:
@@ -74,27 +126,80 @@ class SpectraSynthesizer(ModelIngredients):
             self.pymc2_M.db.close()
 
         else:
-            print '-- Starting sampling'
             # Launch sample
-            trace, model = self.inf_dict(iterations, tuning)
+            trace, model = self.modelDict[model](iterations, tuning, include_reddening, include_Thigh_prior)
 
             # Save the data
             with open(db_address, 'wb') as trace_pickle:
                 pickle.dump({'model': model, 'trace': trace}, trace_pickle)
 
-    def select_inference_model(self, model = 'nuts', params_list = None):
+    def priorsConfiguration(self):
 
-        # Declare the simulation type
-        if model == 'nuts':
-            #self.inf_dict = self.nuts_model
-            self.inf_dict = self.nuts_TwoTemps
+        # Container to store the synthetic line fluxes
+        if self.emissionCheck:
+            lineFlux_tt = tt.zeros(self.lineLabels.size)
+            continuum = tt.zeros(self.obj_data['wave_resam'].size)
+            # idx_N2_6548A = self.lineLabels == 'N2_6548A'
+            # idx_N2_6584A = self.lineLabels == 'N2_6584A'
+            # self.obsLineFluxErr[idx_N2_6548A], self.obsLineFluxErr[idx_N2_6584A] = 0.1* self.obsLineFluxes[idx_N2_6548A], 0.1 * self.obsLineFluxes[idx_N2_6584A]
 
-        elif model == 'stelar_prefit':
-            print 'Limites', self.zMin_SspLimit, self.zMax_SspLimit
-            self.inf_dict = self.stellarContinua_model()
+        # Stellar bases tensor
+        if self.stellarCheck:
+            Xx_tt = theano.shared(self.Xx_stellar)
+            basesFlux_tt = theano.shared(self.onBasesFluxNorm)
+            nebular_continuum_tt = theano.shared(self.nebDefault['synth_neb_flux'])
+            err_Continuum = 0.10 * ones(self.inputContinuum.size) # TODO really need to check this
+            # err_Continuum = self.obsFluxNorm * 0.05
+            # err_Continuum[err_Continuum < 0.001] = err_Continuum.mean()
 
-        elif model == 'complete':
-            self.inf_dict = self.complete_model()
+        return
+
+    def emissionHMC(self, iterations, tuning, include_reddening=True, include_Thigh_prior=True):
+
+        # Container to store the synthetic line fluxes
+        lineFluxTTArray = tt.zeros(self.lineLabels.size)
+
+        with pymc3.Model() as model:
+
+            # Gas priors
+            T_low = pymc3.Normal('T_low', mu=self.priorsDict['T_low'][0], sd=self.priorsDict['T_low'][1])
+            n_e = pymc3.Normal('n_e', mu=self.priorsDict['n_e'][0], sd=self.priorsDict['n_e'][1])
+            cHbeta = pymc3.Lognormal('cHbeta', mu=0, sd=1) if include_reddening else self.obj_data['cHbeta_prior'][0]
+            tau = pymc3.Lognormal('tau', mu=1, sd=0.75) if self.He1rCheck else 0.0
+
+            # High ionization region temperature
+            if include_Thigh_prior:
+                T_high = pymc3.Normal('T_high', mu=self.priorsDict['T_low'][0], sd=self.priorsDict['T_low'][1])
+            else:
+                T_high = TOIII_TSIII_relation(T_low)
+
+            # Composition priors
+            abund_dict = {'H1r': 1.0}
+            for j in self.rangeObsAtoms:
+                if self.obsAtoms[j] == 'He1r':
+                    abund_dict[self.obsAtoms[j]] = self.normContants['He1r'] * pymc3.Lognormal(self.obsAtoms[j], mu=0, sd=1)
+                elif self.obsAtoms[j] == 'He2r':
+                    abund_dict[self.obsAtoms[j]]= self.normContants['He2r'] * pymc3.Lognormal(self.obsAtoms[j], mu=0, sd=1)
+                else:
+                    abund_dict[self.obsAtoms[j]] = pymc3.Normal(self.obsAtoms[j], mu=5, sd=5)
+
+            # Compute emission line fluxes
+            lineFluxTTArray = self.calcEmFluxes(T_low, T_high, n_e, cHbeta, tau, abund_dict, self.emFlux_ttMethods, lineFluxTTArray, True)
+
+            # Store computed fluxes
+            pymc3.Deterministic('calcFluxes_Op', lineFluxTTArray)
+
+            # Likelihood gas components
+            Y_emision = pymc3.Normal('Y_emision', mu=lineFluxTTArray, sd=self.fitLineFluxErr, observed=self.obsLineFluxes)
+
+            # Display simulation data
+            displaySimulationData(model, self.priorsDict, self.lineLabels, self.obsLineFluxes, self.obsLineFluxErr, self.fitLineFluxErr)
+
+            # Launch model
+            print('\n- Launching sampling')
+            trace = pymc3.sample(iterations, tune=tuning, nchains=2, njobs=1, model=model)
+
+        return trace, model
 
     def nuts_model(self, iterations, tuning):
 
@@ -304,7 +409,7 @@ class SpectraSynthesizer(ModelIngredients):
 
                         # Appropiate data for the ion
                         #Te_calc = T_high if self.idx_highU[i] else T_low
-                        Te_calc =  T_low
+                        Te_calc = T_low
 
                         # Line Emissivitiy
                         line_emis = emis_func((Te_calc, n_e), *line_coeffs)

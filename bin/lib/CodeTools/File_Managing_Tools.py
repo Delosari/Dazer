@@ -815,7 +815,8 @@ class Pdf_printer():
         if output_address == None:
             if self.pdf_type == 'table':
                 self.pdfDoc.append(NoEscape(r'\end{preview}')) 
-            self.pdfDoc.generate_pdf(clean_tex = clean_tex)        
+            #self.pdfDoc.generate_pdf(clean_tex = clean_tex) # TODO this one does not work in windows
+            self.pdfDoc.generate_pdf(clean_tex=clean_tex, compiler='pdflatex')
         else:
             self.table.generate_tex(output_address) 
             

@@ -287,7 +287,7 @@ class Fig_Conf():
                                 
     def savefig(self, output_address, extension = '.png', reset_fig = True, pad_inches=0.2, resolution = 300.0):
 
-        plt.savefig(output_address + extension, dpi=resolution, bbox_inches='tight', pad_inches=pad_inches)
+        plt.savefig(output_address + extension, dpi=resolution, bbox_inches='tight')
         
         if reset_fig:
             self.reset_fig()

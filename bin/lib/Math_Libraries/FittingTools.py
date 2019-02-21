@@ -17,7 +17,7 @@ from timeit             import default_timer as timer
 from scipy.optimize     import curve_fit
 from pandas             import Series
 #from cairo._cairo       import Matrix
-from kapteyn            import kmpfit
+# from kapteyn            import kmpfit
 
 def lmfit_gaussian_Residual_lmfit(self, params, x, y, zerolev, Ncomps, err):
  

@@ -82,12 +82,8 @@ def check_missing_flux_values(flux):
 # Function to import configuration data
 def parseObjData(file_address, sectionName, objData):
 
-    # json.dump(obj_data, open('/home/vital/PycharmProjects/thesis_pipeline/spectrum_fitting/synth_objProperties_json.txt', 'w'),
-    # indent=4, sort_keys=True)
-
     parser = ConfigParser.SafeConfigParser()
     parser.optionxform = str
-
     if os.path.isfile(file_address):
         parser.read(file_address)
 
@@ -108,6 +104,45 @@ def parseObjData(file_address, sectionName, objData):
 
     with open(file_address, 'w') as f:
         parser.write(f)
+
+    return
+
+
+# Function to save data to configuration file section
+def parseDataFile(file_address, section, data, type_data=None, key_suffix = ''):
+
+    # Check if file exists
+    if os.path.isfile(file_address):
+        cfg = ConfigParser.ConfigParser()
+        cfg.optionxform = str
+        cfg.read(file_address)
+    else:
+        exit('--WARNING: Default configuration could not be found exiting program\n-Missing file: {}'.format(file_address))
+
+    # Check section is in conf.ini else create it
+    if not cfg.has_section(section):
+        cfg.add_section(section)
+
+    # Change format to safe data in dictionary
+    for key in data:
+
+        value = data[key]
+
+        if type_data is not None:
+
+            # TODO add a protocol to infer best format to save data
+            if type_data is 'lists':
+                value = list(value)
+                value = ','.join(str(x) for x in value)
+                    # try:
+                    #     confDict[option] = np.array(map(float, raw_list.split(',')))
+                    # except:
+                    #     confDict[option] = np.array(map(str, raw_list.split(',')))
+
+        cfg.set(section, key + key_suffix, value)
+
+    with open(file_address, 'w') as f:
+        cfg.write(f)
 
     return
 
@@ -463,8 +498,10 @@ class ImportModelData(SspSynthesisImporter):
         self.dataFolder = os.path.join(os.path.expanduser('~'), self.config['inference_folder'])
         self.inputsFolder = os.path.join(self.dataFolder, self.config['input_data_folder'])
         self.outputsFolder = os.path.join(self.dataFolder, self.config['output_data_folder'])
-        self.externalDataFolder = os.path.join(confFolder, self.config['external_data_folder'])
-        self.configFolder = confFolder
+        self.externalDataFolder = os.path.join(confFolder, self.config['external_data_folder']) # TODO this declaration is not universal with operative system try pathlib
+        self.linesFormatDf = os.path.join(confFolder, self.config['external_data_folder'])
+        self.configFolder = os.path.join(confFolder, 'config.ini')
+        self.linesDb = read_excel(os.path.join(self.externalDataFolder, self.config['linesData_file']), sheet_name=0, header=0, index_col=0)
 
     def load_confFile(self, root_folder, confFile):
 
@@ -495,7 +532,7 @@ class ImportModelData(SspSynthesisImporter):
                 elif '_check' in option:
                     confDict[option] = cfg.getboolean(section, option)
 
-                elif (option in confDict['list_conf']) or ('_parameters' in option) or ('_prior' in option) or ('_list' in option):
+                elif (option in confDict['list_conf']) or ('_parameters' in option) or ('_prior' in option) or ('_list' in option) or ('_coeffs' in option):
                     raw_list = cfg.get(section, option)
 
                     # Special entry
@@ -563,7 +600,7 @@ class ImportModelData(SspSynthesisImporter):
                 obj_data[key] = None
 
             # Arrays (The last boolean overrides the parameters
-            elif (key in list_parameters) or ('_prior' in key) or (',' in obj_data[key]):
+            elif (key in list_parameters) or ('_prior' in key) or ('_true' in key) or (',' in obj_data[key]):
                 if key in ['input_lines']:
                     if obj_data[key] == 'all':
                         obj_data[key] = 'all'

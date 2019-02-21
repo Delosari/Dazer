@@ -10,7 +10,7 @@ from os import path, getcwd
 
 class ReddeningLaws():
 
-    def __init__(self):
+    def __init__(self, Rv_model = None, reddedning_curve_model = None):
 
         self.SpectraEdges_Limit = 200
         self.Hbeta_wavelength = 4861.3316598713955
@@ -31,6 +31,13 @@ class ReddeningLaws():
 
         __location__ = path.realpath(path.join(getcwd(), path.dirname(__file__)))
         self.red_laws_folder = __location__[0:__location__.find('dazer')] + 'dazer/'
+
+        # Set default values
+        if Rv_model is not None:
+            self.Rv_model = Rv_model
+
+        if reddedning_curve_model is not None:
+            self.reddedning_curve_model = reddedning_curve_model
 
     def checking_for_ufloat(self, x):
 
