@@ -77,7 +77,7 @@ class SpectraSynthesizer(ModelIngredients):
         # Run the sampler
         # TODO need to decide where to place this
         db_address = self.output_folder + model_name + '.db' # TODO Deberiamos poder quitar este .db
-        # self.run_pymc(hammer, db_address, iterations, tuning, include_reddening=include_reddening, include_Thigh_prior=include_Thigh_prior)
+        self.run_pymc(hammer, db_address, iterations, tuning, include_reddening=include_reddening, include_Thigh_prior=include_Thigh_prior)
 
         # Load the results
         inferenceTrace, interenceParamsDict = self.load_pymc_database_manual(db_address, sampler='pymc3')
@@ -165,7 +165,7 @@ class SpectraSynthesizer(ModelIngredients):
             T_low = pymc3.Normal('T_low', mu=self.priorsDict['T_low'][0], sd=self.priorsDict['T_low'][1])
             n_e = pymc3.Normal('n_e', mu=self.priorsDict['n_e'][0], sd=self.priorsDict['n_e'][1])
             cHbeta = pymc3.Lognormal('cHbeta', mu=0, sd=1) if include_reddening else self.obj_data['cHbeta_prior'][0]
-            tau = pymc3.Lognormal('tau', mu=1, sd=0.75) if self.He1rCheck else 0.0
+            tau = pymc3.Lognormal('tau', mu=0, sd=0.4) if self.He1rCheck else 0.0
 
             # High ionization region temperature
             if include_Thigh_prior:
