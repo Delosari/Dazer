@@ -379,17 +379,22 @@ class Plot_Conf(Fig_Conf):
                                     'S3': r'$S^{2+}$',
                                     'O2': r'$O^{+}$',
                                     'O3': r'$O^{2+}$',
-                                    'S3': r'$S^{2+}$',
-                                    'O2': r'$O^{+}$',
-                                    'O3': r'$O^{2+}$',
                                     'N2': r'$N^{+}$',
                                     'Ar3': r'$Ar^{2+}$',
                                     'Ar4': r'$Ar^{3+}$',
+                                    'Ar_abund': r'$\frac{ArI}{HI}$',
+                                    'He_abund': r'$\frac{HeI}{HI}$',
+                                    'O_abund': r'$\frac{OI}{HI}$',
+                                    'N_abund': r'$\frac{NI}{HI}$',
+                                    'S_abund': r'$\frac{SI}{HI}$',
+                                    'Ymass_O': r'$Y_{P,\,O}$',
+                                    'Ymass_S': r'$Y_{P,\,S}$',
                                     'calcFluxes_Op': 'Line fluxes',
                                     'z_star':r'$z_{\star}$',
                                     'sigma_star':r'$\sigma_{\star}$',
                                     'Av_star':r'$Av_{\star}$',
                                     'chiSq_ssp':r'$\chi^{2}_{SSP}$',
+                                    'ICF_SIV': r'$ICF\left(S^{3+}\right)$'
                                     }
                 
     def data_plot(self, x, y, label = '', color = None, linestyle = None, markerstyle = None, linewidth = None, markersize = None, x_error=None, y_error=None, cmap=None, e_style = None, graph_axis = None):

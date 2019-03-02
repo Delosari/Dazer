@@ -75,11 +75,15 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
         # Reddening parameters
         self.obj_data['lineFlambda'] = self.gasExtincParams(self.obj_data['lineWaves'], self.config['R_v'], self.config['reddenig_curve'])
 
-        # Create or load emissivity grids
-        # self.emis_grid = self.computeEmissivityGrids(self.obj_data['linePynebCode'], self.obj_data['lineIons'], output_folder)
+        # # Create or load emissivity grids
+        # self.emis_dict = self.computeEmissivityDict(self.obj_data['linePynebCode'], self.obj_data['lineIons'],
+        #                                             self.obj_data['lineLabels'], output_folder)
         #
         # # Fit emissivity grids to a surface
-        # self.fitEmissivityPlane(self.configFolder)
+        # self.fitEmissivityPlane(self.obj_data['lineIons'], self.obj_data['lineLabels'], self.configFolder)
+        #
+        # # Plot fits of emissivity grids
+        # self.plot_emisFits(self.obj_data['lineLabels'], self.emisCoeffs, self.emis_dict, output_folder)
         #
         # # Create or emissivity diagnostic ratios
         # self.diagnosRatios, self.diagnosGrid = self.computeDiagnosGrids(self.obj_data['linePynebCode'], self.diagnosDict, self.emis_grid)
@@ -89,12 +93,16 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
         #
         # Plot fits of emissivity ratios
         # self.plot_emisRatioFits(self.diagnosRatios, self.emisRatioCoeffs, self.diagnosGrid, self.paths_dict['emisGridsPath'])
-        #
-        # Plot fits of emissivity grids
-        # self.plot_emisFits(self.obj_data['lineLabels'], self.emisCoeffs, self.emis_grid, self.paths_dict['emisGridsPath'])
+
+
+        # Reddening parameters
+        self.obj_data['lineFlambda'] = self.gasExtincParams(self.obj_data['lineWaves'], self.Rv_model,
+                                                            self.reddedning_curve_model)
 
         # Variables to make the iterations simpler
-        self.gasSamplerVariables(self.obj_data['lineIons'], self.config['high_temp_ions'])
+        self.obj_data['T_low_true'], self.obj_data['n_e_true'] = obj_prop_df.loc['T_low_true'][0], obj_prop_df.loc['n_e_true'][0]
+        self.gasSamplerVariables(self.obj_data['lineIons'], self.config['high_temp_ions'],
+                                 lineLabels=self.obj_data['lineLabels'], lineFlambda=self.obj_data['lineFlambda'])
 
         #Dictionary with synthetic abundances
         abund_df = obj_prop_df[obj_prop_df.index.str.contains('_abund')]
@@ -103,8 +111,8 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
         self.abund_dict = dict(zip(abund_keys, abund_values.T))
 
         #Gas physical parameters
-        T_low = obj_prop_df.loc['T_low'][0]
-        n_e = obj_prop_df.loc['n_e'][0]
+        T_low = obj_prop_df.loc['T_low_true'][0]
+        n_e = obj_prop_df.loc['n_e_true'][0]
         tau = obj_prop_df.loc['tau'][0]
         cHbeta = obj_prop_df.loc['cHbeta'][0]
 
@@ -117,7 +125,8 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
         # self.lineFlambda = self.obj_data['lineFlambda']
 
         # Compute lines flux
-        lineFluxes = self.calcEmFluxes(T_low, T_high, n_e, cHbeta, tau, self.abund_dict, self.emFluxTensors, np.zeros(self.lineLabels.size))
+        self.lineLabels = self.obj_data['lineLabels']
+        lineFluxes = self.calcEmFluxes(T_low, T_high, n_e, cHbeta, tau, self.abund_dict, self.emFluxTensors, np.zeros(len(self.obj_data['lineLabels'])))
         self.obj_data['lineFluxes'] = lineFluxes
 
         # Use general error if this is provided
@@ -153,7 +162,7 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
         # Calculate the nebular continua
         self.obj_data['nebularFlux'] = self.nebFluxCont(obj_WaveRest,
                                                     obj_prop_df.loc['cHbeta'][0], self.obj_data['nebFlambda'],
-                                                    obj_prop_df.loc['T_low'][0],
+                                                    obj_prop_df.loc['T_low_true'][0],
                                                     obj_prop_df.loc['He1r_abund'][0], obj_prop_df.loc['He2r_abund'][0],
                                                     flux_halpha)
 
@@ -259,14 +268,15 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
             # Reddening parameters
             self.obj_data['lineFlambda'] = self.gasExtincParams(self.obj_data['lineWaves'], self.Rv_model, self.reddedning_curve_model)
 
-            # Variables to make the iterations simpler
-            #self.gasSamplerVariables(self.obj_data['lineIons'], self.config['high_temp_ions'], normalized_by_Hbeta=normalized_by_Hbeta)
-
-            # Create or load emissivity grids
-            # self.emis_grid = self.computeEmissivityGrids(self.obj_data['linePynebCode'], self.obj_data['lineIons'], output_folder)
+            # # Create or load emissivity grids
+            # self.emis_dict = self.computeEmissivityDict(self.obj_data['linePynebCode'], self.obj_data['lineIons'],
+            #                                             self.obj_data['lineLabels'], output_folder)
             #
             # # Fit emissivity grids to a surface
-            # self.fitEmissivityPlane(self.configFolder)
+            # self.fitEmissivityPlane(self.obj_data['lineIons'], self.obj_data['lineLabels'], self.configFolder)
+            #
+            # # Plot fits of emissivity grids
+            # self.plot_emisFits(self.obj_data['lineLabels'], self.emisCoeffs, self.emis_dict, output_folder)
             #
             # # Create or emissivity diagnostic ratios
             # self.diagnosRatios, self.diagnosGrid = self.computeDiagnosGrids(self.obj_data['linePynebCode'], self.diagnosDict, self.emis_grid)
@@ -274,11 +284,8 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
             # # Fit emissivity ratios a surface
             # self.emisRatioCoeffs = self.fitEmissivityDiagnosPlane(self.diagnosRatios, self.diagnosGrid)
             #
-            # Plot fits of emissivity ratios
+            # # Plot fits of emissivity ratios
             # self.plot_emisRatioFits(self.diagnosRatios, self.emisRatioCoeffs, self.diagnosGrid, self.paths_dict['emisGridsPath'])
-            #
-            # Plot fits of emissivity grids
-            # self.plot_emisFits(self.obj_data['lineLabels'], self.emisCoeffs, self.emis_grid, self.paths_dict['emisGridsPath'])
 
         # Trim, resample and normalize according to the input object
         if 'obs_wavelength' in self.obj_data: # TODO this is a bit dirty
@@ -337,6 +344,9 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
                                      self.obj_data['lineFluxes'], self.obj_data['lineErr'],
                                      self.obj_data['lineLabels'], self.obj_data['lineFlambda'],
                                      normalized_by_Hbeta, self.config['linesMinimumError'])
+
+            # Prios definition # TODO this must go to the a special section
+            self.priorsDict = {'T_low': self.obj_data['Te_prior'], 'n_e': self.obj_data['ne_prior']}
 
             # Confirm inputs are valid
             self.emissionCheck = True

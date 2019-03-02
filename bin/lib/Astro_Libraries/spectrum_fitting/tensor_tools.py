@@ -5,7 +5,6 @@ import theano.tensor as tt
 from theano import function
 from pymc3.math import abs_
 
-
 def storeValueInTensor(idx, value, tensor1D):
     return tt.inc_subtensor(tensor1D[idx], value)
 
@@ -71,7 +70,6 @@ class BilinearInterpTheano():
 
         return interpol_value
 
-
 class EmissivitySurfaceFitter_tensorOps():
 
     def __init__(self):
@@ -125,15 +123,6 @@ class EmissivitySurfaceFitter_tensorOps():
         temp_range, den_range = xy_space
         return a * tt.pow(temp_range / 10000, b)
 
-    # def emisEquation_HeI_tt(self, xy_space, a, b, c, d):
-    #     temp_range, den_range = xy_space
-    #     return (a + b * den_range) * tt.log10(temp_range / 10000.0) - tt.log10(c + d * den_range)
-    #
-    # def emisEquation_HeII_tt(self, xy_space, a, b):
-    #     temp_range, den_range = xy_space
-    #     return a + b * tt.log(temp_range/10000)
-
-
 class EmissionEquations_tensorOps():
 
     def __init__(self):
@@ -151,17 +140,16 @@ class EmissionEquations_tensorOps():
     def metal_lines_tt(self, emis_ratio, cHbeta, flambda, abund, ftau=None, continuum=None):
         return tt.pow(10, abund + emis_ratio - flambda * cHbeta - 12)
 
-
 class EmissionTensors():
 
     def __init__(self):
         # Dictionary to store the functions for the fitting
         self.emFlux_ttMethods = dict(H1r=self.H1_emisTensor, He1r=self.He1_emisTensor, He2r=self.He2_emisTensor,
-                              metals=self.metal_emisTensor)
+                              metals=self.metal_emisTensor, O2_7319A_b=self.corO2_7319_emisTensor)
 
         # All input values scalars
-        emisRatio, cHbeta, flambda, abund, ftau, continuum = tt.dscalars('emisRatio', 'cHbeta', 'flambda', 'abund',
-                                                                         'ftau', 'continuum')
+        emisRatio, cHbeta, flambda, abund, ftau, continuum, O2_abund, O3_abund, Te_high = tt.dscalars('emisRatio', 'cHbeta', 'flambda', 'abund',
+                                                                         'ftau', 'continuum', 'O2_abund', 'O3_abund', 'Te_high')
 
         # Dictionary to store the compiled functions for the fitting
         self.emFluxTensors = dict(H1r=function(inputs=[emisRatio, cHbeta, flambda, abund, ftau, continuum],
@@ -175,7 +163,11 @@ class EmissionTensors():
                                                on_unused_input='ignore'),
                                   metals=function(inputs=[emisRatio, cHbeta, flambda, abund, ftau, continuum],
                                                outputs=self.emFlux_ttMethods['metals'](emisRatio, cHbeta, flambda, abund, ftau, continuum),
-                                               on_unused_input='ignore'))
+                                               on_unused_input='ignore'),
+                                  O2_7319A_b=function(inputs=[emisRatio, cHbeta, flambda, O2_abund, O3_abund, Te_high],
+                                               outputs=self.emFlux_ttMethods['O2_7319A_b'](emisRatio, cHbeta, flambda, O2_abund, O3_abund, Te_high),
+                                               on_unused_input='ignore')
+                                  )
 
     def H1_emisTensor(self, emis_ratio, cHbeta, flambda, abund, ftau, continuum):
         return tt.pow(10, emis_ratio - flambda * cHbeta) + continuum
@@ -188,3 +180,7 @@ class EmissionTensors():
 
     def metal_emisTensor(self, emis_ratio, cHbeta, flambda, abund, ftau, continuum):
         return tt.pow(10, abund + emis_ratio - flambda * cHbeta - 12)
+
+    def corO2_7319_emisTensor(self, emis_ratio, cHbeta, flambda, O2_abund, O3_abund, Te_high):
+        fluxCorr = tt.pow(10, O2_abund + emis_ratio - flambda * cHbeta - 12) + tt.pow(10, O3_abund + 0.9712758487381 + tt.log10(tt.pow(Te_high / 10000.0, 0.44)) - flambda * cHbeta - 12)
+        return fluxCorr

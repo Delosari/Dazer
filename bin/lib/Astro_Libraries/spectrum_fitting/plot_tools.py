@@ -525,11 +525,12 @@ class Basic_plots(Plot_Conf):
 
         return
 
-    def tracesPosteriorPlot(self, traces_list, stats_dic):
+    def tracesPosteriorPlot(self, params_list, stats_dic):
 
         # Remove operations from the parameters list # TODO addapt this line to discremenate better
-        traces = traces_list[
-            [i for i, v in enumerate(traces_list) if ('_Op' not in v) and ('_log__' not in v) and ('w_i' not in v)]]
+        traces_list = stats_dic.keys()
+        #traces = traces_list[[i for i, v in enumerate(traces_list) if ('_Op' not in v) and ('_log__' not in v) and ('w_i' not in v)]]
+        traces = result = [item for item in params_list if item in traces_list]
 
         # Number of traces to plot
         n_traces = len(traces)
@@ -542,8 +543,8 @@ class Basic_plots(Plot_Conf):
         # # Generate the color map
         self.gen_colorList(0, n_traces)
         gs = gridspec.GridSpec(n_traces * 2, 4)
-
         gs.update(wspace=0.2, hspace=1.8)
+
         for i in range(n_traces):
 
             # Creat figure axis
@@ -552,11 +553,12 @@ class Basic_plots(Plot_Conf):
 
             # Current trace
             trace_code = traces[i]
-            trace_array = stats_dic[trace_code]['trace']
+            trace_array = stats_dic[trace_code]
 
             # Label for the plot
-            mean_value = stats_dic[trace_code]['mean']
-            std_dev = stats_dic[trace_code]['standard deviation']
+            mean_value = np.mean(stats_dic[trace_code])
+            std_dev = np.std(stats_dic[trace_code])
+
             if mean_value > 0.001:
                 label = r'{} = ${}$ $\pm${}'.format(self.labels_latex_dic[trace_code], round_sig(mean_value, 4),
                                                     round_sig(std_dev, 4))
@@ -577,7 +579,9 @@ class Basic_plots(Plot_Conf):
             # Add true value if available
             if trace_code + '_true' in self.obj_data:
                 value_true = self.obj_data[trace_code + '_true']
-                axPoterior.axvline(x=value_true[0], color=self.get_color(i), linestyle='solid')
+                nominal_value, std_value = value_true[0], 0.0 if value_true.size == 1 else value_true[1]
+                axPoterior.axvline(x=nominal_value, color=self.get_color(i), linestyle='solid')
+                axPoterior.axvspan(nominal_value - std_value, nominal_value + std_value, alpha=0.5, color=self.get_color(i))
 
             # Add legend
             axTrace.legend(loc=7)
@@ -655,30 +659,21 @@ class Basic_plots(Plot_Conf):
         n_columns = 8
         n_lines = len(lines_list)
         n_rows = int(np.ceil(float(n_lines)/float(n_columns)))
-        n_ions = np.unique(ions_list)
 
         # Declare figure format
         size_dict = {'figure.figsize': (22, 9), 'axes.titlesize': 10, 'axes.labelsize': 10, 'legend.fontsize': 10,
                      'xtick.labelsize': 8, 'ytick.labelsize': 3}
         self.FigConf(plotSize=size_dict, Figtype='Grid', n_columns=n_columns, n_rows=n_rows)
 
-        # Generate the color map
+        # Generate the color dict
         self.gen_colorList(0, 10)
-
-        # Generate the color map
-        # colorDict = dict(H1r='lightcoral', He1r='khaki', He2r='olive', O2='palegreen', O3='mediumsseagreen', N2='palevioletred',
-        #                  S2='chocolate', S3='sienna', Ar3='firebrick', Ar4='navajowhite')
-        #
-        # colorDict = dict(H1r='tab:red', He1r='tab:olive', He2r='tab:cyan', O2='tab:pink', O3='tab:green', N2='tab:blue',
-        #                  S2='tab:orange', S3='tab:brown', Ar3='tab:gray', Ar4='tab:purple')
-
         colorDict = dict(H1r=0, O2=1, O3=2, N2=3, S2=4, S3=5, Ar3=6, Ar4=7, He1r=8, He2r=9)
 
         # Flux statistics
-        traces_array = db_dict[function_key]['trace']
-        median_values = median(db_dict[function_key]['trace'], axis=0)
-        p16th_fluxes = percentile(db_dict[function_key]['trace'], 16, axis=0)
-        p84th_fluxes = percentile(db_dict[function_key]['trace'], 84, axis=0)
+        traces_array = db_dict[function_key]
+        median_values = median(db_dict[function_key], axis=0)
+        p16th_fluxes = percentile(db_dict[function_key], 16, axis=0)
+        p84th_fluxes = percentile(db_dict[function_key], 84, axis=0)
 
         # Plot individual traces
         for i in range(n_lines):
@@ -689,7 +684,6 @@ class Basic_plots(Plot_Conf):
             median_flux = median_values[i]
 
             label_mean = 'Mean value: {}'.format(round_sig(median_flux, 4))
-            #self.Axis[i].axvline(x=median_flux, label=label_mean, color='grey', linestyle='solid')
             self.Axis[i].hist(trace, histtype='stepfilled', bins=35, alpha=.7, color=self.get_color(colorDict[ions_list[i]]), normed=False)
 
             if obsFluxes is not None:
@@ -702,60 +696,6 @@ class Basic_plots(Plot_Conf):
 
             # Plot wording
             self.Axis[i].set_title(r'{}'.format(self.linesDb.loc[label, 'latex_code']))
-            #self.Axis[i].set_ylabel(label)
-            #self.legend_conf(self.Axis[i], loc=2)
-
-        return
-
-    def fluxes_distributionBACKUP(self, lines_list, function_key, db_dict, true_values=None):
-
-        # Number of traces to plot
-        n_lines = len(lines_list)
-
-        # Declare figure format
-        size_dict = {'figure.figsize': (14, 20), 'axes.titlesize': 11, 'axes.labelsize': 8, 'legend.fontsize': 11}
-        self.FigConf(plotSize=size_dict, Figtype='Grid', n_columns=1, n_rows=n_lines)
-
-        # Generate the color map
-        self.gen_colorList(0, n_lines)
-
-        # Flux statistics
-        traces_array = db_dict[function_key]['trace']
-        median_values = median(db_dict[function_key]['trace'], axis=0)
-        p16th_fluxes = percentile(db_dict[function_key]['trace'], 16, axis=0)
-        p84th_fluxes = percentile(db_dict[function_key]['trace'], 84, axis=0)
-
-        # Plot individual traces
-        for i in range(n_lines):
-
-            # Current line
-            label = label_formatting(lines_list[i])
-            trace = traces_array[:, i]
-            median_flux = median_values[i]
-
-            # Plot HDP limits
-            for HDP in [p16th_fluxes[i], p84th_fluxes[i]]:
-
-                if median_flux > 0.001:
-                    label_limits = 'HPD interval: {} - {}'.format(round_sig(p16th_fluxes[i], 4), round_sig(p84th_fluxes[i], 4))
-                    label_mean = 'Mean value: {}'.format(round_sig(median_flux, 4))
-                else:
-                    label_limits = 'HPD interval: {:.3e} - {:.3e}'.format(p16th_fluxes[i], p84th_fluxes[i])
-                    label_mean = 'Mean value: {:.3e}'.format(median_flux)
-
-                self.Axis[i].axvline(x=HDP, label=label_limits, color='grey', linestyle='dashed')
-
-            self.Axis[i].axvline(x=median_flux, label=label_mean, color='grey', linestyle='solid')
-            self.Axis[i].hist(trace, histtype='stepfilled', bins=35, alpha=.7, color=self.get_color(i), normed=False)
-
-            if true_values is not None:
-                true_value = true_values[i]
-                label_true = 'True value: {}'.format(round_sig(true_value, 3))
-                self.Axis[i].axvline(x=true_value, label=label_true, color='black', linestyle='solid')
-
-            # Plot wording
-            self.Axis[i].set_ylabel(label)
-            self.legend_conf(self.Axis[i], loc=2)
 
         return
 
@@ -800,11 +740,11 @@ class Basic_plots(Plot_Conf):
 
         return
 
-    def corner_plot(self, traces_list, stats_dic, true_values=None):
+    def corner_plot(self, params_list, stats_dic, true_values=None):
 
         # Remove operations from the parameters list
-        traces = traces_list[
-            [i for i, v in enumerate(traces_list) if ('_Op' not in v) and ('_log__' not in v) and ('w_i' not in v)]]
+        traces_list = stats_dic.keys()
+        traces = [item for item in params_list if item in traces_list]
 
         # Number of traces to plot
         n_traces = len(traces)
@@ -821,46 +761,26 @@ class Basic_plots(Plot_Conf):
         rcParams.update(sizing_dict)
 
         # Reshape plot data
-        list_arrays = []
-        labels_list = []
+        list_arrays, labels_list = [], []
         for trace_code in traces:
-            trace_array = stats_dic[trace_code]['trace']
+            trace_array = stats_dic[trace_code]
             list_arrays.append(trace_array)
             labels_list.append(self.labels_latex_dic[trace_code])
-        traces_array = array(list_arrays).T
+        traces_array = np.array(list_arrays).T
 
+        # Reshape true values
         true_values_list = [None] * len(traces)
         for i in range(len(traces)):
             reference = traces[i] + '_true'
             if reference in true_values:
                 true_values_list[i] = true_values[reference][0]
 
-
         # Generate the plot
         self.Fig = corner.corner(traces_array[:, :], fontsize=30, labels=labels_list, quantiles=[0.16, 0.5, 0.84],
                                  show_titles=True, title_args={"fontsize": 200}, truths=true_values_list,
-                                 truth_color='#ae3135',
-                                 title_fmt='0.3f')
-
-        # # Make
-        # if plot_true_values:
-        #
-        #     true_values = empty(len(traces))
-        #     for i in range(len(traces)):
-        #         if 'true_value' in stats_dic[traces[i]]:
-        #             true_values[i] = stats_dic[traces[i]]['true_value']
-        #         else:
-        #             true_values[i] = None
-        #
-        #     self.Fig = corner.corner(traces_array[:, :], fontsize=30, labels=labels_list, quantiles=[0.16, 0.5, 0.84],
-        #                              show_titles=True, title_args={"fontsize": 200}, truths=true_values,
-        #                              title_fmt='0.3f')
-        # else:
-        #     self.Fig = corner.corner(traces_array[:, :], fontsize=30, labels=labels_list, quantiles=[0.16, 0.5, 0.84],
-        #                              show_titles=True, title_args={"fontsize": 200}, title_fmt='0.3f')
+                                 truth_color='#ae3135', title_fmt='0.3f')
 
         return
-
 
 class Basic_tables(Pdf_printer):
 
@@ -869,35 +789,36 @@ class Basic_tables(Pdf_printer):
         # Class with pdf tools
         Pdf_printer.__init__(self)
 
-    def table_mean_outputs(self, table_address, parameters_list, db_dict, true_values=None):
+    def table_mean_outputs(self, table_address, db_dict, true_values=None):
 
         # Table headers
         headers = ['Parameter', 'True value', 'Mean', 'Standard deviation', 'Number of points', 'Median',
-                   r'$16^{th}$ $percentil$', r'$84^{th}$ $percentil$', r'$Difference$']
+                   r'$16^{th}$ $percentil$', r'$84^{th}$ $percentil$', r'$Difference\,\%$']
 
         # Generate pdf
         self.create_pdfDoc(table_address, pdf_type='table')
         self.pdf_insert_table(headers)
 
         # Loop around the parameters
+        parameters_list = db_dict.keys()
+
         for param in parameters_list:
 
             if ('_Op' not in param) and param not in ['w_i']:
 
                 # Label for the plot
-                label = self.labels_latex_dic[param]
-                mean_value = db_dict[param]['mean']
-                std = db_dict[param]['standard deviation']
-                n_traces = db_dict[param]['n']
-                median = db_dict[param]['median']
-                p_16th = db_dict[param]['16th_p']
-                p_84th = db_dict[param]['84th_p']
-                true_value = 'None'
-                perDif = 'None'
+                label       = self.labels_latex_dic[param]
+                mean_value  = np.mean(db_dict[param])
+                std         = np.std(db_dict[param])
+                n_traces    = db_dict[param].size
+                median      = np.median(db_dict[param])
+                p_16th      = np.percentile(db_dict[param], 16)
+                p_84th      = np.percentile(db_dict[param], 84)
 
+                true_value, perDif = 'None', 'None'
                 if param + '_true' in true_values:
                     true_value = true_values[param + '_true'][0]
-                    perDif = 1 - (true_value / median * 100)
+                    perDif = (1 - (true_value / median)) * 100
 
                 self.addTableRow([label, true_value, mean_value, std, n_traces, median, p_16th, p_84th, perDif],
                                  last_row=False if parameters_list[-1] != param else True)
@@ -906,44 +827,35 @@ class Basic_tables(Pdf_printer):
 
         return
 
-    def table_line_fluxes(self, table_address, lines_list, function_key, db_dict, true_values=None):
+    def table_line_fluxes(self, table_address, lines_list, function_key, db_dict, true_data=None):
 
         # Generate pdf
         self.create_pdfDoc(table_address, pdf_type='table')
 
         # Table headers
-        headers = ['Line Label', 'Mean', 'Standard deviation', 'Median', r'$16^{th}$ $percentil$',
-                   r'$84^{th}$ $percentil$']
-
-        if true_values is not None:
-            headers.insert(1, 'True value')
-            headers.insert(2, 'Diff percentage')
-
+        headers = ['Line Label', 'True value', 'Mean', 'Standard deviation', 'Median', r'$16^{th}$ $percentil$',
+                   r'$84^{th}$ $percentil$', r'$Difference\,\%$']
         self.pdf_insert_table(headers)
 
-        mean_line_values = db_dict[function_key]['trace'].mean(axis=0)
-        std_line_values = db_dict[function_key]['trace'].std(axis=0)
-        median_line_values = median(db_dict[function_key]['trace'], axis=0)
-        p16th_line_values = percentile(db_dict[function_key]['trace'], 16, axis=0)
-        p84th_line_values = percentile(db_dict[function_key]['trace'], 84, axis=0)
-        diff_Percentage = 1 - (median_line_values / true_values * 100)
+        # Data for table
+        true_values = ['None'] * len(lines_list) if true_data is None else true_data
+        mean_line_values = db_dict[function_key].mean(axis=0)
+        std_line_values = db_dict[function_key].std(axis=0)
+        median_line_values = median(db_dict[function_key], axis=0)
+        p16th_line_values = percentile(db_dict[function_key], 16, axis=0)
+        p84th_line_values = percentile(db_dict[function_key], 84, axis=0)
+        diff_Percentage = ['None'] * len(lines_list) if true_data is None else (1 - (median_line_values / true_values)) * 100
 
         for i in range(len(lines_list)):
 
-            # Operations to format the label name "H1_4861A"
             label = label_formatting(lines_list[i])
 
-            row_i = [label, mean_line_values[i], std_line_values[i], median_line_values[i], p16th_line_values[i],
-                     p84th_line_values[i]]
-
-            if true_values is not None:
-                row_i.insert(1, true_values[i])
-                row_i.insert(2, diff_Percentage[i])
+            row_i = [label, true_values[i], mean_line_values[i], std_line_values[i], median_line_values[i], p16th_line_values[i],
+                     p84th_line_values[i], diff_Percentage[i]]
 
             self.addTableRow(row_i, last_row=False if lines_list[-1] != lines_list[i] else True)
 
         self.generate_pdf(clean_tex=True)
-
 
 class MCMC_printer(Basic_plots, Basic_tables):
 
@@ -953,7 +865,7 @@ class MCMC_printer(Basic_plots, Basic_tables):
         Basic_plots.__init__(self)
         Basic_tables.__init__(self)
 
-    def plot_emisFits(self, linelabels, emisCoeffs_dict, emisGrid_array, output_folder):
+    def plot_emisFits(self, linelabels, emisCoeffs_dict, emisGrid_dict, output_folder):
 
         # Temperature and density meshgrids
         # X, Y = np.meshgrid(self.tem_grid_range, self.den_grid_range)
@@ -966,7 +878,7 @@ class MCMC_printer(Basic_plots, Basic_tables):
             print '--Fitting surface', lineLabel
 
             # 2D Comparison between PyNeb values and the fitted equation
-            self.emissivitySurfaceFit_2D(lineLabel, emisCoeffs_dict[lineLabel], emisGrid_array[:, i],
+            self.emissivitySurfaceFit_2D(lineLabel, emisCoeffs_dict[lineLabel], emisGrid_dict[lineLabel],
                                          self.ionEmisEq[lineLabel], te_ne_grid)
 
             output_address = '{}{}_{}'.format(output_folder, 'emissivityTeDe2D', lineLabel)
@@ -974,7 +886,7 @@ class MCMC_printer(Basic_plots, Basic_tables):
             plt.clf()
 
             # 3D Comparison between PyNeb values and the fitted equation
-            self.emissivitySurfaceFit_3D(lineLabel, emisCoeffs_dict[lineLabel], emisGrid_array[:, i],
+            self.emissivitySurfaceFit_3D(lineLabel, emisCoeffs_dict[lineLabel], emisGrid_dict[lineLabel],
                                          self.ionEmisEq[lineLabel], te_ne_grid)
 
             output_address = '{}{}_{}'.format(output_folder, 'emissivityTeDe3D', lineLabel)
@@ -1057,7 +969,7 @@ class MCMC_printer(Basic_plots, Basic_tables):
 
         return
 
-    def plotOuputData(self, database_address, db, db_dict, params_list):
+    def plotOuputData(self, database_address, db_dict, model_params, include_no_model_check = False):
 
         if self.stellarCheck:
             self.continuumFit(db_dict)
@@ -1065,34 +977,34 @@ class MCMC_printer(Basic_plots, Basic_tables):
 
         if self.emissionCheck:
 
-            # Line fluxes values
-            print '\n--Line fluxes table'  # TODO divide in two
-            self.table_line_fluxes(database_address + '_LineFluxes', self.lineLabels, 'calcFluxes_Op', db_dict, true_values=self.obsLineFluxes)
+            # Table mean values
+            print '-- Model parameters table'
+            self.table_mean_outputs(database_address + '_meanOutput', db_dict, self.obj_data)
+
+            # # Line fluxes values
+            print '-- Line fluxes table'  # TODO divide in two
+            self.table_line_fluxes(database_address + '_LineFluxes', self.lineLabels, 'calcFluxes_Op', db_dict, true_data=self.obsLineFluxes)
             self.fluxes_distribution(self.lineLabels, self.lineIons, 'calcFluxes_Op', db_dict, obsFluxes=self.obsLineFluxes, obsErr=self.fitLineFluxErr)
             self.savefig(database_address + '_LineFluxesPosteriors', resolution=200)
 
-            # Posteriors
-            print '--Model parameters posterior diagram'
-            self.tracesPosteriorPlot(params_list, db_dict)
+            # Traces and Posteriors
+            print '-- Model parameters posterior diagram'
+            self.tracesPosteriorPlot(model_params, db_dict)
             self.savefig(database_address + '_ParamsTracesPosterios', resolution=200)
 
-            # Table mean values
-            print '--Model parameters table'
-            self.table_mean_outputs(database_address + '_meanOutput', params_list, db_dict, true_values = self.obj_data)
-
-            # Posteriors
-            print '--Model parameters posterior diagram'
-            self.posteriors_plot(params_list, db_dict)
-            self.savefig(database_address + '_PosteriorPlot', resolution=200)
-
             # Corner plot
-            print '--Scatter plot matrix'
-            self.corner_plot(params_list, db_dict, self.obj_data)
+            print '-- Scatter plot matrix'
+            self.corner_plot(model_params, db_dict, self.obj_data)
             self.savefig(database_address + '_CornerPlot', resolution=100)
 
-            # Acorrelation
-            print '--Acorrelation plot'
-            self.acorr_plot(params_list, db_dict, n_columns=4, n_rows=int(ceil(len(params_list)/4.0)))
-            self.savefig(database_address + '_Acorrelation', resolution=200)
+            # # Acorrelation
+            # print '--Acorrelation plot'
+            # self.acorr_plot(params_list, db_dict, n_columns=4, n_rows=int(ceil(len(params_list)/4.0)))
+            # self.savefig(database_address + '_Acorrelation', resolution=200)
+            #
+            # # Posteriors
+            # print '--Model parameters posterior diagram'
+            # self.posteriors_plot(params_list, db_dict)
+            # self.savefig(database_address + '_PosteriorPlot', resolution=200)
 
         return

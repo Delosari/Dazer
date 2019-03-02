@@ -5,12 +5,14 @@ import pymc as pymc2
 import cPickle as pickle
 import theano
 import theano.tensor as tt
+import numpy as np
 from collections import OrderedDict
 from time import sleep
 from numpy import mean, std, square, percentile, median, sum as np_sum, array, ones, empty
 from lib.specSynthesizer_tools import ModelIngredients
 from lib.Astro_Libraries.spectrum_fitting.gasEmission_functions import TOIII_TSIII_relation
 from lib.Astro_Libraries.spectrum_fitting.import_functions import parseObjData
+
 
 # Line to avoid the compute_test_value error
 theano.config.compute_test_value = "ignore"
@@ -58,6 +60,7 @@ class SpectraSynthesizer(ModelIngredients):
         ModelIngredients.__init__(self)
 
         # Priors conf
+        self.modelParams = ['n_e', 'T_low', 'T_high', 'cHbeta', 'Ar3', 'Ar4', 'N2', 'O2', 'O3', 'S2', 'S3', 'tau', 'He1r', 'He2r']
         self.defaultPriosConf = {}
 
         # Normalization constants for the plots # TODO this should go together with the reparamatrization
@@ -66,8 +69,7 @@ class SpectraSynthesizer(ModelIngredients):
         # Dictionary with the models
         self.modelDict = dict(nuts=self.nuts_TwoTemps, HMC=self.emissionHMC, stelar_prefit=self.stellarContinua_model)
 
-    def fitSpectra(self, model_name, hammer='HMC', iterations=8000, tuning=2000, priors_conf=None,
-                   include_reddening=True, include_Thigh_prior=True):
+    def fitSpectra(self, model_name, hammer='HMC', iterations=8000, tuning=2000, priors_conf=None, include_reddening=True, include_Thigh_prior=True):
 
         # Declare the priors configuration
         self.priorsConf = self.defaultPriosConf.copy()
@@ -77,18 +79,28 @@ class SpectraSynthesizer(ModelIngredients):
         # Run the sampler
         # TODO need to decide where to place this
         db_address = self.output_folder + model_name + '.db' # TODO Deberiamos poder quitar este .db
-        self.run_pymc(hammer, db_address, iterations, tuning, include_reddening=include_reddening, include_Thigh_prior=include_Thigh_prior)
+        #self.run_pymc(hammer, db_address, iterations, tuning, include_reddening=include_reddening, include_Thigh_prior=include_Thigh_prior)
 
         # Load the results
-        inferenceTrace, interenceParamsDict = self.load_pymc_database_manual(db_address, sampler='pymc3')
+        interenceParamsDict = self.load_pymc_database_manual(db_address, sampler='pymc3')
+
+        # Compute elemental abundances from the traces
+        self.elementalChemicalModel(interenceParamsDict, self.obsAtoms, iterations * 2)
+
+        # Save parameters into the object log #TODO make a new mechanism to delete the results region
+        store_params = OrderedDict()
+        for parameter in interenceParamsDict.keys():
+            if ('_log__' not in parameter) and ('interval' not in parameter) and ('_op' not in parameter):
+                trace = interenceParamsDict[parameter]
+                store_params[parameter] = np.array([trace.mean(), trace.std()])
+        parseObjData(self.configFile, self.objName + '_results', store_params)
 
         # Plot output data
-        self.plotOuputData(self.output_folder + model_name, inferenceTrace, interenceParamsDict, array(interenceParamsDict.keys()))
+        self.plotOuputData(self.output_folder + model_name, interenceParamsDict, self.modelParams)
 
         return
 
-    def run_pymc(self, model, db_address, iterations=10000, tuning=0, prefit=True, include_reddening=True,
-                 include_Thigh_prior=True):
+    def run_pymc(self, model, db_address, iterations=10000, tuning=0, prefit=True, include_reddening=True, include_Thigh_prior=True):
 
         #TODO this part is very dirty it is not clear where it goes
         if 'HMC' not in model:
@@ -197,7 +209,8 @@ class SpectraSynthesizer(ModelIngredients):
 
             # Launch model
             print('\n- Launching sampling')
-            trace = pymc3.sample(iterations, tune=tuning, nchains=2, njobs=1, model=model)
+            #trace = pymc3.sample(iterations, tune=tuning, nchains=2, njobs=1, model=model)
+            trace = pymc3.sample(iterations, tune=tuning, nchains=2, njobs=2, model=model)
 
         return trace, model
 
@@ -613,28 +626,23 @@ class SpectraSynthesizer(ModelIngredients):
             basic_model, trace = data['model'], data['trace']
 
             # Save the parameters you want in a dictionary of dicts
-            param_dict, stats_dict = OrderedDict(), OrderedDict()
+            stats_dict = OrderedDict()
             for parameter in trace.varnames:
                 if ('_log__' not in parameter) and ('interval' not in parameter):
 
                     trace_norm = self.normContants[parameter] if parameter in self.normContants else 1.0
                     trace_i = trace_norm * trace[parameter]
-                    stats_dict[parameter] = OrderedDict()
-                    param_dict[parameter] = array([trace[parameter].mean(), trace[parameter].std()])
+                    stats_dict[parameter] = trace_i
+                    # stats_dict[parameter]['mean']                    = mean(trace_i)
+                    # stats_dict[parameter]['median']                  = median(trace_i)
+                    # stats_dict[parameter]['standard deviation']      = std(trace_i)
+                    # stats_dict[parameter]['n']                       = trace_i.size
+                    # stats_dict[parameter]['16th_p']                  = percentile(trace_i, 16)
+                    # stats_dict[parameter]['84th_p']                  = percentile(trace_i, 84)
+                    # stats_dict[parameter]['95% HPD interval']        = (stats_dict[parameter]['16th_p'], stats_dict[parameter]['84th_p'])
+                    # stats_dict[parameter]['trace']                   = trace_i
 
-                    stats_dict[parameter]['mean']                    = mean(trace_i)
-                    stats_dict[parameter]['median']                  = median(trace_i)
-                    stats_dict[parameter]['standard deviation']      = std(trace_i)
-                    stats_dict[parameter]['n']                       = trace_i.size
-                    stats_dict[parameter]['16th_p']                  = percentile(trace_i, 16)
-                    stats_dict[parameter]['84th_p']                  = percentile(trace_i, 84)
-                    stats_dict[parameter]['95% HPD interval']        = (stats_dict[parameter]['16th_p'], stats_dict[parameter]['84th_p'])
-                    stats_dict[parameter]['trace']                   = trace_i
-
-            # Save parameters into the object log
-            parseObjData(self.configFile, self.objName + '_results', param_dict)
-
-            return trace, stats_dict
+            return stats_dict
 
         else:
 

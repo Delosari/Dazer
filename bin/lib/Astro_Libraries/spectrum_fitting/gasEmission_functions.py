@@ -1,4 +1,3 @@
-
 import numpy as np
 import pyneb as pn
 from os import path
@@ -11,6 +10,7 @@ from tensor_tools import EmissivitySurfaceFitter_tensorOps, EmissionEquations_te
 from inspect import getargspec
 from collections import OrderedDict
 from bin.lib.Astro_Libraries.spectrum_fitting.import_functions import parseDataFile
+from bin.lib.Astro_Libraries.spectrum_fitting.abundance_tools import ChemicalModel
 
 def TOIII_TSIII_relation(TSIII):
     # TODO we should make a class with these physical relations
@@ -59,6 +59,7 @@ class EmissivitySurfaceFitter(EmissivitySurfaceFitter_tensorOps):
                             'O3_5007A'  : self.emisEquation_Te,
                             'O2_7319A'  : self.emisEquation_TeDe,
                             'O2_7330A'  : self.emisEquation_TeDe,
+                            'O2_7319A_b': self.emisEquation_TeDe,
                             'N2_6548A'  : self.emisEquation_Te,
                             'N2_6584A'  : self.emisEquation_Te,
                             'H1_4102A'  : self.emisEquation_HI,
@@ -117,14 +118,6 @@ class EmissivitySurfaceFitter(EmissivitySurfaceFitter_tensorOps):
         p1, p1_cov = curve_fit(func_emis, xy_space, line_emis, p0)
         return p1, p1_cov
 
-    # def emisEquation_HeI(self, xy_space, a, b, c, d):
-    #     temp_range, den_range = xy_space
-    #     return np.power(temp_range / 10000.0, a + b * den_range) / (c + d * den_range)
-    #
-    # def emisEquation_HeII(self, xy_space, a, b):
-    #     temp_range, den_range = xy_space
-    #     return a * np.power(temp_range / 10000, b)
-
 class EmissionEquations(EmissionEquations_tensorOps, EmissionTensors):
 
     def __init__(self):
@@ -141,33 +134,13 @@ class EmissionEquations(EmissionEquations_tensorOps, EmissionTensors):
 
         for i in range(eqLabelArray.size):
             if eqLabelArray[i] not in recombLabels:
-                eqLabelArray[i] = 'metals'
+                # TODO integrate a dictionary to add corrections
+                if labelsList[i] != 'O2_7319A_b':
+                    eqLabelArray[i] = 'metals'
+                else:
+                    eqLabelArray[i] = 'O2_7319A_b'
 
         return eqLabelArray
-
-        # for i in range(len(labelsList)):
-        #
-        #     lineLabel = labelsList[i]
-        #     lineIon = ionsList[i]
-        #
-        #     if 'H1r' in lineIon:
-        #         eqFlux = self.H1_lines
-        #         eqFlux_tt = self.H1_lines_tt
-        #
-        #     elif 'He1r' in lineIon:
-        #         eqFlux = self.He1_linesFlux
-        #         eqFlux_tt = self.He1_lines_tt
-        #
-        #     elif 'He2r' in lineIon:
-        #         eqFlux = self.He2_linesFlux
-        #         eqFlux_tt = self.He2_lines_tt
-        #
-        #     else:
-        #         eqFlux = self.metal_lines
-        #         eqFlux_tt = self.metal_lines_tt
-        #
-        #     self.fluxEq[lineLabel] = eqFlux
-        #     self.fluxEq_tt[lineLabel] = eqFlux_tt
 
     def H1_lines(self, emis_ratio, cHbeta, flambda, abund=None, ftau=None, continuum=None):
         return emis_ratio - flambda * cHbeta
@@ -187,9 +160,12 @@ class EmissionEquations(EmissionEquations_tensorOps, EmissionTensors):
     def metal_lines(self, emis_ratio, cHbeta, flambda, abund, ftau=None, continuum=None):
         return abund + emis_ratio - flambda * cHbeta - 12
 
-class EmissionComponents(EmissivitySurfaceFitter, EmissionEquations, LineMesurer_v2):
+class EmissionComponents(EmissivitySurfaceFitter, EmissionEquations, ChemicalModel, LineMesurer_v2):
 
     def __init__(self, tempGrid = None, denGrid = None):
+
+        # TODO this should go to the text file
+        self.blendedLinesDict = dict(O2_7319A_b = ['O2_7319A', 'O2_7330A'], O2_3721A_b = ['O2_3726A', 'O2_3729A'])
 
         # Tools to fit a the emissivity to a plane
         EmissivitySurfaceFitter.__init__(self)
@@ -197,10 +173,13 @@ class EmissionComponents(EmissivitySurfaceFitter, EmissionEquations, LineMesurer
         # Functions to compute fluxes
         EmissionEquations.__init__(self)
 
+        # Functions to compute elemental abundances
+        ChemicalModel.__init__(self)
+
         # Load tools to measure lines # TODO there should be a better way to declare these folders
-        # LineMesurer_v2.__init__(self, '/home/vital/PycharmProjects/dazer/format/', 'DZT_LineLog_Headers.dz')
-        folderHeaders = path.join( 'C:\\Users\\Vital\\PycharmProjects\\dazer\\format\\', '')
-        LineMesurer_v2.__init__(self, folderHeaders, 'DZT_LineLog_Headers.dz')
+        LineMesurer_v2.__init__(self, '/home/vital/PycharmProjects/dazer/format/', 'DZT_LineLog_Headers.dz')
+        # folderHeaders = path.join( 'C:\\Users\\Vital\\PycharmProjects\\dazer\\format\\', '')
+        # LineMesurer_v2.__init__(self, folderHeaders, 'DZT_LineLog_Headers.dz')
 
         # Load default lines and their properties
         linesDataFile = path.join(self.externalDataFolder, self.config['linesData_file'])
@@ -245,7 +224,7 @@ class EmissionComponents(EmissivitySurfaceFitter, EmissionEquations, LineMesurer
         # Additional code to adapt to old lines log labelling
         self.linesDb['pyneb_code'] = self.linesDb['pyneb_code'].astype(str)
         idx_numeric_pynebCode = ~self.linesDb['pyneb_code'].str.contains('A+')
-        self.linesDb.loc[idx_numeric_pynebCode, 'pyneb_code'] = self.linesDb.loc[idx_numeric_pynebCode, 'pyneb_code'].astype(int)
+        self.linesDb.loc[idx_numeric_pynebCode, 'pyneb_code'] = self.linesDb.loc[idx_numeric_pynebCode, 'pyneb_code']#.astype(int)
         self.linesDb['ion'].apply(str)
 
         print('\n-- Loading atoms data with PyNeb')
@@ -304,6 +283,8 @@ class EmissionComponents(EmissivitySurfaceFitter, EmissionEquations, LineMesurer
         else:
             idx_lines = (obj_lines_df.index.isin(input_lines)) & (obj_lines_df.index != 'H1_4861A')
 
+        # Get blended lines
+
         # Declare lines data
         self.obj_data['lineLabels'] = obj_lines_df.loc[idx_lines].index.values
         self.obj_data['lineIons'] = obj_lines_df.loc[idx_lines].ion.values
@@ -346,9 +327,14 @@ class EmissionComponents(EmissivitySurfaceFitter, EmissionEquations, LineMesurer
 
         # Logic to distinguish the lines
         if lineIons is not None:
+
+            # Type of lines
             self.H1_lineIdcs = (lineIons == 'H1r')
             self.He1_lineIdcs = (lineIons == 'He1r')
             self.He2_lineIdcs = (lineIons == 'He2r')
+
+            #Lines with special flux equations
+            self.corrFluxLines = (lineLabels == 'O2_7319A_b')
 
             # Establish index of lines which below to high and low ionization zones
             self.idx_highU = np.in1d(lineIons, high_temp_ions)
@@ -361,8 +347,13 @@ class EmissionComponents(EmissivitySurfaceFitter, EmissionEquations, LineMesurer
             self.rangeLines = np.arange(lineIons.size)
             self.rangeObsAtoms = np.arange(self.obsAtoms.size)
 
-            # Parameters to check gas components to fit
-            self.He1rCheck = True if 'He1r' in self.obsAtoms else False
+            # Check gas components
+            self.H1rCheck = self.checkIonObservance('H1r', self.obsAtoms)
+            self.He1rCheck, self.He2rCheck = self.checkIonObservance('He1r', self.obsAtoms), self.checkIonObservance('He2r', self.obsAtoms)
+            self.Ar3Check, self.Ar4Check = self.checkIonObservance('Ar3', self.obsAtoms), self.checkIonObservance('Ar4', self.obsAtoms)
+            self.O2Check, self.O3Check = self.checkIonObservance('O2', self.obsAtoms), self.checkIonObservance('O3', self.obsAtoms)
+            self.N2Check = self.checkIonObservance('N2', self.obsAtoms)
+            self.S2Check, self.S3Check = self.checkIonObservance('S2', self.obsAtoms), self.checkIonObservance('S3', self.obsAtoms)
 
         # Lines data
         self.lineLabels = lineLabels
@@ -386,41 +377,29 @@ class EmissionComponents(EmissivitySurfaceFitter, EmissionEquations, LineMesurer
         #     # New diagnostics
         #     self.obsDiagRatios[i] = np.log10(self.obsLineFluxes[num_idcs].sum() / self.obsLineFluxes[den_idcs].sum())
 
-        # Prios definition # TODO this must go to the a special section
-        self.priorsDict = {'T_low': self.obj_data['T_low_true'], 'n_e': self.obj_data['n_e_true']}
-
         return
 
-    def fitEmissivityPlane(self, configuration_file = None):
+    def fitEmissivityPlane(self, ions_list, labels_list, configuration_file = None):
 
         # Dictionary to store the emissivity surface coeffients
         self.emisCoeffs = {}
-        for i in range(self.obj_data['lineLabels'].size):
+        for i in range(labels_list.size):
 
-            lineLabel = self.obj_data['lineLabels'][i]
+            lineLabel = labels_list[i]
 
             # Get equation type to fit the emissivity
             line_func  = self.ionEmisEq_fit[lineLabel]
             n_args = len(getargspec(line_func).args) - 2 #TODO Not working in python 2.7 https://stackoverflow.com/questions/847936/how-can-i-find-the-number-of-arguments-of-a-python-function
 
             # Compute emissivity functions coefficients
+            emis_grid_i = self.emis_dict[lineLabel]
             p0 = self.epm2017_emisCoeffs[lineLabel] if lineLabel in self.epm2017_emisCoeffs else np.zeros(n_args)
-            p1, cov1 = self.fitEmis(line_func, (self.tempGridFlatten, self.denGridFlatten), self.emis_grid[:, i], p0=p0)
+            p1, cov1 = self.fitEmis(line_func, (self.tempGridFlatten, self.denGridFlatten), emis_grid_i, p0=p0)
             self.emisCoeffs[lineLabel] = p1
-
-        # #We reassign the coefficients
-        # for lineLabel_epm in self.epm2017_emisCoeffs:
-        #     if lineLabel_epm in self.emisCoeffs:
-        #         self.emisCoeffs[lineLabel_epm] = self.epm2017_emisCoeffs[lineLabel_epm]
-
-        # TODO document the data of how these coefficients can be derived
-        # Additional functions for correction on the coefficients
-        # if 'He2_4686A' in self.obj_data['lineLabels']:
-        #     self.emisCoeffs['He2_4686A'][0] = 10**(self.emisCoeffs['He2_4686A'][0])
 
         # Save the coefficients to the configuration file
         coeffs_dict = OrderedDict()
-        for label_i in range(self.obj_data['lineLabels'].size):
+        for label_i in range(labels_list.size):
 
             lineLabel = self.obj_data['lineLabels'][label_i]
 
@@ -481,6 +460,44 @@ class EmissionComponents(EmissivitySurfaceFitter, EmissionEquations, LineMesurer
             emisGrid[:, i] = np.log10(emis_grid_i/Hbeta_emis_grid)
 
         return emisGrid
+
+    def computeEmissivityDict(self, pynebcode_list, ions_list, labels_list, grids_folder, loadgrids_check = False):
+
+        # Empty grid array
+        emisDict = OrderedDict()
+        Hbeta_emis_grid = self.ionDict['H1r'].getEmissivity(self.tempGridFlatten, self.denGridFlatten, wave=4861, product=False)
+
+        for i in range(len(labels_list)):
+
+            # Line emissivity references
+            line_label = labels_list[i]
+            grid_address = path.join(grids_folder, line_label + '.' + 'npy')
+
+            # Check if grids are available # TODO check if we are reloading the data
+            if path.isfile(grid_address) and loadgrids_check:
+                emis_grid_i = np.load(grid_address)
+
+            # Otherwise generate it (and save it)
+            else:
+
+                # Check if it is a blended line:
+                if '_b' not in line_label:
+                    # TODO I should change wave by label
+                    emis_grid_i = self.ionDict[ions_list[i]].getEmissivity(self.tempGridFlatten, self.denGridFlatten,
+                                                                           wave=float(pynebcode_list[i]), product=False)
+                else:
+                    # TODO upgrade this mechanic for different ions blending
+                    for component in self.blendedLinesDict[line_label]:
+                        component_wave = float(self.linesDb.loc[component].pyneb_code)
+                        emis_grid_i += self.ionDict[ions_list[i]].getEmissivity(self.tempGridFlatten, self.denGridFlatten,
+                                                                           wave=component_wave, product=False)
+
+                np.save(grid_address, emis_grid_i)
+
+            # Save along the number of points
+            emisDict[line_label] = np.log10(emis_grid_i/Hbeta_emis_grid)
+
+        return emisDict
 
     def computeDiagnosGrids(self, pynebcodeWaves, diagnosDict, emisRatioGrid):
 
@@ -547,8 +564,13 @@ class EmissionComponents(EmissivitySurfaceFitter, EmissionEquations, LineMesurer
             # ftau correction for HeI lines
             line_ftau = self.ftau_func(tau, Te_calc, ne, *self.ftau_coeffs[line_label]) if self.He1_lineIdcs[i] else None
 
-            # Line synthetic flux
-            fluxEq_i = fluxEqDict[line_fluxEqLabel](line_emis, cHbeta, line_flambda, line_abund, line_ftau, continuum=0.0)
+            # Line flux with special correction:
+            if self.corrFluxLines[i] :
+                fluxEq_i = fluxEqDict[line_fluxEqLabel](line_emis, cHbeta, line_flambda, line_abund, abund_dict['O3'], Thigh)
+
+            # Classical line flux
+            else:
+                fluxEq_i = fluxEqDict[line_fluxEqLabel](line_emis, cHbeta, line_flambda, line_abund, line_ftau, continuum=0.0)
 
             # Store in container
             if tensorCheck:
