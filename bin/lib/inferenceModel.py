@@ -79,7 +79,7 @@ class SpectraSynthesizer(ModelIngredients):
         # Run the sampler
         # TODO need to decide where to place this
         db_address = self.output_folder + model_name + '.db' # TODO Deberiamos poder quitar este .db
-        #self.run_pymc(hammer, db_address, iterations, tuning, include_reddening=include_reddening, include_Thigh_prior=include_Thigh_prior)
+        self.run_pymc(hammer, db_address, iterations, tuning, include_reddening=include_reddening, include_Thigh_prior=include_Thigh_prior)
 
         # Load the results
         interenceParamsDict = self.load_pymc_database_manual(db_address, sampler='pymc3')
@@ -192,6 +192,8 @@ class SpectraSynthesizer(ModelIngredients):
                     abund_dict[self.obsAtoms[j]] = self.normContants['He1r'] * pymc3.Lognormal(self.obsAtoms[j], mu=0, sd=1)
                 elif self.obsAtoms[j] == 'He2r':
                     abund_dict[self.obsAtoms[j]]= self.normContants['He2r'] * pymc3.Lognormal(self.obsAtoms[j], mu=0, sd=1)
+                # elif self.obsAtoms[j] == 'Ar4':
+                #     abund_dict[self.obsAtoms[j]]= pymc3.Normal('Ar4', mu=4, sd=0.2)
                 else:
                     abund_dict[self.obsAtoms[j]] = pymc3.Normal(self.obsAtoms[j], mu=5, sd=5)
 
@@ -209,8 +211,8 @@ class SpectraSynthesizer(ModelIngredients):
 
             # Launch model
             print('\n- Launching sampling')
-            #trace = pymc3.sample(iterations, tune=tuning, nchains=2, njobs=1, model=model)
-            trace = pymc3.sample(iterations, tune=tuning, nchains=2, njobs=2, model=model)
+            trace = pymc3.sample(iterations, tune=tuning, nchains=2, njobs=1, model=model)
+            #trace = pymc3.sample(iterations, tune=tuning, nchains=2, njobs=2, model=model)
 
         return trace, model
 

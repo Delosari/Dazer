@@ -578,10 +578,15 @@ class Basic_plots(Plot_Conf):
 
             # Add true value if available
             if trace_code + '_true' in self.obj_data:
-                value_true = self.obj_data[trace_code + '_true']
-                nominal_value, std_value = value_true[0], 0.0 if value_true.size == 1 else value_true[1]
-                axPoterior.axvline(x=nominal_value, color=self.get_color(i), linestyle='solid')
-                axPoterior.axvspan(nominal_value - std_value, nominal_value + std_value, alpha=0.5, color=self.get_color(i))
+
+                value_param = self.obj_data[trace_code + '_true']
+                if isinstance(value_param, (list, tuple, np.ndarray)):
+                    nominal_value, std_value = value_param[0], 0.0 if value_param.size == 1 else value_param[1]
+                    axPoterior.axvline(x=nominal_value, color=self.get_color(i), linestyle='solid')
+                    axPoterior.axvspan(nominal_value - std_value, nominal_value + std_value, alpha=0.5, color=self.get_color(i))
+                else:
+                    nominal_value = value_param
+                    axPoterior.axvline(x=nominal_value, color=self.get_color(i), linestyle='solid')
 
             # Add legend
             axTrace.legend(loc=7)
@@ -773,7 +778,11 @@ class Basic_plots(Plot_Conf):
         for i in range(len(traces)):
             reference = traces[i] + '_true'
             if reference in true_values:
-                true_values_list[i] = true_values[reference][0]
+                value_param = true_values[reference]
+                if isinstance(value_param, (list, tuple, np.ndarray)):
+                    true_values_list[i] = value_param[0]
+                else:
+                    true_values_list[i] = value_param
 
         # Generate the plot
         self.Fig = corner.corner(traces_array[:, :], fontsize=30, labels=labels_list, quantiles=[0.16, 0.5, 0.84],
@@ -817,7 +826,12 @@ class Basic_tables(Pdf_printer):
 
                 true_value, perDif = 'None', 'None'
                 if param + '_true' in true_values:
-                    true_value = true_values[param + '_true'][0]
+                    value_param = true_values[param + '_true']
+                    if isinstance(value_param, (list, tuple, np.ndarray)):
+                        true_value = value_param[0]
+                    else:
+                        true_value = value_param
+
                     perDif = (1 - (true_value / median)) * 100
 
                 self.addTableRow([label, true_value, mean_value, std, n_traces, median, p_16th, p_84th, perDif],

@@ -177,9 +177,9 @@ class EmissionComponents(EmissivitySurfaceFitter, EmissionEquations, ChemicalMod
         ChemicalModel.__init__(self)
 
         # Load tools to measure lines # TODO there should be a better way to declare these folders
-        LineMesurer_v2.__init__(self, '/home/vital/PycharmProjects/dazer/format/', 'DZT_LineLog_Headers.dz')
-        # folderHeaders = path.join( 'C:\\Users\\Vital\\PycharmProjects\\dazer\\format\\', '')
-        # LineMesurer_v2.__init__(self, folderHeaders, 'DZT_LineLog_Headers.dz')
+        #LineMesurer_v2.__init__(self, '/home/vital/PycharmProjects/dazer/format/', 'DZT_LineLog_Headers.dz')
+        folderHeaders = path.join( 'C:\\Users\\Vital\\PycharmProjects\\dazer\\format\\', '')
+        LineMesurer_v2.__init__(self, folderHeaders, 'DZT_LineLog_Headers.dz')
 
         # Load default lines and their properties
         linesDataFile = path.join(self.externalDataFolder, self.config['linesData_file'])
@@ -324,6 +324,10 @@ class EmissionComponents(EmissivitySurfaceFitter, EmissionEquations, ChemicalMod
                 err_fraction = linesErr/linesFlux
                 idcs_smallErr = err_fraction < linesMinimumError
                 self.fitLineFluxErr[idcs_smallErr] = linesMinimumError * self.obsLineFluxes[idcs_smallErr]
+
+            # # TEST CHANGING ARGON LINE ERROR
+            # self.fitLineFluxErr[1] = self.obsLineFluxes[1] * 0.02
+
 
         # Logic to distinguish the lines
         if lineIons is not None:

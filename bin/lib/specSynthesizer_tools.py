@@ -75,16 +75,16 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
         # Reddening parameters
         self.obj_data['lineFlambda'] = self.gasExtincParams(self.obj_data['lineWaves'], self.config['R_v'], self.config['reddenig_curve'])
 
-        # # Create or load emissivity grids
-        # self.emis_dict = self.computeEmissivityDict(self.obj_data['linePynebCode'], self.obj_data['lineIons'],
-        #                                             self.obj_data['lineLabels'], output_folder)
-        #
-        # # Fit emissivity grids to a surface
-        # self.fitEmissivityPlane(self.obj_data['lineIons'], self.obj_data['lineLabels'], self.configFolder)
-        #
-        # # Plot fits of emissivity grids
-        # self.plot_emisFits(self.obj_data['lineLabels'], self.emisCoeffs, self.emis_dict, output_folder)
-        #
+        # Create or load emissivity grids
+        self.emis_dict = self.computeEmissivityDict(self.obj_data['linePynebCode'], self.obj_data['lineIons'],
+                                                    self.obj_data['lineLabels'], output_folder)
+
+        # Fit emissivity grids to a surface
+        self.fitEmissivityPlane(self.obj_data['lineIons'], self.obj_data['lineLabels'], self.configFolder)
+
+        # Plot fits of emissivity grids
+        self.plot_emisFits(self.obj_data['lineLabels'], self.emisCoeffs, self.emis_dict, output_folder)
+
         # # Create or emissivity diagnostic ratios
         # self.diagnosRatios, self.diagnosGrid = self.computeDiagnosGrids(self.obj_data['linePynebCode'], self.diagnosDict, self.emis_grid)
         #
@@ -222,9 +222,10 @@ class ModelIngredients(ImportModelData, SspFitter, NebularContinuaCalculator, Em
         obj_dict['resample_inc']        = resample_inc
         obj_dict['wavelengh_limits']    = wavelengh_limits
         obj_dict['norm_interval']       = norm_interval
-        obj_dict['Te_prior']            = [10000.0, 1000.0]
-        obj_dict['ne_prior']            = [200, 100]
-        obj_dict['cHbeta_prior']        = [0.125, 0.02]
+        obj_dict['Te_prior']            = [15000.0, 2500.0]
+        obj_dict['ne_prior']            = [450, 100]
+        obj_dict['redening_check']      = True
+        obj_dict['Thigh_check']         = True
         obj_dict['T_low_true']          = T_low
         obj_dict['T_high_true']         = T_high
         obj_dict['n_e_true']            = n_e

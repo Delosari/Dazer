@@ -593,24 +593,33 @@ class ImportModelData(SspSynthesisImporter):
         # Convert to the right format # TODO Add security warnings for wrong data
         for key in obj_data.keys():
 
-            # if key not in list_parameters + boolean_parameters + string_parameters:
-
             # Empty variable
             if obj_data[key] == '':
                 obj_data[key] = None
 
+            # None variable
+            elif obj_data[key] is None:
+                obj_data[key] = None
+
             # Arrays (The last boolean overrides the parameters
-            elif (key in list_parameters) or ('_prior' in key) or ('_true' in key) or (',' in obj_data[key]):
-                if key in ['input_lines']:
-                    if obj_data[key] == 'all':
-                        obj_data[key] = 'all'
+            elif ',' in obj_data[key]:
+
+                if (key in list_parameters) or ('_prior' in key) or ('_true' in key) or (',' in obj_data[key]):
+                    if key in ['input_lines']:
+                        if obj_data[key] == 'all':
+                            obj_data[key] = 'all'
+                        else:
+                            obj_data[key] = np.array(map(str, obj_data[key].split(',')))
                     else:
-                        obj_data[key] = np.array(map(str, obj_data[key].split(',')))
-                else:
-                    obj_data[key] = np.array(map(float, obj_data[key].split(',')))
+                        newArray = []
+                        textArrays = obj_data[key].split(',')
+                        for item in textArrays:
+                            convertValue = float(item) if item != 'None' else np.nan
+                            newArray.append(convertValue)
+                        obj_data[key] = np.array(newArray)
 
             # Boolean
-            elif key in boolean_parameters:
+            elif (key in boolean_parameters) or ('_check' in key):
                 obj_data[key] = strtobool(obj_data[key]) == 1
 
             # Remaining are either strings (rest floats)
