@@ -418,19 +418,15 @@ class Plot_Conf(Fig_Conf):
                 Axis.plot(x, y, label=label, color=color, linestyle=linestyle, marker=markerstyle, linewidth = linewidth)
 #                 print line[-1].get_color()
             else:
-                print '----------THE LABEL0', label, markersize
                 Axis.errorbar(x, y, label=label, xerr = x_error, yerr = y_error, elinewidth = 1,fmt=markerstyle, ms=markersize, c=color)
         
         elif markerstyle != None:
             if (x_error is None) and (y_error is None): 
                 if cmap == None:
-                    print '----------THE LABEL', label, markersize
                     Axis.scatter(x, y, label=label, color=color, marker=markerstyle, s=markersize)
                 else:
-                    print '----------THE LABEL2', label, markersize
                     scatter_data = self.Axis.scatter(x, y, label=label, c=color, marker=markerstyle, s=markersize, cmap=cmap)
             else:
-                print '----------THE LABEL3', label, markersize
                 err_plot = Axis.errorbar(x, y, label=label, xerr = x_error, yerr = y_error, elinewidth = 1, fmt=markerstyle, ms=markersize, c=color)
                 if e_style != None:
                     err_plot[-1][0].set_linestyle(e_style) #eb1[-1][0] is the LineCollection objects of the errorbar lines
