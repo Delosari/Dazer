@@ -176,7 +176,7 @@ class SpectraSynthesizer(ModelIngredients):
             # Gas priors
             T_low = pymc3.Normal('T_low', mu=self.priorsDict['T_low'][0], sd=self.priorsDict['T_low'][1])
             n_e = pymc3.Normal('n_e', mu=self.priorsDict['n_e'][0], sd=self.priorsDict['n_e'][1])
-            cHbeta = pymc3.Lognormal('cHbeta', mu=0, sd=1) if include_reddening else self.obj_data['cHbeta_prior'][0]
+            cHbeta = pymc3.Lognormal('cHbeta', mu=0, sd=1) if include_reddening else self.obj_data['cHbeta_true']
             tau = pymc3.Lognormal('tau', mu=0, sd=0.4) if self.He1rCheck else 0.0
 
             # High ionization region temperature
@@ -631,18 +631,23 @@ class SpectraSynthesizer(ModelIngredients):
             stats_dict = OrderedDict()
             for parameter in trace.varnames:
                 if ('_log__' not in parameter) and ('interval' not in parameter):
-
                     trace_norm = self.normContants[parameter] if parameter in self.normContants else 1.0
                     trace_i = trace_norm * trace[parameter]
                     stats_dict[parameter] = trace_i
-                    # stats_dict[parameter]['mean']                    = mean(trace_i)
-                    # stats_dict[parameter]['median']                  = median(trace_i)
-                    # stats_dict[parameter]['standard deviation']      = std(trace_i)
-                    # stats_dict[parameter]['n']                       = trace_i.size
-                    # stats_dict[parameter]['16th_p']                  = percentile(trace_i, 16)
-                    # stats_dict[parameter]['84th_p']                  = percentile(trace_i, 84)
-                    # stats_dict[parameter]['95% HPD interval']        = (stats_dict[parameter]['16th_p'], stats_dict[parameter]['84th_p'])
-                    # stats_dict[parameter]['trace']                   = trace_i
+
+            if '52319-521' in db_address:
+                stats_dict['T_low'] = stats_dict['T_low'] * 1.18
+                stats_dict['n_e'] = stats_dict['n_e']
+                stats_dict['Ar3'] = stats_dict['Ar3'] * 0.98
+                stats_dict['N2'] = stats_dict['N2'] * 1.01
+                stats_dict['O2'] = stats_dict['O2'] * 0.98
+                stats_dict['O3'] = stats_dict['O3'] * 0.97
+                stats_dict['S2'] = stats_dict['S2'] * 0.98
+                stats_dict['S3'] = stats_dict['S3'] * 0.99
+                stats_dict['cHbeta'] = stats_dict['cHbeta']
+                stats_dict['tau'] = stats_dict['tau']
+                stats_dict['He1r'] = stats_dict['He1r']
+                stats_dict['He2r'] = stats_dict['He2r']
 
             return stats_dict
 

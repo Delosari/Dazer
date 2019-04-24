@@ -11,6 +11,7 @@ def storeValueInTensor(idx, value, tensor1D):
 class BilinearInterpTheano():
 
     def __init__(self):
+
         self.indexing_bilinear()
 
         self.operation_bilinear()

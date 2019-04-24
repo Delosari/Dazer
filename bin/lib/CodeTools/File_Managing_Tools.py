@@ -676,7 +676,7 @@ class Pdf_printer():
         
         return
 
-    def pdf_insert_table(self, column_headers=None, table_format = None):
+    def pdf_insert_table(self, column_headers=None, table_format = None, addfinalLine = True):
 
         #Set the table format
         if table_format is None:
@@ -693,7 +693,8 @@ class Pdf_printer():
                     if column_headers != None:    
                         self.table.add_hline()
                         self.table.add_row(map(str,column_headers), escape=False)
-                        self.table.add_hline()
+                        if addfinalLine:
+                            self.table.add_hline()
                         
             elif self.pdf_type == 'longtable':
                 
@@ -702,7 +703,8 @@ class Pdf_printer():
                     if column_headers != None:    
                         self.table.add_hline()
                         self.table.add_row(map(str,column_headers), escape=False)
-                        self.table.add_hline()                           
+                        if addfinalLine:
+                            self.table.add_hline()
 
         #Table .tex without preamble
         else:
@@ -710,7 +712,8 @@ class Pdf_printer():
             if column_headers != None:    
                 self.table.add_hline()
                 self.table.add_row(map(str,column_headers), escape=False)
-                self.table.add_hline() 
+                if addfinalLine:
+                    self.table.add_hline()
 
     def pdf_insert_longtable(self, column_headers=None, table_format = None):
 

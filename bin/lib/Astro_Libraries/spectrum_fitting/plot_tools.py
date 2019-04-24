@@ -405,7 +405,7 @@ class Basic_plots(Plot_Conf):
 
         return
 
-    def emissivitySurfaceFit_2D(self, line_label, emisCoeffs, emisGrid, funcEmis, te_ne_grid):
+    def emissivitySurfaceFit_2D(self, line_label, emisCoeffs, emisGrid, funcEmis, te_ne_grid, denRange, tempRange):
 
         # Plot format
         size_dict = {'figure.figsize': (20, 14), 'axes.titlesize': 16, 'axes.labelsize': 16, 'legend.fontsize': 18}
@@ -418,7 +418,7 @@ class Basic_plots(Plot_Conf):
         surface_points = funcEmis(te_ne_grid, *emisCoeffs)
 
         # Plot plane
-        plt.imshow(surface_points.reshape((self.denRange.size, self.tempRange.size)), aspect=0.03,
+        plt.imshow(surface_points.reshape((denRange.size, tempRange.size)), aspect=0.03,
                    extent=(te_ne_grid[1].min(), te_ne_grid[1].max(), te_ne_grid[0].min(), te_ne_grid[0].max()))
 
         # Compare pyneb values with values from fitting
@@ -661,12 +661,12 @@ class Basic_plots(Plot_Conf):
     def fluxes_distribution(self, lines_list, ions_list, function_key, db_dict, obsFluxes=None, obsErr=None):
 
         # Declare plot grid size
-        n_columns = 8
+        n_columns = 3
         n_lines = len(lines_list)
         n_rows = int(np.ceil(float(n_lines)/float(n_columns)))
 
         # Declare figure format
-        size_dict = {'figure.figsize': (22, 9), 'axes.titlesize': 10, 'axes.labelsize': 10, 'legend.fontsize': 10,
+        size_dict = {'figure.figsize': (9, 22), 'axes.titlesize': 14, 'axes.labelsize': 10, 'legend.fontsize': 10,
                      'xtick.labelsize': 8, 'ytick.labelsize': 3}
         self.FigConf(plotSize=size_dict, Figtype='Grid', n_columns=n_columns, n_rows=n_rows)
 
@@ -770,23 +770,31 @@ class Basic_plots(Plot_Conf):
         for trace_code in traces:
             trace_array = stats_dic[trace_code]
             list_arrays.append(trace_array)
-            labels_list.append(self.labels_latex_dic[trace_code])
+            if trace_code == 'Te':
+                labels_list.append(r'$T_{low}$')
+            else:
+                labels_list.append(self.labels_latex_dic[trace_code])
         traces_array = np.array(list_arrays).T
 
-        # Reshape true values
-        true_values_list = [None] * len(traces)
-        for i in range(len(traces)):
-            reference = traces[i] + '_true'
-            if reference in true_values:
-                value_param = true_values[reference]
-                if isinstance(value_param, (list, tuple, np.ndarray)):
-                    true_values_list[i] = value_param[0]
-                else:
-                    true_values_list[i] = value_param
+        # # Reshape true values
+        # true_values_list = [None] * len(traces)
+        # for i in range(len(traces)):
+        #     reference = traces[i] + '_true'
+        #     if reference in true_values:
+        #         value_param = true_values[reference]
+        #         if isinstance(value_param, (list, tuple, np.ndarray)):
+        #             true_values_list[i] = value_param[0]
+        #         else:
+        #             true_values_list[i] = value_param
+        #
+        # # Generate the plot
+        # self.Fig = corner.corner(traces_array[:, :], fontsize=30, labels=labels_list, quantiles=[0.16, 0.5, 0.84],
+        #                          show_titles=True, title_args={"fontsize": 200}, truths=true_values_list,
+        #                          truth_color='#ae3135', title_fmt='0.3f')
 
         # Generate the plot
         self.Fig = corner.corner(traces_array[:, :], fontsize=30, labels=labels_list, quantiles=[0.16, 0.5, 0.84],
-                                 show_titles=True, title_args={"fontsize": 200}, truths=true_values_list,
+                                 show_titles=True, title_args={"fontsize": 200},
                                  truth_color='#ae3135', title_fmt='0.3f')
 
         return
@@ -801,11 +809,11 @@ class Basic_tables(Pdf_printer):
     def table_mean_outputs(self, table_address, db_dict, true_values=None):
 
         # Table headers
-        headers = ['Parameter', 'True value', 'Mean', 'Standard deviation', 'Number of points', 'Median',
-                   r'$16^{th}$ $percentil$', r'$84^{th}$ $percentil$', r'$Difference\,\%$']
+        headers = ['Parameter', 'F2018 value', 'Mean', 'Standard deviation', 'Number of points', 'Median',
+                   r'$16^{th}$ percentil', r'$84^{th}$ percentil', r'Difference $\%$']
 
         # Generate pdf
-        self.create_pdfDoc(table_address, pdf_type='table')
+        #self.create_pdfDoc(table_address, pdf_type='table')
         self.pdf_insert_table(headers)
 
         # Loop around the parameters
@@ -837,7 +845,8 @@ class Basic_tables(Pdf_printer):
                 self.addTableRow([label, true_value, mean_value, std, n_traces, median, p_16th, p_84th, perDif],
                                  last_row=False if parameters_list[-1] != param else True)
 
-        self.generate_pdf(clean_tex=True)
+        #self.generate_pdf(clean_tex=True)
+        self.generate_pdf(output_address=table_address)
 
         return
 
@@ -847,7 +856,7 @@ class Basic_tables(Pdf_printer):
         self.create_pdfDoc(table_address, pdf_type='table')
 
         # Table headers
-        headers = ['Line Label', 'True value', 'Mean', 'Standard deviation', 'Median', r'$16^{th}$ $percentil$',
+        headers = ['Line Label', 'Observed flux', 'Mean', 'Standard deviation', 'Median', r'$16^{th}$ $percentil$',
                    r'$84^{th}$ $percentil$', r'$Difference\,\%$']
         self.pdf_insert_table(headers)
 
@@ -893,19 +902,24 @@ class MCMC_printer(Basic_plots, Basic_tables):
 
             # 2D Comparison between PyNeb values and the fitted equation
             self.emissivitySurfaceFit_2D(lineLabel, emisCoeffs_dict[lineLabel], emisGrid_dict[lineLabel],
-                                         self.ionEmisEq[lineLabel], te_ne_grid)
+                                         self.ionEmisEq[lineLabel], te_ne_grid, self.denRange, self.tempRange)
 
-            output_address = '{}{}_{}'.format(output_folder, 'emissivityTeDe2D', lineLabel)
+            output_address = '{}{}_{}_temp{}-{}_den{}-{}'.format(output_folder, 'emissivityTeDe2D', lineLabel,
+                                                                self.tempGridFlatten[0], self.tempGridFlatten[-1],
+                                                                self.denGridFlatten[0], self.denGridFlatten[-1])
+
             self.savefig(output_address, resolution=200)
             plt.clf()
 
-            # 3D Comparison between PyNeb values and the fitted equation
-            self.emissivitySurfaceFit_3D(lineLabel, emisCoeffs_dict[lineLabel], emisGrid_dict[lineLabel],
-                                         self.ionEmisEq[lineLabel], te_ne_grid)
-
-            output_address = '{}{}_{}'.format(output_folder, 'emissivityTeDe3D', lineLabel)
-            self.savefig(output_address, resolution=200)
-            plt.clf()
+            # # 3D Comparison between PyNeb values and the fitted equation
+            # self.emissivitySurfaceFit_3D(lineLabel, emisCoeffs_dict[lineLabel], emisGrid_dict[lineLabel],
+            #                              self.ionEmisEq[lineLabel], te_ne_grid)
+            #
+            # output_address = '{}{}_{}_temp{}-{}_den{}-{}'.format(output_folder, 'emissivityTeDe3D', lineLabel,
+            #                                                      self.tempGridFlatten[0], self.tempGridFlatten[-1],
+            #                                                      self.denGridFlatten[0], self.denGridFlatten[-1])
+            # self.savefig(output_address, resolution=200)
+            # plt.clf()
 
         return
 
@@ -995,7 +1009,7 @@ class MCMC_printer(Basic_plots, Basic_tables):
             print '-- Model parameters table'
             self.table_mean_outputs(database_address + '_meanOutput', db_dict, self.obj_data)
 
-            # # Line fluxes values
+            # Line fluxes values
             print '-- Line fluxes table'  # TODO divide in two
             self.table_line_fluxes(database_address + '_LineFluxes', self.lineLabels, 'calcFluxes_Op', db_dict, true_data=self.obsLineFluxes)
             self.fluxes_distribution(self.lineLabels, self.lineIons, 'calcFluxes_Op', db_dict, obsFluxes=self.obsLineFluxes, obsErr=self.fitLineFluxErr)
@@ -1009,16 +1023,6 @@ class MCMC_printer(Basic_plots, Basic_tables):
             # Corner plot
             print '-- Scatter plot matrix'
             self.corner_plot(model_params, db_dict, self.obj_data)
-            self.savefig(database_address + '_CornerPlot', resolution=100)
-
-            # # Acorrelation
-            # print '--Acorrelation plot'
-            # self.acorr_plot(params_list, db_dict, n_columns=4, n_rows=int(ceil(len(params_list)/4.0)))
-            # self.savefig(database_address + '_Acorrelation', resolution=200)
-            #
-            # # Posteriors
-            # print '--Model parameters posterior diagram'
-            # self.posteriors_plot(params_list, db_dict)
-            # self.savefig(database_address + '_PosteriorPlot', resolution=200)
+            self.savefig(database_address + '_CornerPlot', resolution=50)
 
         return

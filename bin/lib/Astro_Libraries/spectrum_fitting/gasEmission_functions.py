@@ -71,6 +71,7 @@ class EmissivitySurfaceFitter(EmissivitySurfaceFitter_tensorOps):
                             'He1_5876A' : self.emisEquation_HeI_fit,
                             'He1_6678A' : self.emisEquation_HeI_fit,
                             'He1_7065A' : self.emisEquation_HeI_fit,
+                            'He1_10830A': self.emisEquation_HeI_fit,
                             'He2_4686A' : self.emisEquation_HeII_fit}
 
         self.EmisRatioEq_fit = {'RSII'    : self.emisEquation_TeDe,
@@ -90,7 +91,8 @@ class EmissivitySurfaceFitter(EmissivitySurfaceFitter_tensorOps):
                             'He1_4471A': np.array([-0.1463, 0.0005, 2.0301, 1.5e-5]),
                             'He1_5876A': np.array([-0.226, 0.0011, 0.745, -5.1e-5]),
                             'He1_6678A': np.array([-0.2355, 0.0016, 2.612, 0.000146]),
-                            'He1_7065A': np.array([0.368, 0.0017, 4.329, 0.0024])}
+                            'He1_7065A': np.array([0.368, 0.0017, 4.329, 0.0024]),
+                            'He1_10830A': np.array([0.14, 0.00189, 0.337, -0.00027])}
 
         return
 
@@ -182,6 +184,7 @@ class EmissionComponents(EmissivitySurfaceFitter, EmissionEquations, ChemicalMod
         LineMesurer_v2.__init__(self, folderHeaders, 'DZT_LineLog_Headers.dz')
 
         # Load default lines and their properties
+        print self.config['linesData_file']
         linesDataFile = path.join(self.externalDataFolder, self.config['linesData_file'])
         self.linesDb = read_excel(linesDataFile, sheet_name=0, header=0, index_col=0)
 
@@ -396,6 +399,7 @@ class EmissionComponents(EmissivitySurfaceFitter, EmissionEquations, ChemicalMod
             n_args = len(getargspec(line_func).args) - 2 #TODO Not working in python 2.7 https://stackoverflow.com/questions/847936/how-can-i-find-the-number-of-arguments-of-a-python-function
 
             # Compute emissivity functions coefficients
+            print lineLabel
             emis_grid_i = self.emis_dict[lineLabel]
             p0 = self.epm2017_emisCoeffs[lineLabel] if lineLabel in self.epm2017_emisCoeffs else np.zeros(n_args)
             p1, cov1 = self.fitEmis(line_func, (self.tempGridFlatten, self.denGridFlatten), emis_grid_i, p0=p0)
