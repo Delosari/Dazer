@@ -813,8 +813,8 @@ class Basic_tables(Pdf_printer):
                    r'$16^{th}$ percentil', r'$84^{th}$ percentil', r'Difference $\%$']
 
         # Generate pdf
-        #self.create_pdfDoc(table_address, pdf_type='table')
-        self.pdf_insert_table(headers)
+        self.create_pdfDoc(table_address, pdf_type='table')
+        #self.pdf_insert_table(headers)
 
         # Loop around the parameters
         parameters_list = db_dict.keys()
@@ -845,8 +845,8 @@ class Basic_tables(Pdf_printer):
                 self.addTableRow([label, true_value, mean_value, std, n_traces, median, p_16th, p_84th, perDif],
                                  last_row=False if parameters_list[-1] != param else True)
 
-        #self.generate_pdf(clean_tex=True)
-        self.generate_pdf(output_address=table_address)
+        self.generate_pdf(clean_tex=True)
+        #self.generate_pdf(output_address=table_address)
 
         return
 

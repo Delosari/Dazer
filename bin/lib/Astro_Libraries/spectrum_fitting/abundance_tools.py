@@ -1,5 +1,5 @@
 import numpy as np
-from pymc3 import Deterministic
+from pymc_examples import Deterministic
 from collections import OrderedDict
 
 

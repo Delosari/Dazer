@@ -2,7 +2,7 @@ import os
 os.environ["MKL_THREADING_LAYER"] = "GNU"
 import theano.tensor as tt
 from theano import function, shared
-import pymc3
+import pymc_examples
 import numpy as np
 
 
@@ -244,21 +244,21 @@ idx_temp_tt, idx_den_tt = indexing_Qxx_ttfunction(temp_range, temp_true, den_ran
 #
 emisGrid_tt = shared(emisGrid)
 
-with pymc3.Model() as model2:
+with pymc_examples.Model() as model2:
 
     # Physical condition priors
-    temp = pymc3.Normal('temp', mu=13000.0, sd=500.0)
-    den = pymc3.Normal('den', mu=300.0, sd=50.0)
+    temp = pymc_examples.Normal('temp', mu=13000.0, sd=500.0)
+    den = pymc_examples.Normal('den', mu=300.0, sd=50.0)
 
     # Compute model densities
     a0, a1, a2, a3 = biLinearInterpolation_Coeffs_tt(temp, den, emisGrid_tt, temp_range[0], den_range[0], temp_range[-1], den_range[-1])
     emis_synth = a0 + a1*(temp - temp_range[0]) + a2*(den - den_range[0]) + a3*(temp - temp_range[0])*(den - den_range[0])
-    pymc3.Deterministic('emis_synth', emis_synth)
+    pymc_examples.Deterministic('emis_synth', emis_synth)
 
     # Likelihood
-    Y = pymc3.Normal('Y_emision', mu=emis_synth, sd=obs_err, observed=obs_data)
+    Y = pymc_examples.Normal('Y_emision', mu=emis_synth, sd=obs_err, observed=obs_data)
 
     # Launch model
-    trace = pymc3.sample(2000, tune=500, nchains=2, njobs=1, model=model2)
+    trace = pymc_examples.sample(2000, tune=500, nchains=2, njobs=1, model=model2)
 
-print pymc3.summary(trace).round(4)
+print pymc_examples.summary(trace).round(4)

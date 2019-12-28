@@ -15,7 +15,7 @@ from lib.Astro_Libraries.spectrum_fitting.import_functions import parseObjData
 
 
 # Line to avoid the compute_test_value error
-theano.config.compute_test_value = "ignore"
+theano.config.compute_test_value = 'ignore'
 
 
 # Illustrate the new
@@ -174,14 +174,14 @@ class SpectraSynthesizer(ModelIngredients):
         with pymc3.Model() as model:
 
             # Gas priors
-            T_low = pymc3.Normal('T_low', mu=self.priorsDict['T_low'][0], sd=self.priorsDict['T_low'][1])
-            n_e = pymc3.Normal('n_e', mu=self.priorsDict['n_e'][0], sd=self.priorsDict['n_e'][1])
-            cHbeta = pymc3.Lognormal('cHbeta', mu=0, sd=1) if include_reddening else self.obj_data['cHbeta_true']
-            tau = pymc3.Lognormal('tau', mu=0, sd=0.4) if self.He1rCheck else 0.0
+            T_low = pymc_examples.Normal('T_low', mu=self.priorsDict['T_low'][0], sd=self.priorsDict['T_low'][1])
+            n_e = pymc_examples.Normal('n_e', mu=self.priorsDict['n_e'][0], sd=self.priorsDict['n_e'][1])
+            cHbeta = pymc_examples.Lognormal('cHbeta', mu=0, sd=1) if include_reddening else self.obj_data['cHbeta_true']
+            tau = pymc_examples.Lognormal('tau', mu=0, sd=0.4) if self.He1rCheck else 0.0
 
             # High ionization region temperature
             if include_Thigh_prior:
-                T_high = pymc3.Normal('T_high', mu=self.priorsDict['T_low'][0], sd=self.priorsDict['T_low'][1])
+                T_high = pymc_examples.Normal('T_high', mu=self.priorsDict['T_low'][0], sd=self.priorsDict['T_low'][1])
             else:
                 T_high = TOIII_TSIII_relation(T_low)
 
@@ -189,29 +189,29 @@ class SpectraSynthesizer(ModelIngredients):
             abund_dict = {'H1r': 1.0}
             for j in self.rangeObsAtoms:
                 if self.obsAtoms[j] == 'He1r':
-                    abund_dict[self.obsAtoms[j]] = self.normContants['He1r'] * pymc3.Lognormal(self.obsAtoms[j], mu=0, sd=1)
+                    abund_dict[self.obsAtoms[j]] = self.normContants['He1r'] * pymc_examples.Lognormal(self.obsAtoms[j], mu=0, sd=1)
                 elif self.obsAtoms[j] == 'He2r':
-                    abund_dict[self.obsAtoms[j]]= self.normContants['He2r'] * pymc3.Lognormal(self.obsAtoms[j], mu=0, sd=1)
+                    abund_dict[self.obsAtoms[j]]= self.normContants['He2r'] * pymc_examples.Lognormal(self.obsAtoms[j], mu=0, sd=1)
                 # elif self.obsAtoms[j] == 'Ar4':
                 #     abund_dict[self.obsAtoms[j]]= pymc3.Normal('Ar4', mu=4, sd=0.2)
                 else:
-                    abund_dict[self.obsAtoms[j]] = pymc3.Normal(self.obsAtoms[j], mu=5, sd=5)
+                    abund_dict[self.obsAtoms[j]] = pymc_examples.Normal(self.obsAtoms[j], mu=5, sd=5)
 
             # Compute emission line fluxes
             lineFluxTTArray = self.calcEmFluxes(T_low, T_high, n_e, cHbeta, tau, abund_dict, self.emFlux_ttMethods, lineFluxTTArray, True)
 
             # Store computed fluxes
-            pymc3.Deterministic('calcFluxes_Op', lineFluxTTArray)
+            pymc_examples.Deterministic('calcFluxes_Op', lineFluxTTArray)
 
             # Likelihood gas components
-            Y_emision = pymc3.Normal('Y_emision', mu=lineFluxTTArray, sd=self.fitLineFluxErr, observed=self.obsLineFluxes)
+            Y_emision = pymc_examples.Normal('Y_emision', mu=lineFluxTTArray, sd=self.fitLineFluxErr, observed=self.obsLineFluxes)
 
             # Display simulation data
             displaySimulationData(model, self.priorsDict, self.lineLabels, self.obsLineFluxes, self.obsLineFluxErr, self.fitLineFluxErr)
 
             # Launch model
             print('\n- Launching sampling')
-            trace = pymc3.sample(iterations, tune=tuning, nchains=2, njobs=1, model=model)
+            trace = pymc_examples.sample(iterations, tune=tuning, nchains=2, njobs=1, model=model)
             #trace = pymc3.sample(iterations, tune=tuning, nchains=2, njobs=2, model=model)
 
         return trace, model
@@ -235,13 +235,13 @@ class SpectraSynthesizer(ModelIngredients):
             # err_Continuum = self.obsFluxNorm * 0.05
             # err_Continuum[err_Continuum < 0.001] = err_Continuum.mean()
 
-        with pymc3.Model() as model:
+        with pymc_examples.Model() as model:
 
             if self.stellarCheck:
 
                 # Stellar continuum priors
-                Av_star = pymc3.Normal('Av_star', mu=self.stellarAv_prior[0], sd=self.stellarAv_prior[0] * 0.10) #pymc3.Lognormal('Av_star', mu=1, sd=0.75)
-                w_i = pymc3.Normal('w_i', mu=self.sspPrefitCoeffs, sd=self.sspPrefitCoeffs*0.10, shape=self.nBases)
+                Av_star = pymc_examples.Normal('Av_star', mu=self.stellarAv_prior[0], sd=self.stellarAv_prior[0] * 0.10) #pymc3.Lognormal('Av_star', mu=1, sd=0.75)
+                w_i = pymc_examples.Normal('w_i', mu=self.sspPrefitCoeffs, sd=self.sspPrefitCoeffs * 0.10, shape=self.nBases)
 
                 # Compute stellar continuum
                 stellar_continuum = w_i.dot(basesFlux_tt)
@@ -256,13 +256,13 @@ class SpectraSynthesizer(ModelIngredients):
                 continuum_masked = continuum * self.int_mask
 
                 # Likelihood continuum components
-                Y_continuum = pymc3.Normal('Y_continuum', mu=continuum_masked, sd=err_Continuum, observed=self.inputContinuum)
+                Y_continuum = pymc_examples.Normal('Y_continuum', mu=continuum_masked, sd=err_Continuum, observed=self.inputContinuum)
 
             if self.emissionCheck:
 
                 # Gas Physical conditions priors
-                T_low = pymc3.Normal('T_low', mu=self.Te_prior[0], sd=1000.0)
-                cHbeta = pymc3.Lognormal('cHbeta', mu=0, sd=1) if self.NoReddening is False else self.obj_data['cHbeta_true']
+                T_low = pymc_examples.Normal('T_low', mu=self.Te_prior[0], sd=1000.0)
+                cHbeta = pymc_examples.Lognormal('cHbeta', mu=0, sd=1) if self.NoReddening is False else self.obj_data['cHbeta_true']
 
                 # High temperature
                 T_high = TOIII_TSIII_relation(T_low)
@@ -270,22 +270,22 @@ class SpectraSynthesizer(ModelIngredients):
                 if self.emissionCheck:
 
                     # Emission lines density
-                    n_e =  pymc3.Normal('n_e', mu=self.ne_prior[0], sd=self.ne_prior[1])
+                    n_e =  pymc_examples.Normal('n_e', mu=self.ne_prior[0], sd=self.ne_prior[1])
                     #n_e = self.normContants['n_e'] * pymc3.Lognormal('n_e', mu=0, sd=1)
 
                     # Helium abundance priors
                     if self.He1rCheck:
-                        tau = pymc3.Lognormal('tau', mu=1, sd=0.75)
+                        tau = pymc_examples.Lognormal('tau', mu=1, sd=0.75)
 
                     # Composition priors
                     abund_dict = {'H1r':1.0}
                     for j in self.rangeObsAtoms:
                         if self.obsAtoms[j] == 'He1r':
-                            abund_dict[self.obsAtoms[j]] = self.normContants['He1r'] * pymc3.Lognormal(self.obsAtoms[j], mu=0, sd=1)#pymc3.Uniform(self.obsAtoms[j], lower=0, upper=1)
+                            abund_dict[self.obsAtoms[j]] = self.normContants['He1r'] * pymc_examples.Lognormal(self.obsAtoms[j], mu=0, sd=1)#pymc3.Uniform(self.obsAtoms[j], lower=0, upper=1)
                         elif self.obsAtoms[j] == 'He2r':
-                            abund_dict[self.obsAtoms[j]] = self.normContants['He2r'] * pymc3.Lognormal(self.obsAtoms[j], mu=0, sd=1)#pymc3.Uniform(self.obsAtoms[j], lower=0, upper=1)
+                            abund_dict[self.obsAtoms[j]] = self.normContants['He2r'] * pymc_examples.Lognormal(self.obsAtoms[j], mu=0, sd=1)#pymc3.Uniform(self.obsAtoms[j], lower=0, upper=1)
                         else:
-                            abund_dict[self.obsAtoms[j]] = pymc3.Normal(self.obsAtoms[j], mu=5, sd=5)
+                            abund_dict[self.obsAtoms[j]] = pymc_examples.Normal(self.obsAtoms[j], mu=5, sd=5)
 
                     # Loop through the lines
                     for i in self.rangeLines:
@@ -321,17 +321,17 @@ class SpectraSynthesizer(ModelIngredients):
                         lineFlux_tt = tt.inc_subtensor(lineFlux_tt[i], flux_i)
 
                     # Store computed fluxes
-                    lineFlux_ttarray = pymc3.Deterministic('calcFluxes_Op',lineFlux_tt)
+                    lineFlux_ttarray = pymc_examples.Deterministic('calcFluxes_Op', lineFlux_tt)
 
                     # Likelihood gas components
-                    Y_emision = pymc3.Normal('Y_emision', mu=lineFlux_ttarray, sd=self.obsLineFluxErr, observed=self.obsLineFluxes)
+                    Y_emision = pymc_examples.Normal('Y_emision', mu=lineFlux_ttarray, sd=self.obsLineFluxErr, observed=self.obsLineFluxes)
 
             # Get energy traces in model
             for RV in model.basic_RVs:
                 print(RV.name, RV.logp(model.test_point))
 
             # Launch model
-            trace = pymc3.sample(iterations, tune=tuning, nchains=2, njobs=2)
+            trace = pymc_examples.sample(iterations, tune=tuning, nchains=2, njobs=2)
 
         return trace, model
 
@@ -354,13 +354,13 @@ class SpectraSynthesizer(ModelIngredients):
             # err_Continuum = self.obsFluxNorm * 0.05
             # err_Continuum[err_Continuum < 0.001] = err_Continuum.mean()
 
-        with pymc3.Model() as model:
+        with pymc_examples.Model() as model:
 
             if self.stellarCheck:
 
                 # Stellar continuum priors
-                Av_star = pymc3.Normal('Av_star', mu=self.stellarAv_prior[0], sd=self.stellarAv_prior[0] * 0.10) #pymc3.Lognormal('Av_star', mu=1, sd=0.75)
-                w_i = pymc3.Normal('w_i', mu=self.sspPrefitCoeffs, sd=self.sspPrefitCoeffs*0.10, shape=self.nBases)
+                Av_star = pymc_examples.Normal('Av_star', mu=self.stellarAv_prior[0], sd=self.stellarAv_prior[0] * 0.10) #pymc3.Lognormal('Av_star', mu=1, sd=0.75)
+                w_i = pymc_examples.Normal('w_i', mu=self.sspPrefitCoeffs, sd=self.sspPrefitCoeffs * 0.10, shape=self.nBases)
 
                 # Compute stellar continuum
                 stellar_continuum = w_i.dot(basesFlux_tt)
@@ -375,14 +375,14 @@ class SpectraSynthesizer(ModelIngredients):
                 continuum_masked = continuum * self.int_mask
 
                 # Likelihood continuum components
-                Y_continuum = pymc3.Normal('Y_continuum', mu=continuum_masked, sd=err_Continuum, observed=self.inputContinuum)
+                Y_continuum = pymc_examples.Normal('Y_continuum', mu=continuum_masked, sd=err_Continuum, observed=self.inputContinuum)
 
             if self.emissionCheck:
 
                 # Gas Physical conditions priors
                 print 'Este prior es', self.Te_prior[0]
-                T_low = pymc3.Normal('T_low', mu=self.Te_prior[0], sd=2000.0)
-                cHbeta = pymc3.Lognormal('cHbeta', mu=0, sd=1) if self.NoReddening is False else self.obj_data['cHbeta_true']
+                T_low = pymc_examples.Normal('T_low', mu=self.Te_prior[0], sd=2000.0)
+                cHbeta = pymc_examples.Lognormal('cHbeta', mu=0, sd=1) if self.NoReddening is False else self.obj_data['cHbeta_true']
 
                 # # Declare a High temperature prior if ions are available, else use the empirical relation.
                 # if any(self.idx_highU):
@@ -398,17 +398,17 @@ class SpectraSynthesizer(ModelIngredients):
 
                     # Helium abundance priors
                     if self.He1rCheck:
-                        tau = pymc3.Lognormal('tau', mu=1, sd=0.75)
+                        tau = pymc_examples.Lognormal('tau', mu=1, sd=0.75)
 
                     # Composition priors
                     abund_dict = {'H1r':1.0}
                     for j in self.rangeObsAtoms:
                         if self.obsAtoms[j] == 'He1r':
-                            abund_dict[self.obsAtoms[j]] = self.normContants['He1r'] * pymc3.Lognormal(self.obsAtoms[j], mu=0, sd=1)#pymc3.Uniform(self.obsAtoms[j], lower=0, upper=1)
+                            abund_dict[self.obsAtoms[j]] = self.normContants['He1r'] * pymc_examples.Lognormal(self.obsAtoms[j], mu=0, sd=1)#pymc3.Uniform(self.obsAtoms[j], lower=0, upper=1)
                         elif self.obsAtoms[j] == 'He2r':
-                            abund_dict[self.obsAtoms[j]] = self.normContants['He2r'] * pymc3.Lognormal(self.obsAtoms[j], mu=0, sd=1)#pymc3.Uniform(self.obsAtoms[j], lower=0, upper=1)
+                            abund_dict[self.obsAtoms[j]] = self.normContants['He2r'] * pymc_examples.Lognormal(self.obsAtoms[j], mu=0, sd=1)#pymc3.Uniform(self.obsAtoms[j], lower=0, upper=1)
                         else:
-                            abund_dict[self.obsAtoms[j]] = pymc3.Normal(self.obsAtoms[j], mu=5, sd=5)
+                            abund_dict[self.obsAtoms[j]] = pymc_examples.Normal(self.obsAtoms[j], mu=5, sd=5)
 
                     # Loop through the lines
                     for i in self.rangeLines:
@@ -445,17 +445,17 @@ class SpectraSynthesizer(ModelIngredients):
                         lineFlux_tt = tt.inc_subtensor(lineFlux_tt[i], flux_i)
 
                     # Store computed fluxes
-                    lineFlux_ttarray = pymc3.Deterministic('calcFluxes_Op',lineFlux_tt)
+                    lineFlux_ttarray = pymc_examples.Deterministic('calcFluxes_Op', lineFlux_tt)
 
                     # Likelihood gas components
-                    Y_emision = pymc3.Normal('Y_emision', mu=lineFlux_ttarray, sd=self.obsLineFluxErr, observed=self.obsLineFluxes)
+                    Y_emision = pymc_examples.Normal('Y_emision', mu=lineFlux_ttarray, sd=self.obsLineFluxErr, observed=self.obsLineFluxes)
 
             # Get energy traces in model
             for RV in model.basic_RVs:
                 print(RV.name, RV.logp(model.test_point))
 
             # Launch model
-            trace = pymc3.sample(iterations, tune=tuning, nchains=2, njobs=2)
+            trace = pymc_examples.sample(iterations, tune=tuning, nchains=2, njobs=2)
 
         return trace, model
 

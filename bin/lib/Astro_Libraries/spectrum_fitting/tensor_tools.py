@@ -3,7 +3,7 @@ os.environ["MKL_THREADING_LAYER"] = "GNU"
 
 import theano.tensor as tt
 from theano import function
-from pymc3.math import abs_
+from pymc_examples.math import abs_
 
 def storeValueInTensor(idx, value, tensor1D):
     return tt.inc_subtensor(tensor1D[idx], value)
