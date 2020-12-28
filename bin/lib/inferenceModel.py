@@ -113,21 +113,17 @@ class SpectraSynthesizer(ModelIngredients):
             # Prefit:
             if prefit is not False:
                 fit_method = prefit if prefit is str else 'fmin_powell'
-                print '\n--Starting {} prefit'.format(fit_method)
                 MAP_Model.fit(method = fit_method)
 
             # Print prefit data
-            print 'Initial conditions:'
             self.display_run_data(MAP_Model, variables_list)
 
             # Launch sample
-            print '\nInitiating fit:'
             self.pymc2_M = pymc2.MCMC(MAP_Model.variables, db = 'pickle', dbname =  db_address)
             self.pymc2_M.sample(iter=iterations)
 
             # Save the output csv mean data
             if variables_list != None:
-                print '--Saving results in csv'
                 csv_address = db_address + '_Parameters'
                 self.pymc2_M.write_csv(csv_address, variables=variables_list)
 
@@ -380,7 +376,6 @@ class SpectraSynthesizer(ModelIngredients):
             if self.emissionCheck:
 
                 # Gas Physical conditions priors
-                print 'Este prior es', self.Te_prior[0]
                 T_low = pymc_examples.Normal('T_low', mu=self.Te_prior[0], sd=2000.0)
                 cHbeta = pymc_examples.Lognormal('cHbeta', mu=0, sd=1) if self.NoReddening is False else self.obj_data['cHbeta_true']
 
@@ -697,6 +692,6 @@ class SpectraSynthesizer(ModelIngredients):
             param_entry = getattr(database, param, None)
             if param_entry is not None:
                 try:
-                    print '-{} {}'.format(param, param_entry.value)
+                    print('-{} {}'.format(param, param_entry.value))
                 except:
-                    print 'I could not do it ', param
+                    print('I could not do it ', param)
